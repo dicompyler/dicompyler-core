@@ -38,8 +38,7 @@ Credits
 
 This package was created with
 `Cookiecutter <https://github.com/audreyr/cookiecutter>`__ and the
-```audreyr/cookiecutter-pypackage`` <https://github.com/audreyr/cookiecutter-pypackage>`__
-project template.
+`audreyr/cookiecutter-pypackage <https://github.com/audreyr/cookiecutter-pypackage>`__
 
 .. |pypi| image:: https://img.shields.io/pypi/v/dicompyler-core.svg
    :target: https://pypi.python.org/pypi/dicompyler-core

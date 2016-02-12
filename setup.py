@@ -43,7 +43,7 @@ setup(
         "pydicom>=1.0.0"
     ],
     extras_require={
-        'image':  ["pillow>=1.0"]
+        'image': ["pillow>=1.0"]
     },
     dependency_links=[
         "git+https://github.com/darcymason/pydicom.git#egg=pydicom-1.0.0"
