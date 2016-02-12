@@ -5,7 +5,7 @@ python:
     - 3.4
     - 3.5
 install:
-    - pip install numpy
+    - pip install pillow
     - pip install coverage
     - pip install coveralls
 script:
