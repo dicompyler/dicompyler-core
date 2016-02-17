@@ -46,7 +46,7 @@ clean-test:
 	rm -fr htmlcov/
 
 lint:
-	flake8 dicompyler-core tests
+	flake8 dicompylercore tests
 
 test:
 	python setup.py test
@@ -55,7 +55,7 @@ test-all:
 	tox
 
 coverage:
-	coverage run --source dicompyler-core setup.py test
+	coverage run --source dicompylercore setup.py test
 	coverage report -m
 	coverage html
 	$(BROWSER) htmlcov/index.html
