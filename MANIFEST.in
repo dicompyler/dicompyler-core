@@ -1,11 +1,14 @@
-include AUTHORS.rst
-include CONTRIBUTING.rst
 include HISTORY.rst
 include LICENSE
 include README.rst
+include tox.ini
+include .coveragerc
+include requirements_dev.txt
+include Makefile
 
 recursive-include tests *
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
+recursive-exclude * *.DS_Store
 
-recursive-include docs *.rst conf.py Makefile make.bat
+recursive-exclude docs *.rst conf.py Makefile make.bat
