@@ -11,7 +11,10 @@
 
 import logging
 import numpy as np
-from pydicom import dicomio
+try:
+    from pydicom.dicomio import read_file
+except ImportError:
+    from dicom import read_file
 import random
 from numbers import Number
 from six import PY2, iterkeys
@@ -36,7 +39,7 @@ class DicomParser:
         elif filename:
             try:
                 self.ds = \
-                    dicomio.read_file(filename, defer_size=100, force=True)
+                    read_file(filename, defer_size=100, force=True)
             except:
                 # Raise the error for the calling method to handle
                 raise

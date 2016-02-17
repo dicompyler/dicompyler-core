@@ -40,7 +40,7 @@ setup(
     install_requires=[
         "numpy>=1.2",
         "six>=1.5",
-        "pydicom>=1.0.0"
+        "pydicom>=0.9.9"
     ],
     extras_require={
         'image': ["pillow>=1.0"]
@@ -63,7 +63,6 @@ setup(
         'License :: OSI Approved :: BSD License',
         'Natural Language :: English',
         "Programming Language :: Python :: 2",
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',

@@ -8,8 +8,12 @@
 import unittest
 import os
 from dicompylercore import dicomparser
-from pydicom.multival import MultiValue as mv
-from pydicom.valuerep import DSfloat
+try:
+    from pydicom.multival import MultiValue as mv
+    from pydicom.valuerep import DSfloat
+except ImportError: 
+    from dicom.multival import MultiValue as mv
+    from dicom.valuerep import DSfloat
 from numpy import array
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 

@@ -14,27 +14,44 @@ package includes:
 Other information
 -----------------
 
--  Free software: `BSD license <LICENSE>`__
+-  Free software: `BSD license <https://github.com/dicompyler/dicompyler-core/blob/master/LICENSE>`__
 -  Documentation: `Read the
    docs <https://dicompyler-core.readthedocs.org>`__
--  Tested on Python 2.7/3.4+
+-  Tested on Python 2.7/3.3+
 
 Dependencies
 ------------
 
 -  `numpy <http://www.numpy.org>`__ 1.2 or higher
--  `pydicom <http://www.pydicom.org>`__ 1.0 or higher
+-  `pydicom <http://www.pydicom.org>`__ 0.9.9 or higher
+
+  - pydicom 1.0 is preferred and can be installed via pip using: ``pip install https://github.com/darcymason/pydicom/archive/master.zip``
+
 -  `six <https://pythonhosted.org/six/>`__ 1.5 or higher
 -  Optional:
 
   -  `Pillow <http://python-pillow.org/>`__ (for image display)
+
+Basic Usage
+------------
+
+.. code-block:: python
+
+	from dicompylercore import dicomparser
+	dp = dicomparser.DicomParser(filename="rtss.dcm")
+
+	# i.e. Get a dict of structure information
+	structures = dp.GetStructures()
+
+	>>> structures[5]
+	{'color': array([255, 128, 0]), 'type': 'ORGAN', 'id': 5, 'empty': False, 'name': 'Heart'}
 
 Credits
 -------
 
 This package was created with
 `Cookiecutter <https://github.com/audreyr/cookiecutter>`__ and the
-`audreyr/cookiecutter-pypackage <https://github.com/audreyr/cookiecutter-pypackage>`__
+`audreyr/cookiecutter-pypackage <https://github.com/audreyr/cookiecutter-pypackage>`__ project template.
 
 .. |pypi| image:: https://img.shields.io/pypi/v/dicompyler-core.svg
    :target: https://pypi.python.org/pypi/dicompyler-core
