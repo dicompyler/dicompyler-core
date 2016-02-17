@@ -8,8 +8,7 @@ package includes:
 
 -  ``dicomparser``: class that parses DICOM objects in an easy-to-use
    manner
--  DVH calculation: independent dose volume histogram (DVH) calculation
-   if dose grid and structure data is present
+-  ``dvhcalc``: independent dose volume histogram (DVH) calculation if dose grid and structure data is present
 
 Other information
 -----------------
@@ -25,12 +24,12 @@ Dependencies
 -  `numpy <http://www.numpy.org>`__ 1.2 or higher
 -  `pydicom <http://www.pydicom.org>`__ 0.9.9 or higher
 
-  - pydicom 1.0 is preferred and can be installed via pip using: ``pip install https://github.com/darcymason/pydicom/archive/master.zip``
+   -  pydicom 1.0 is preferred and can be installed via pip using: ``pip install https://github.com/darcymason/pydicom/archive/master.zip``
 
 -  `six <https://pythonhosted.org/six/>`__ 1.5 or higher
 -  Optional:
 
-  -  `Pillow <http://python-pillow.org/>`__ (for image display)
+   -  `Pillow <http://python-pillow.org/>`__ (for image display)
 
 Basic Usage
 ------------
