@@ -5,9 +5,9 @@ Credits
 Development Lead
 ----------------
 
-* Aditya Panchal <apanchal@bastula.org>
+* Aditya Panchal
 
 Contributors
 ------------
 
-None yet. Why not be the first?
+* Roy Keyes

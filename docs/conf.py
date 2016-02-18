@@ -42,6 +42,9 @@ import dicompylercore
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode']
 
+autodoc_mock_imports = ['numpy', 'dicom', 'pydicom', 'pydicom.dicomio',
+                        'PIL', 'numpy.ma', 'matplotlib.nxutils']
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
