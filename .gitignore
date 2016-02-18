@@ -59,4 +59,4 @@ docs/_build/
 target/
 
 # Mac OS X cruft
-.DS_Store
+*.DS_Store
