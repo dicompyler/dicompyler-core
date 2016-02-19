@@ -11,7 +11,7 @@ from dicompylercore import dicomparser
 try:
     from pydicom.multival import MultiValue as mv
     from pydicom.valuerep import DSfloat
-except ImportError: 
+except ImportError:
     from dicom.multival import MultiValue as mv
     from dicom.valuerep import DSfloat
 from numpy import array
