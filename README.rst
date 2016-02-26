@@ -1,7 +1,7 @@
 dicompyler-core
 ===============
 
-|pypi| |travis-ci| |coveralls| |Documentation Status|
+|pypi| |travis-ci| |coveralls| |Documentation Status| |Code Issues|
 
 Core functionality of `dicompyler <http://www.dicompyler.com>`__. This
 package includes:
@@ -60,3 +60,6 @@ This package was created with
    :target: https://coveralls.io/github/dicompyler/dicompyler-core?branch=master
 .. |Documentation Status| image:: https://readthedocs.org/projects/dicompyler-core/badge/?version=latest
    :target: https://readthedocs.org/projects/dicompyler-core/?badge=latest
+.. |Code Issues| image:: https://www.quantifiedcode.com/api/v1/project/f2b08831f654419ca842871df4467cf9/badge.svg
+   :target: https://www.quantifiedcode.com/app/project/f2b08831f654419ca842871df4467cf9
+   :alt: Code issues
