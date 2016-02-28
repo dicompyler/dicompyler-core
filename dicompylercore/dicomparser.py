@@ -189,7 +189,13 @@ class DicomParser:
                 patient['gender'] = 'O'
         if 'PatientBirthDate' in self.ds:
             if len(self.ds.PatientBirthDate):
-                patient['birth_date'] = str(self.ds.PatientBirthDate)
+                # Remove non-numeric characters if found in BirthDate
+                numeric = ''.join(
+                    c for c in self.ds.PatientBirthDate if c.isdigit())
+                if len(numeric):
+                    patient['birth_date'] = numeric
+                else:
+                    str(self.ds.PatientBirthDate)
 
         return patient
 
