@@ -12,7 +12,7 @@ import logging
 logger = logging.getLogger('dicompyler.dvhcalc')
 import numpy as np
 import numpy.ma as ma
-import matplotlib.nxutils as nx
+import matplotlib.path
 
 def get_dvh(structure, dose, limit=None, callback=None):
     """Get a calculated cumulative DVH along with the associated parameters."""
@@ -100,8 +100,8 @@ def calculate_dvh(structure, dose, limit=None, callback=None):
             else:
                 contour['inside'] = False
                 for point in contour['data']:
-                    if nx.pnpoly(point[0], point[1],
-                                 np.array(contours[largestIndex]['data'])):
+                    c = matplotlib.path.Path(np.array(contours[largestIndex]['data']))
+                    if c.contains_point([point[0], point[1]]):
                         contour['inside'] = True
                         # Assume if one point is inside, all will be inside
                         break
@@ -137,7 +137,7 @@ def calculate_contour_areas(plane):
         # Create arrays for the x,y coordinate pair for the triangulation
         x = []
         y = []
-        for point in contour['contourData']:
+        for point in contour['data']:
             x.append(point[0])
             y.append(point[1])
 
@@ -147,7 +147,7 @@ def calculate_contour_areas(plane):
             cArea = cArea + x[i]*y[i+1] - x[i+1]*y[i]
         cArea = abs(cArea / 2)
         # Remove the z coordinate from the xyz point tuple
-        data = map(lambda x: x[0:2], contour['contourData'])
+        data = map(lambda x: x[0:2], contour['data'])
         # Add the contour area and points to the list of contours
         contours.append({'area':cArea, 'data':data})
 
@@ -161,7 +161,8 @@ def calculate_contour_areas(plane):
 def get_contour_mask(doselut, dosegridpoints, contour):
     """Get the mask for the contour with respect to the dose plane."""
 
-    grid = nx.points_inside_poly(dosegridpoints, contour)
+    c = matplotlib.path.Path(contour)
+    grid = c.contains_points(dosegridpoints)
     grid = grid.reshape((len(doselut[1]), len(doselut[0])))
 
     return grid
