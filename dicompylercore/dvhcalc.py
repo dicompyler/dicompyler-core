@@ -1,18 +1,19 @@
 #!/usr/bin/env python
-# -*- coding: ISO-8859-1 -*-
+# -*- coding: utf-8 -*-
 # dvhcalc.py
 """Calculate dose volume histogram (DVH) from DICOM RT Structure / Dose data."""
-# Copyright (c) 2011-2012 Aditya Panchal
+# Copyright (c) 2011-2016 Aditya Panchal
 # Copyright (c) 2010 Roy Keyes
-# This file is part of dicompyler, released under a BSD license.
+# This file is part of dicompyler-core, released under a BSD license.
 #    See the file license.txt included with this distribution, also
-#    available at http://code.google.com/p/dicompyler/
+#    available at https://github.com/dicompyler/dicompyler-core/
 
 import logging
-logger = logging.getLogger('dicompyler.dvhcalc')
+logger = logging.getLogger('dicompylercore.dvhcalc')
 import numpy as np
 import numpy.ma as ma
 import matplotlib.path
+from six import iteritems
 
 def get_dvh(structure, dose, limit=None, callback=None):
     """Get a calculated cumulative DVH along with the associated parameters."""
@@ -74,7 +75,7 @@ def calculate_dvh(structure, dose, limit=None, callback=None):
 
     plane = 0
     # Iterate over each plane in the structure
-    for z, sPlane in sPlanes.iteritems():
+    for z, sPlane in iteritems(sPlanes):
 
         # Get the contours with calculated areas and the largest contour index
         contours, largestIndex = calculate_contour_areas(sPlane)
@@ -145,7 +146,7 @@ def calculate_contour_areas(plane):
         # Calculate the area based on the Surveyor's formula
         for i in range(0, len(x)-1):
             cArea = cArea + x[i]*y[i+1] - x[i+1]*y[i]
-        cArea = abs(cArea / 2)
+        cArea = abs(cArea // 2)
         # Remove the z coordinate from the xyz point tuple
         data = map(lambda x: x[0:2], contour['data'])
         # Add the contour area and points to the list of contours
@@ -161,7 +162,7 @@ def calculate_contour_areas(plane):
 def get_contour_mask(doselut, dosegridpoints, contour):
     """Get the mask for the contour with respect to the dose plane."""
 
-    c = matplotlib.path.Path(contour)
+    c = matplotlib.path.Path(list(contour))
     grid = c.contains_points(dosegridpoints)
     grid = grid.reshape((len(doselut[1]), len(doselut[0])))
 
@@ -224,19 +225,19 @@ def main():
         calcdvhs[key] = get_dvh(structure, rtdose)
 
     # Compare the calculated and original DVH volume for each structure
-    print '\nStructure Name\t\t' + 'Original Volume\t\t' + \
-          'Calculated Volume\t' + 'Percent Difference'
-    print '--------------\t\t' + '---------------\t\t' + \
-          '-----------------\t' + '------------------'
+    print('\nStructure Name\t\t' + 'Original Volume\t\t' + \
+              'Calculated Volume\t' + 'Percent Difference')
+    print('--------------\t\t' + '---------------\t\t' + \
+          '-----------------\t' + '------------------')
     for key, structure in structures.iteritems():
         if (key in calcdvhs) and (len(calcdvhs[key]['data'])):
             if key in dvhs:
                 ovol = dvhs[key]['data'][0]
                 cvol = calcdvhs[key]['data'][0]
-                print string.ljust(structure['name'], 18) + '\t' + \
+                print(string.ljust(structure['name'], 18) + '\t' + \
                       string.ljust(str(ovol), 18) + '\t' + \
                       string.ljust(str(cvol), 18) + '\t' + \
-                      "%.3f" % float((100)*(cvol-ovol)/(ovol))
+                      "%.3f" % float((100)*(cvol-ovol)/(ovol)))
 
     # Plot the DVHs if pylab is available
     if has_pylab:
