@@ -15,7 +15,6 @@ mpl_available = True
 try:
     import matplotlib.pyplot as plt
 except:
-    plt.ioff()
     mpl_available = False
 else:
     plt.ioff()

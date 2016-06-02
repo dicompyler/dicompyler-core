@@ -41,7 +41,7 @@ setup(
         "numpy>=1.2",
         "six>=1.5",
         "pydicom>=0.9.9",
-        "matplotlib>=1.3.0"
+        "matplotlib>=1.3.0, <=1.5.1"
     ],
     extras_require={
         'image': ["pillow>=1.0"]
