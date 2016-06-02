@@ -572,7 +572,7 @@ class DicomParser:
             return True
 
     def GetDVHs(self):
-        """Returns the dose-volume histograms (DVHs)."""
+        """Returns cumulative dose-volume histograms (DVHs)."""
 
         self.dvhs = {}
 

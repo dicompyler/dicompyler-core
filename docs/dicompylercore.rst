@@ -12,6 +12,14 @@ dicompylercore.dicomparser module
     :undoc-members:
     :show-inheritance:
 
+dicompylercore.dvh module
+-------------------------
+
+.. automodule:: dicompylercore.dvh
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 dicompylercore.dvhcalc module
 -----------------------------
 

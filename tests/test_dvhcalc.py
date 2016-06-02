@@ -37,7 +37,7 @@ class TestDVHCalc(unittest.TestCase):
         self.dvhs = self.rtdose.GetDVHs()
 
     def test_dvh_calculation(self):
-        """Test if DVHs can be calculated from the DICOM data."""
+        """Test if cumulative DVHs can be calculated from the DICOM data."""
 
         # Generate the calculated DVHs
         key = 5
@@ -47,8 +47,16 @@ class TestDVHCalc(unittest.TestCase):
             structure['planes'])
         dvh = dvhcalc.get_dvh(structure, self.rtdose)
 
-        self.assertAlmostEqual(dvh['data'][0], 440.2312499999)
-        self.assertAlmostEqual(dvh['data'][-1], 0.018749999999)
+        # Volume
+        self.assertAlmostEqual(dvh['volume'], 440.23125)
+        # Min dose bin
+        self.assertAlmostEqual(dvh['data'][0][0], 0)
+        # Max dose bin
+        self.assertAlmostEqual(dvh['data'][0][-1], 309)
+        # Min volume
+        self.assertAlmostEqual(dvh['data'][1][0], 100)
+        # Max volume
+        self.assertAlmostEqual(dvh['data'][1][-1], 0.00425912)
 
 
 if __name__ == '__main__':

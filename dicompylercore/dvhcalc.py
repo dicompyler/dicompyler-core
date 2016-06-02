@@ -21,13 +21,14 @@ def get_dvh(structure, dose, limit=None, callback=None):
     # Get the differential DVH
     hist = calculate_dvh(structure, dose, limit, callback)
     # Convert the differential DVH into a cumulative DVH
-    dvh = get_cdvh(hist)
+    dvh = hist[::-1].cumsum()[::-1]
 
     dvhdata = {}
-    dvhdata['data'] = dvh
+    dvhdata['data'] = np.array([np.arange(0, dvh.size), 100 * dvh / dvh[0]])
     dvhdata['bins'] = len(dvh)
     dvhdata['type'] = 'CUMULATIVE'
     dvhdata['doseunits'] = 'GY'
+    dvhdata['volume'] = dvh[0]
     dvhdata['volumeunits'] = 'CM3'
     dvhdata['scaling'] = 1
     # save the min dose as -1 so we can calculate it later
@@ -183,19 +184,6 @@ def calculate_contour_dvh(mask, doseplane, maxdose, dd, id, structure):
                       (id['pixelspacing'][1]) *
                       (structure['thickness']))
     return hist, vol
-
-def get_cdvh(ddvh):
-    """Calculate the cumulative DVH from a differential DVH array."""
-
-    # cDVH(x) is Sum (Integral) of dDVH with x as lower limit
-    cdvh = []
-    j = 0
-    jmax = len(ddvh)
-    while j < jmax:
-        cdvh += [np.sum(ddvh[j:])]
-        j += 1
-    cdvh = np.array(cdvh)
-    return cdvh
 
 ############################# Test DVH Calculation #############################
 
