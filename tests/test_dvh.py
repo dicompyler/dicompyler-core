@@ -36,11 +36,13 @@ class TestDVH(unittest.TestCase):
         cls.rx_dose = 14
 
     def test_raw_data_dvh(self):
-        """Test if a DVH can be created from raw data with a [0, 1] bin."""
+        """Test if a DVH can be created from raw data."""
         self.assertEqual(dvh.DVH.from_data(1, 1), dvh.DVH([1], [1]))
         self.assertEqual(
             dvh.DVH.from_data(1, 1).__repr__(),
             "DVH(cumulative, 1 bins: [0:1] Gy, volume: 0 cm3)")
+        assert_array_equal(dvh.DVH.from_data(0, 1).bins, array([0, 0]))
+        assert_array_equal(dvh.DVH.from_data(5, 2).bins, array([0, 2, 4, 5]))
 
     def test_raw_data_dvh_max_bins(self):
         """Test if a DVH can be created from raw data with [0, 5] bin."""
@@ -106,9 +108,63 @@ class TestDVH(unittest.TestCase):
         self.assertEqual(self.dvh.mean, 14.285830178442305)
         self.assertEqual(self.dvh.volume, 12.809180549338702)
 
+    def test_dvh_value(self):
+        """Test if the DVHValue class works as expected."""
+        self.assertEqual(str(dvh.DVHValue(100)), '100')
+        self.assertEqual(str(dvh.DVHValue(100, 'Gy')), '100 Gy')
+        self.assertEqual(
+            repr(dvh.DVHValue(100, 'Gy')),
+            "dvh.DVHValue(100, 'Gy')")
+
+    def test_dvh_statistics(self):
+        """Test if the DVH statistics can be calculated."""
+        self.assertEqual(
+            self.dvh.volume_constraint(0),
+            dvh.DVHValue(12.809180549338601, 'cm3'))
+        self.assertEqual(
+            self.dvh.volume_constraint(100),
+            dvh.DVHValue(12.809180549338601, 'cm3'))
+        self.assertEqual(
+            self.dvh.volume_constraint(105),
+            dvh.DVHValue(0.0, 'cm3'))
+        self.assertEqual(
+            self.dvh.volume_constraint(14, 'gy'),
+            dvh.DVHValue(12.809180549338601, 'cm3'))
+        self.assertEqual(
+            self.dvh.volume_constraint(100, 'gy'),
+            dvh.DVHValue(0.0, 'cm3'))
+        self.assertEqual(
+            self.dvh.dose_constraint(90),
+            dvh.DVHValue(14.169999999999742, 'gy'))
+        self.assertEqual(
+            self.dvh.dose_constraint(0.02, 'cc'),
+            dvh.DVHValue(14.529999999999735, 'gy'))
+        self.assertEqual(
+            self.dvh.dose_constraint(15, 'cc'),
+            dvh.DVHValue(0.0, 'gy'))
+
+    def test_dvh_statistics_shorthand(self):
+        """Test if the DVH statistics can be accessed via shorthand."""
+        self.assertEqual(
+            self.dvh.v100, dvh.DVHValue(12.809180549338601, 'cm3'))
+        self.assertEqual(
+            self.dvh.v14Gy, dvh.DVHValue(12.809180549338601, 'cm3'))
+        self.assertEqual(
+            self.dvh.D90, dvh.DVHValue(14.169999999999742, 'gy'))
+        self.assertEqual(
+            self.dvh.d2cc, dvh.DVHValue(14.389999999999738, 'gy'))
+
+    # @unittest.expectedFailure
+    def test_dvh_statistics_shorthand_fail(self):
+        """Test if the DVH statistics shorthand fail on invalid syntaxes."""
+        with self.assertRaises(AttributeError):
+            self.dvh.v100agy
+
     @unittest.skipUnless(mpl_available, "Matplotlib not installed")
     def test_plotting(self):
         """Test if the DVH can be plotted."""
+        self.assertEqual(self.dvh.plot(), self.dvh)
+        self.dvh.name = "test"
         self.assertEqual(self.dvh.plot(), self.dvh)
 
 if __name__ == '__main__':

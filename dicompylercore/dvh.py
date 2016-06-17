@@ -8,6 +8,7 @@
 #    available at https://github.com/dicompyler/dicompyler-core/
 
 import numpy as np
+import re
 import logging
 logger = logging.getLogger('dicompyler.dvh')
 
@@ -18,12 +19,13 @@ relative_units = '%'
 
 
 class DVH:
-    """Class that stores dose volume histogram (DVH) data in cGy."""
+    """Class that stores dose volume histogram (DVH) data."""
 
     def __init__(self, counts, bins,
                  dvh_type='cumulative',
                  dose_units=abs_dose_units,
-                 volume_units=abs_volume_units):
+                 volume_units=abs_volume_units,
+                 name=None):
         """Initialization for a DVH from existing histogram counts and bins.
 
         Parameters
@@ -38,15 +40,18 @@ class DVH:
             Absolute dose units, i.e. 'gy' or relative units '%'
         volume_units : str, optional
             Absolute volume units, i.e. 'cm3' or relative units '%'
+        name : String, optional
+            Name of the structure of the DVH
         """
         self.counts = np.array(counts)
         self.bins = np.array(bins) if bins[0] == 0 else np.append([0], bins)
         self.dvh_type = dvh_type.lower()
         self.dose_units = dose_units.lower()
         self.volume_units = volume_units.lower()
+        self.name = name
 
     @classmethod
-    def from_dicom_dvh(cls, dataset, sequence_num):
+    def from_dicom_dvh(cls, dataset, sequence_num, name=None):
         """Initialization for a DVH from a pydicom RT Dose DVH sequence."""
         dvh = dataset.DVHSequence[sequence_num]
         data = np.array(dvh.DVHData)
@@ -54,7 +59,8 @@ class DVH:
                    bins=data[0::2].cumsum(),
                    dvh_type=dvh.DVHType,
                    dose_units=dvh.DoseUnits,
-                   volume_units=dvh.DVHVolumeUnits)
+                   volume_units=dvh.DVHVolumeUnits,
+                   name=name)
 
     @classmethod
     def from_data(cls, data, binsize=1):
@@ -118,11 +124,10 @@ class DVH:
         if self.dvh_type == dvh_type:
             return self
         else:
-            return DVH(counts=np.append(abs(np.diff(self.counts) * -1), [0]),
-                       bins=self.bins,
-                       dvh_type=dvh_type,
-                       dose_units=self.dose_units,
-                       volume_units=self.volume_units)
+            return DVH(**dict(
+                self.__dict__,
+                counts=np.append(abs(np.diff(self.counts) * -1), [0]),
+                dvh_type=dvh_type))
 
     @property
     def cumulative(self):
@@ -131,22 +136,20 @@ class DVH:
         if self.dvh_type == dvh_type:
             return self
         else:
-            return DVH(counts=self.counts[::-1].cumsum()[::-1],
-                       bins=self.bins,
-                       dvh_type=dvh_type,
-                       dose_units=self.dose_units,
-                       volume_units=self.volume_units)
+            return DVH(**dict(
+                self.__dict__,
+                counts=self.counts[::-1].cumsum()[::-1],
+                dvh_type=dvh_type))
 
     def absolute_dose(self, rx_dose, dose_units=abs_dose_units):
         """Return an absolute dose DVH."""
         if self.dose_units == dose_units:
             return self
         else:
-            return DVH(counts=self.counts,
-                       bins=self.bins * rx_dose / 100,
-                       dvh_type=self.dvh_type,
-                       dose_units=dose_units,
-                       volume_units=self.volume_units)
+            return DVH(**dict(
+                self.__dict__,
+                bins=self.bins * rx_dose / 100,
+                dose_units=dose_units))
 
     def relative_dose(self, rx_dose):
         """Return a relative dose DVH based on a prescription dose.
@@ -160,11 +163,10 @@ class DVH:
         if self.dose_units == dose_units:
             return self
         else:
-            return DVH(counts=self.counts,
-                       bins=100 * self.bins / rx_dose,
-                       dvh_type=self.dvh_type,
-                       dose_units=dose_units,
-                       volume_units=self.volume_units)
+            return DVH(**dict(
+                self.__dict__,
+                bins=100 * self.bins / rx_dose,
+                dose_units=dose_units))
 
     def absolute_volume(self, volume, volume_units=abs_volume_units):
         """Return an absolute volume DVH.
@@ -179,11 +181,10 @@ class DVH:
         if self.volume_units == volume_units:
             return self
         else:
-            return DVH(counts=volume * self.counts / 100,
-                       bins=self.bins,
-                       dvh_type=self.dvh_type,
-                       dose_units=self.dose_units,
-                       volume_units=volume_units)
+            return DVH(**dict(
+                self.__dict__,
+                counts=volume * self.counts / 100,
+                volume_units=volume_units))
 
     @property
     def relative_volume(self):
@@ -195,11 +196,10 @@ class DVH:
         elif self.dvh_type == 'differential':
             return self.cumulative.relative_volume.differential
         else:
-            return DVH(counts=100 * self.counts / self.counts.max(),
-                       bins=self.bins,
-                       dvh_type=self.dvh_type,
-                       dose_units=self.dose_units,
-                       volume_units=volume_units)
+            return DVH(**dict(
+                self.__dict__,
+                counts=100 * self.counts / self.counts.max(),
+                volume_units=volume_units))
 
     @property
     def max(self):
@@ -234,8 +234,142 @@ class DVH:
         except ImportError:
             print('Matplotlib could not be loaded. Install and try again.')
         else:
-            plt.plot(self.bincenters, self.counts)
+            plt.plot(self.bincenters, self.counts, label=self.name)
             # plt.axis([0, self.bins[-1], 0, self.counts[0]])
             plt.xlabel('Dose [%s]' % self.dose_units.capitalize())
             plt.ylabel('Volume [%s]' % self.volume_units.lower())
+            if self.name:
+                plt.legend(loc='best')
         return self
+
+    def volume_constraint(self, dose, dose_units=None):
+        """Calculate the volume that receives at least a specific dose.
+
+        i.e. V100, V150 or V20Gy
+
+        Parameters
+        ----------
+        dose : number
+            Dose value used to determine minimum volume that receives
+            this dose. Can either be in relative or absolute dose units.
+
+        Returns
+        -------
+        number
+            Volume in self.volume_units units.
+        """
+        # Determine whether to lookup relative dose or absolute dose
+        if not dose_units:
+            dose_bins = self.relative_dose(14).bins
+        else:
+            dose_bins = self.absolute_dose(14).bins
+        index = np.argmin(np.fabs(dose_bins - dose))
+        # TODO Add interpolation
+        if index >= self.counts.size:
+            return DVHValue(0.0, self.volume_units)
+        else:
+            return DVHValue(self.counts[index], self.volume_units)
+
+    def dose_constraint(self, volume, volume_units=None):
+        """Calculate the maximum dose that a specific volume receives.
+
+        i.e. D90, D100 or D2cc
+
+        Parameters
+        ----------
+        volume : number
+            Volume used to determine the maximum dose that the volume receives.
+            Can either be in relative or absolute volume units.
+
+        Returns
+        -------
+        number
+            Dose in self.dose_units units.
+        """
+        # Determine whether to lookup relative volume or absolute volume
+        if not volume_units:
+            volume_counts = self.relative_volume.counts
+        else:
+            volume_counts = self.absolute_volume(14).counts
+        if volume > volume_counts.max():
+            return DVHValue(0.0, self.dose_units)
+        # TODO Add interpolation
+        return DVHValue(
+            self.bins[np.argmin(
+                np.fabs(volume_counts - volume))],
+            self.dose_units)
+
+    def __getattr__(self, name):
+        """Method used to automatically generate dose & volume stats properties.
+
+        Parameters
+        ----------
+        name : string
+            Property name called to determine dose & volume statistics
+
+        Returns
+        -------
+        number
+            Value from the dose or volume statistic calculation.
+        """
+        # Compile a regex to determine dose & volume statistics
+        p = re.compile(r'(\S+)?(D|V){1}(\d+[.]?\d*)(gy|cc)?(?!\S+)',
+                       re.IGNORECASE)
+        match = re.match(p, name)
+        # Return the default attribute if not a dose or volume statistic
+        # print(match.groups())
+        if not match or match.groups()[0] is not None:
+            raise AttributeError("'DVH' has no attribute '%s'" % name)
+
+        # Process the regex match
+        c = [x.lower() for x in match.groups() if x]
+        if c[0] == ('v'):
+            # Volume Constraints (i.e. V100) & return a volume
+            if len(c) == 2:
+                return self.volume_constraint(int(c[1]))
+            # Volume Constraints in abs dose (i.e. V20Gy) & return a volume
+            return self.volume_constraint(int(c[1]), c[2])
+        elif c[0] == ('d'):
+            # Dose Constraints (i.e. D90) & return a dose
+            if len(c) == 2:
+                return self.dose_constraint(int(c[1]))
+            # Dose Constraints in abs volume (i.e. D2cc) & return a dose
+            return self.dose_constraint(int(c[1]), c[2])
+
+
+class DVHValue(object):
+    """Class that stores DVH values with the appropriate units."""
+
+    def __init__(self, value, units=''):
+        """Initialization for a DVH value that will also store units."""
+        self.value = value
+        self.units = units
+
+    def __repr__(self):
+        """Representation of the DVH value."""
+        return "dvh.DVHValue(" + self.value.__repr__() + \
+            ", '" + self.units + "')"
+
+    def __str__(self):
+        """String representation of the DVH value."""
+        if not self.units:
+            return str(self.value)
+        else:
+            return str(self.value) + ' ' + self.units
+
+    def __eq__(self, other):
+        """Comparison method between two DVHValue objects.
+
+        Parameters
+        ----------
+        other : DVHValue
+            Other DVHValue object to compare with
+
+        Returns
+        -------
+        Bool
+            True or False if the DVHValues have equal attribs
+        """
+        attribs_eq = self.units == other.units
+        return attribs_eq and \
+            np.allclose(self.value, other.value)
