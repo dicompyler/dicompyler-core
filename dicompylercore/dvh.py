@@ -25,7 +25,7 @@ class DVH:
                  dvh_type='cumulative',
                  dose_units=abs_dose_units,
                  volume_units=abs_volume_units,
-                 name=None):
+                 rx_dose=None, name=None):
         """Initialization for a DVH from existing histogram counts and bins.
 
         Parameters
@@ -40,6 +40,8 @@ class DVH:
             Absolute dose units, i.e. 'gy' or relative units '%'
         volume_units : str, optional
             Absolute volume units, i.e. 'cm3' or relative units '%'
+        rx_dose : number, optional
+            Prescription dose value used to normalize dose bins
         name : String, optional
             Name of the structure of the DVH
         """
@@ -48,10 +50,11 @@ class DVH:
         self.dvh_type = dvh_type.lower()
         self.dose_units = dose_units.lower()
         self.volume_units = volume_units.lower()
+        self.rx_dose = rx_dose
         self.name = name
 
     @classmethod
-    def from_dicom_dvh(cls, dataset, sequence_num, name=None):
+    def from_dicom_dvh(cls, dataset, sequence_num, rx_dose=None, name=None):
         """Initialization for a DVH from a pydicom RT Dose DVH sequence."""
         dvh = dataset.DVHSequence[sequence_num]
         data = np.array(dvh.DVHData)
@@ -60,6 +63,7 @@ class DVH:
                    dvh_type=dvh.DVHType,
                    dose_units=dvh.DoseUnits,
                    volume_units=dvh.DVHVolumeUnits,
+                   rx_dose=None,
                    name=name)
 
     @classmethod
@@ -85,10 +89,14 @@ class DVH:
 
     def __repr__(self):
         """String representation of the class."""
-        return 'DVH(%s, %r bins: [%r:%r] %s, volume: %r %s)' % \
+        return 'DVH(%s, %r bins: [%r:%r] %s, volume: %r %s, name: %r, ' \
+            'rx_dose: %d %s)' % \
             (self.dvh_type, self.counts.size, self.bins.min(),
                 self.bins.max(), self.dose_units.capitalize(),
-                self.volume, self.volume_units.lower())
+                self.volume, self.volume_units.lower(),
+                self.name,
+                0 if not self.rx_dose else self.rx_dose,
+                self.dose_units.capitalize())
 
     def __eq__(self, other):
         """Comparison method between two DVH objects.
@@ -141,31 +149,60 @@ class DVH:
                 counts=self.counts[::-1].cumsum()[::-1],
                 dvh_type=dvh_type))
 
-    def absolute_dose(self, rx_dose, dose_units=abs_dose_units):
-        """Return an absolute dose DVH."""
+    def absolute_dose(self, rx_dose=None, dose_units=abs_dose_units):
+        """Return an absolute dose DVH.
+
+        Parameters
+        ----------
+        rx_dose : number, optional
+            Prescription dose value used to normalize dose bins
+        dose_units : str, optional
+            Units for the absolute dose
+
+        Raises
+        ------
+        AttributeError
+            Description
+        """
         if self.dose_units == dose_units:
             return self
         else:
+            # Raise an error if no rx_dose defined
+            if not self.rx_dose and not rx_dose:
+                raise AttributeError("'DVH' has no defined prescription dose.")
+            else:
+                rxdose = rx_dose if self.rx_dose is None else self.rx_dose
             return DVH(**dict(
                 self.__dict__,
-                bins=self.bins * rx_dose / 100,
+                bins=self.bins * rxdose / 100,
                 dose_units=dose_units))
 
-    def relative_dose(self, rx_dose):
+    def relative_dose(self, rx_dose=None):
         """Return a relative dose DVH based on a prescription dose.
 
         Parameters
         ----------
-        rx_dose : number
+        rx_dose : number, optional
             Prescription dose value used to normalize dose bins
+
+        Raises
+        ------
+        AttributeError
+            Raised if prescription dose was not present either during
+            class initialization or passed via argument.
         """
         dose_units = relative_units
         if self.dose_units == dose_units:
             return self
         else:
+            # Raise an error if no rx_dose defined
+            if not self.rx_dose and not rx_dose:
+                raise AttributeError("'DVH' has no defined prescription dose.")
+            else:
+                rxdose = rx_dose if self.rx_dose is None else self.rx_dose
             return DVH(**dict(
                 self.__dict__,
-                bins=100 * self.bins / rx_dose,
+                bins=100 * self.bins / rxdose,
                 dose_units=dose_units))
 
     def absolute_volume(self, volume, volume_units=abs_volume_units):

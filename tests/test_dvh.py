@@ -39,8 +39,9 @@ class TestDVH(unittest.TestCase):
         """Test if a DVH can be created from raw data."""
         self.assertEqual(dvh.DVH.from_data(1, 1), dvh.DVH([1], [1]))
         self.assertEqual(
-            dvh.DVH.from_data(1, 1).__repr__(),
-            "DVH(cumulative, 1 bins: [0:1] Gy, volume: 0 cm3)")
+            repr(dvh.DVH.from_data(1, 1)),
+            "DVH(cumulative, 1 bins: [0:1] Gy, volume: 0 cm3, " \
+            "name: None, rx_dose: 0 Gy)")
         assert_array_equal(dvh.DVH.from_data(0, 1).bins, array([0, 0]))
         assert_array_equal(dvh.DVH.from_data(5, 2).bins, array([0, 2, 4, 5]))
 
@@ -101,6 +102,24 @@ class TestDVH(unittest.TestCase):
         self.assertEqual(g, h)
         self.assertEqual(h, i)
 
+        # Test if rx_dose is included in initial constructor
+        i.rx_dose = rx
+        j = i.relative_dose().absolute_dose().differential.relative_volume
+        k = i.relative_dose().relative_volume.differential.absolute_dose()
+        l = i.relative_volume.differential.relative_dose().absolute_dose()
+        m = i.differential.relative_dose().relative_volume.absolute_dose()
+        self.assertEqual(i, j)
+        self.assertEqual(j, k)
+        self.assertEqual(k, l)
+        self.assertEqual(l, m)
+
+        # Test if rx_dose is not included in initial constructor
+        # but is accessed as if it is provided
+        with self.assertRaises(AttributeError):
+            self.dvh.relative_dose()
+        with self.assertRaises(AttributeError):
+            self.dvh.relative_dose(14).absolute_dose()
+
     def test_dvh_properties(self):
         """Test if the DVH properties can be derived."""
         self.assertEqual(self.dvh.max, 14.569999999999734)
@@ -154,7 +173,6 @@ class TestDVH(unittest.TestCase):
         self.assertEqual(
             self.dvh.d2cc, dvh.DVHValue(14.389999999999738, 'gy'))
 
-    # @unittest.expectedFailure
     def test_dvh_statistics_shorthand_fail(self):
         """Test if the DVH statistics shorthand fail on invalid syntaxes."""
         with self.assertRaises(AttributeError):
