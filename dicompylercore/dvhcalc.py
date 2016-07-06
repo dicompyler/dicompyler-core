@@ -1,43 +1,31 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # dvhcalc.py
-"""Calculate dose volume histogram (DVH) from DICOM RT Structure / Dose data."""
+"""Calculate dose volume histogram (DVH) from DICOM RT Structure/Dose data."""
 # Copyright (c) 2011-2016 Aditya Panchal
 # Copyright (c) 2010 Roy Keyes
 # This file is part of dicompyler-core, released under a BSD license.
 #    See the file license.txt included with this distribution, also
 #    available at https://github.com/dicompyler/dicompyler-core/
 
-import logging
-logger = logging.getLogger('dicompylercore.dvhcalc')
+from __future__ import division
 import numpy as np
 import numpy.ma as ma
 import matplotlib.path
+from dicompylercore import dvh
 from six import iteritems
+import logging
+logger = logging.getLogger('dicompylercore.dvhcalc')
+
 
 def get_dvh(structure, dose, limit=None, callback=None):
-    """Get a calculated cumulative DVH along with the associated parameters."""
-
-    # Get the differential DVH
+    """Get a calculated cumulative DVH in Gy."""
     hist = calculate_dvh(structure, dose, limit, callback)
-    # Convert the differential DVH into a cumulative DVH
-    dvh = hist[::-1].cumsum()[::-1]
-
-    dvhdata = {}
-    dvhdata['data'] = np.array([np.arange(0, dvh.size), 100 * dvh / dvh[0]])
-    dvhdata['bins'] = len(dvh)
-    dvhdata['type'] = 'CUMULATIVE'
-    dvhdata['doseunits'] = 'GY'
-    dvhdata['volume'] = dvh[0]
-    dvhdata['volumeunits'] = 'CM3'
-    dvhdata['scaling'] = 1
-    # save the min dose as -1 so we can calculate it later
-    dvhdata['min'] = -1
-    # save the max dose as -1 so we can calculate it later
-    dvhdata['max'] = -1
-    # save the mean dose as -1 so we can calculate it later
-    dvhdata['mean'] = -1
-    return dvhdata
+    return dvh.DVH(counts=hist,
+                   bins=np.arange(0, hist.size + 1) / 100,
+                   dvh_type='differential',
+                   dose_units='gy',
+                   ).cumulative
 
 def calculate_dvh(structure, dose, limit=None, callback=None):
     """Calculate the differential DVH for the given structure and dose grid."""

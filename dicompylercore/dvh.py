@@ -54,8 +54,19 @@ class DVH:
         self.name = name
 
     @classmethod
-    def from_dicom_dvh(cls, dataset, sequence_num, rx_dose=None, name=None):
+    def from_dicom_dvh(cls, dataset, roi_num, rx_dose=None, name=None):
         """Initialization for a DVH from a pydicom RT Dose DVH sequence."""
+        sequence_num = -1
+        for i, d in enumerate(dataset.DVHSequence):
+            if 'DVHReferencedROISequence' in d:
+                if 'ReferencedROINumber' in d.DVHReferencedROISequence[0]:
+                    if roi_num == \
+                            d.DVHReferencedROISequence[0].ReferencedROINumber:
+                        sequence_num = i
+                        break
+        if sequence_num == -1:
+            raise AttributeError(
+                "'DVHSequence' has no DVH with ROI Number '%d'." % roi_num)
         dvh = dataset.DVHSequence[sequence_num]
         data = np.array(dvh.DVHData)
         return cls(counts=data[1::2] * dvh.DVHDoseScaling,

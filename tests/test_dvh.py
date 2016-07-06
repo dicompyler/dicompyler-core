@@ -32,7 +32,7 @@ class TestDVH(unittest.TestCase):
         rtdose_dcm = os.path.join(example_data, "rtdose.dcm")
         rtdose = dicomparser.DicomParser(filename=rtdose_dcm)
 
-        cls.dvh = dvh.DVH.from_dicom_dvh(rtdose.ds, 7)
+        cls.dvh = dvh.DVH.from_dicom_dvh(rtdose.ds, 9)
         cls.rx_dose = 14
 
     def test_raw_data_dvh(self):

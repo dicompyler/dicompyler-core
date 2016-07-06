@@ -38,7 +38,6 @@ class TestDVHCalc(unittest.TestCase):
 
     def test_dvh_calculation(self):
         """Test if cumulative DVHs can be calculated from the DICOM data."""
-
         # Generate the calculated DVHs
         key = 5
         structure = self.structures[key]
@@ -48,16 +47,17 @@ class TestDVHCalc(unittest.TestCase):
         dvh = dvhcalc.get_dvh(structure, self.rtdose)
 
         # Volume
-        self.assertAlmostEqual(dvh['volume'], 440.23125)
+        self.assertAlmostEqual(dvh.volume, 440.212499999)
         # Min dose bin
-        self.assertAlmostEqual(dvh['data'][0][0], 0)
+        self.assertAlmostEqual(dvh.bins[0], 0)
         # Max dose bin
-        self.assertAlmostEqual(dvh['data'][0][-1], 309)
-        # Min volume
-        self.assertAlmostEqual(dvh['data'][1][0], 100)
-        # Max volume
-        self.assertAlmostEqual(dvh['data'][1][-1], 0.00425912)
-
+        self.assertEqual(dvh.bins[-1], 3.100000000)
+        # Max dose to structure
+        self.assertAlmostEqual(dvh.max, 3.089999999)
+        # Min dose to structure
+        self.assertAlmostEqual(dvh.min, 0.02999999)
+        # Mean dose to structure
+        self.assertAlmostEqual(dvh.mean, 0.647428656)
 
 if __name__ == '__main__':
     import sys
