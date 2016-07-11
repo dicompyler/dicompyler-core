@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger('dicompyler.dvh')
 
 # Set default absolute dose and volume  units
-abs_dose_units = 'gy'
+abs_dose_units = 'Gy'
 abs_volume_units = 'cm3'
 relative_units = '%'
 
@@ -48,7 +48,7 @@ class DVH:
         self.counts = np.array(counts)
         self.bins = np.array(bins) if bins[0] == 0 else np.append([0], bins)
         self.dvh_type = dvh_type.lower()
-        self.dose_units = dose_units.lower()
+        self.dose_units = dose_units.capitalize()
         self.volume_units = volume_units.lower()
         self.rx_dose = rx_dose
         self.name = name
@@ -103,11 +103,11 @@ class DVH:
         return 'DVH(%s, %r bins: [%r:%r] %s, volume: %r %s, name: %r, ' \
             'rx_dose: %d %s)' % \
             (self.dvh_type, self.counts.size, self.bins.min(),
-                self.bins.max(), self.dose_units.capitalize(),
-                self.volume, self.volume_units.lower(),
+                self.bins.max(), self.dose_units,
+                self.volume, self.volume_units,
                 self.name,
                 0 if not self.rx_dose else self.rx_dose,
-                self.dose_units.capitalize())
+                self.dose_units)
 
     def __eq__(self, other):
         """Comparison method between two DVH objects.
@@ -275,6 +275,32 @@ class DVH:
         """Return the volume of the structure."""
         return self.differential.counts.sum()
 
+    def describe(self):
+        """Describe a summary of DVH statistics in a text based format."""
+        print("Structure: {}".format(self.name))
+        print("-----")
+        dose = "rel dose" if self.dose_units == relative_units else \
+            "abs dose: {}".format(self.dose_units)
+        vol = "rel volume" if self.volume_units == relative_units else \
+            "abs volume: {}".format(self.volume_units)
+        print("DVH Type:  {}, {}, {}".format(
+            self.dvh_type, dose, vol))
+        print("Volume:    {:0.2f} {}".format(
+            self.volume, self.volume_units))
+        print("Max Dose:  {:0.2f} {}".format(
+            self.max, self.dose_units))
+        print("Min Dose:  {:0.2f} {}".format(
+            self.min, self.dose_units))
+        print("Mean Dose: {:0.2f} {}".format(
+            self.mean, self.dose_units))
+        print("D100:      {}".format(self.D100))
+        print("D98:       {}".format(self.D98))
+        print("D95:       {}".format(self.D95))
+        print("V100:      {}".format(self.V100))
+        print("V95:       {}".format(self.V95))
+        print("V5:        {}".format(self.V5))
+        print("D2cc:      {}".format(self.D2cc))
+
     def plot(self):
         """Plot the DVH using Matplotlib if present."""
         try:
@@ -284,8 +310,8 @@ class DVH:
         else:
             plt.plot(self.bincenters, self.counts, label=self.name)
             # plt.axis([0, self.bins[-1], 0, self.counts[0]])
-            plt.xlabel('Dose [%s]' % self.dose_units.capitalize())
-            plt.ylabel('Volume [%s]' % self.volume_units.lower())
+            plt.xlabel('Dose [%s]' % self.dose_units)
+            plt.ylabel('Volume [%s]' % self.volume_units)
             if self.name:
                 plt.legend(loc='best')
         return self
@@ -401,9 +427,11 @@ class DVHValue(object):
     def __str__(self):
         """String representation of the DVH value."""
         if not self.units:
-            return str(self.value)
+            # return str(self.value)
+            return format(self.value, '0.2f')
         else:
-            return str(self.value) + ' ' + self.units
+            # return str(self.value) + ' ' + self.units
+            return format(self.value, '0.2f') + ' ' + self.units
 
     def __eq__(self, other):
         """Comparison method between two DVHValue objects.

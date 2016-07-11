@@ -129,8 +129,8 @@ class TestDVH(unittest.TestCase):
 
     def test_dvh_value(self):
         """Test if the DVHValue class works as expected."""
-        self.assertEqual(str(dvh.DVHValue(100)), '100')
-        self.assertEqual(str(dvh.DVHValue(100, 'Gy')), '100 Gy')
+        self.assertEqual(str(dvh.DVHValue(100)), '100.00')
+        self.assertEqual(str(dvh.DVHValue(100, 'Gy')), '100.00 Gy')
         self.assertEqual(
             repr(dvh.DVHValue(100, 'Gy')),
             "dvh.DVHValue(100, 'Gy')")
@@ -147,20 +147,20 @@ class TestDVH(unittest.TestCase):
             self.dvh.volume_constraint(105),
             dvh.DVHValue(0.0, 'cm3'))
         self.assertEqual(
-            self.dvh.volume_constraint(14, 'gy'),
+            self.dvh.volume_constraint(14, 'Gy'),
             dvh.DVHValue(12.809180549338601, 'cm3'))
         self.assertEqual(
-            self.dvh.volume_constraint(100, 'gy'),
+            self.dvh.volume_constraint(100, 'Gy'),
             dvh.DVHValue(0.0, 'cm3'))
         self.assertEqual(
             self.dvh.dose_constraint(90),
-            dvh.DVHValue(14.169999999999742, 'gy'))
+            dvh.DVHValue(14.169999999999742, 'Gy'))
         self.assertEqual(
             self.dvh.dose_constraint(0.02, 'cc'),
-            dvh.DVHValue(14.529999999999735, 'gy'))
+            dvh.DVHValue(14.529999999999735, 'Gy'))
         self.assertEqual(
             self.dvh.dose_constraint(15, 'cc'),
-            dvh.DVHValue(0.0, 'gy'))
+            dvh.DVHValue(0.0, 'Gy'))
 
     def test_dvh_statistics_shorthand(self):
         """Test if the DVH statistics can be accessed via shorthand."""
@@ -169,9 +169,9 @@ class TestDVH(unittest.TestCase):
         self.assertEqual(
             self.dvh.v14Gy, dvh.DVHValue(12.809180549338601, 'cm3'))
         self.assertEqual(
-            self.dvh.D90, dvh.DVHValue(14.169999999999742, 'gy'))
+            self.dvh.D90, dvh.DVHValue(14.169999999999742, 'Gy'))
         self.assertEqual(
-            self.dvh.d2cc, dvh.DVHValue(14.389999999999738, 'gy'))
+            self.dvh.d2cc, dvh.DVHValue(14.389999999999738, 'Gy'))
 
     def test_dvh_statistics_shorthand_fail(self):
         """Test if the DVH statistics shorthand fail on invalid syntaxes."""
