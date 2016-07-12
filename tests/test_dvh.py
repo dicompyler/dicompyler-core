@@ -137,6 +137,7 @@ class TestDVH(unittest.TestCase):
 
     def test_dvh_statistics(self):
         """Test if the DVH statistics can be calculated."""
+        self.dvh.rx_dose = self.rx_dose
         self.assertEqual(
             self.dvh.volume_constraint(0),
             dvh.DVHValue(12.809180549338601, 'cm3'))
@@ -177,6 +178,11 @@ class TestDVH(unittest.TestCase):
         """Test if the DVH statistics shorthand fail on invalid syntaxes."""
         with self.assertRaises(AttributeError):
             self.dvh.v100agy
+
+    def test_dvh_describe(self):
+        """Test if the DVH statistics summary can be generated."""
+        self.assertEqual(self.dvh.describe(), None)
+        self.assertEqual(self.dvh.relative_dose(self.rx_dose).describe(), None)
 
     @unittest.skipUnless(mpl_available, "Matplotlib not installed")
     def test_plotting(self):

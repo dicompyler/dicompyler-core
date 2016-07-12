@@ -296,9 +296,12 @@ class DVH:
         print("D100:      {}".format(self.D100))
         print("D98:       {}".format(self.D98))
         print("D95:       {}".format(self.D95))
-        print("V100:      {}".format(self.V100))
-        print("V95:       {}".format(self.V95))
-        print("V5:        {}".format(self.V5))
+        # Only show volume statistics if a Rx Dose has been defined
+        # i.e. dose is in relative units
+        if self.dose_units == relative_units:
+            print("V100:      {}".format(self.V100))
+            print("V95:       {}".format(self.V95))
+            print("V5:        {}".format(self.V5))
         print("D2cc:      {}".format(self.D2cc))
 
     def plot(self):
@@ -334,9 +337,9 @@ class DVH:
         """
         # Determine whether to lookup relative dose or absolute dose
         if not dose_units:
-            dose_bins = self.relative_dose(14).bins
+            dose_bins = self.relative_dose().bins
         else:
-            dose_bins = self.absolute_dose(14).bins
+            dose_bins = self.absolute_dose().bins
         index = np.argmin(np.fabs(dose_bins - dose))
         # TODO Add interpolation
         if index >= self.counts.size:
@@ -364,7 +367,7 @@ class DVH:
         if not volume_units:
             volume_counts = self.relative_volume.counts
         else:
-            volume_counts = self.absolute_volume(14).counts
+            volume_counts = self.absolute_volume(self.volume).counts
         if volume > volume_counts.max():
             return DVHValue(0.0, self.dose_units)
         # TODO Add interpolation
