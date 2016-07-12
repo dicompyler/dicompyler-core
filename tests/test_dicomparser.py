@@ -11,10 +11,10 @@ from dicompylercore import dicomparser
 try:
     from pydicom.multival import MultiValue as mv
     from pydicom.valuerep import DSfloat
-except ImportError: 
+except ImportError:
     from dicom.multival import MultiValue as mv
     from dicom.valuerep import DSfloat
-from numpy import array
+from numpy import array, arange
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 pil_available = True
@@ -253,23 +253,16 @@ class TestRTDose(unittest.TestCase):
 
     def test_dvh_data(self):
         """Test if the DVH data can be parsed."""
-        dvh = {
-            'data': array([3.110000e+02,  -4.744815e-13]),
-            'bins': 311,
-            'type': 'CUMULATIVE',
-            'min': 1.6044148e-1,
-            'max': 22.1100949169492,
-            'mean': 4.62539474348025,
-            'doseunits': 'GY',
-            'volumeunits': 'CM3',
-            'scaling': 1.0,
-            'volume': 437.46231750264297
-        }
-        dvhs = self.dp.GetDVHs()
-        # Pop the data numpy array
-        assert_array_almost_equal(dvhs[5].pop('data')[:, -1],
-                           dvh.pop('data'))
-        self.assertEqual(dvhs[5], dvh)
+        dvh = self.dp.GetDVHs()[5]
+        dvh.rx_dose = 14
+        assert_array_almost_equal(dvh.bins, arange(0, 3.12, 0.01))
+        self.assertEqual(dvh.dvh_type, 'cumulative')
+        self.assertEqual(dvh.dose_units, 'Gy')
+        self.assertEqual(dvh.volume_units, 'cm3')
+        self.assertEqual(dvh.volume, 437.46231750264502)
+        self.assertEqual(dvh.relative_dose().max, 22.142857142856986)
+        self.assertEqual(dvh.relative_dose().min, 0.14285714285714285)
+        self.assertEqual(dvh.relative_dose().mean, 4.5909162803374084)
 
     def test_dose_grid(self):
         """Test if the dose grid can be parsed."""

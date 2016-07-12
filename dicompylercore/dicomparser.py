@@ -19,7 +19,7 @@ import random
 from numbers import Number
 from six import PY2, iterkeys
 from six.moves import range
-from dicompylercore import util
+from dicompylercore import dvh, util
 
 pil_available = True
 try:
@@ -583,51 +583,7 @@ class DicomParser:
                     continue
                 number = item.DVHReferencedROISequence[0].ReferencedROINumber
                 logger.debug("Found DVH for ROI #%s", str(number))
-                dvh = {}
-
-                # If the DVH is differential, convert it to a cumulative DVH
-                if (self.ds.DVHSequence[0].DVHType == 'DIFFERENTIAL'):
-                    volumes = item.DVHData[1::2]
-                    data = np.array(map(lambda x: np.sum(volumes[x:]),
-                                        xrange(len(volumes))))
-                # Otherwise the DVH is cumulative
-                else:
-                    data = np.array(item.DVHData[1::2])
-                dvh['bins'] = item.DVHNumberOfBins.real
-                dvh['type'] = 'CUMULATIVE'
-                if "DVHMinimumDose" in item:
-                    dvh['min'] = item.DVHMinimumDose.real
-                else:
-                    # Save the min dose as -1 so we can calculate it later
-                    dvh['min'] = -1
-                if "DVHMaximumDose" in item:
-                    dvh['max'] = item.DVHMaximumDose.real
-                else:
-                    # Save the max dose as -1 so we can calculate it later
-                    dvh['max'] = -1
-                if "DVHMeanDose" in item:
-                    dvh['mean'] = item.DVHMeanDose.real
-                else:
-                    # Save the mean dose as -1 so we can calculate it later
-                    dvh['mean'] = -1
-                dvh['doseunits'] = item.DoseUnits
-                dvh['volumeunits'] = item.DVHVolumeUnits
-                dvh['scaling'] = item.DVHDoseScaling.real
-
-                # Convert the array and make it relative to the total volume
-                dvh['volume'] = data[0]
-                data = (data * 100 / data[0])
-
-                # Determine the dose bins and convert to cGy
-                bins = np.cumsum(item.DVHData[0::2])*100*item.DVHDoseScaling
-
-                # Append a max dose bin of zero at the end of the DVH
-                if (data[-1] > 0):
-                    data = np.append(data, 0)
-                    bins = np.append(bins, bins[-1] + 1)
-
-                dvh['data'] = np.array([bins, data])
-                self.dvhs[number] = dvh
+                self.dvhs[number] = dvh.DVH.from_dicom_dvh(self.ds, number)
 
         return self.dvhs
 
