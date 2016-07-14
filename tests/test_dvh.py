@@ -40,7 +40,7 @@ class TestDVH(unittest.TestCase):
         self.assertEqual(dvh.DVH.from_data(1, 1), dvh.DVH([1], [1]))
         self.assertEqual(
             repr(dvh.DVH.from_data(1, 1)),
-            "DVH(cumulative, 1 bins: [0:1] Gy, volume: 0 cm3, " \
+            "DVH(cumulative, 1 bins: [0:1] Gy, volume: 0 cm3, "
             "name: None, rx_dose: 0 Gy)")
         assert_array_equal(dvh.DVH.from_data(0, 1).bins, array([0, 0]))
         assert_array_equal(dvh.DVH.from_data(5, 2).bins, array([0, 2, 4, 5]))

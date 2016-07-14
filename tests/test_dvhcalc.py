@@ -8,19 +8,11 @@
 import unittest
 import os
 from dicompylercore import dicomparser, dvhcalc
-from numpy import array
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from dicompylercore.dvh import DVH
+from numpy import arange
 
 basedata_dir = "tests/testdata"
 example_data = os.path.join(basedata_dir, "example_data")
-
-# import logging
-# import logging.handlers
-# logger = logging.getLogger('dicompylercore.dvhcalc')
-# logger.setLevel(logging.DEBUG)
-# ch = logging.StreamHandler()
-# ch.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
-# logger.addHandler(ch)
 
 
 class TestDVHCalc(unittest.TestCase):
@@ -36,15 +28,23 @@ class TestDVHCalc(unittest.TestCase):
         self.structures = self.rtss.GetStructures()
         self.dvhs = self.rtdose.GetDVHs()
 
-    def test_dvh_calculation(self):
-        """Test if cumulative DVHs can be calculated from the DICOM data."""
+    def calc_dvh(self, key, limit=None):
+        """Calculate a DVH for testing."""
         # Generate the calculated DVHs
-        key = 5
         structure = self.structures[key]
         structure['planes'] = self.rtss.GetStructureCoordinates(key)
         structure['thickness'] = self.rtss.CalculatePlaneThickness(
             structure['planes'])
-        dvh = dvhcalc.get_dvh(structure, self.rtdose)
+        return dvhcalc.get_dvh(structure, self.rtdose, limit)
+
+    def test_dvh_calculation_empty_structure_no_dose(self):
+        """Test if a DVH returns an empty histogram for invalid data."""
+        dvh = self.calc_dvh(2)
+        self.assertEqual(dvh, DVH([0], arange(0, 2)))
+
+    def test_dvh_calculation(self):
+        """Test if cumulative DVHs can be calculated from the DICOM data."""
+        dvh = self.calc_dvh(5)
 
         # Volume
         self.assertAlmostEqual(dvh.volume, 440.212499999)
@@ -58,6 +58,24 @@ class TestDVHCalc(unittest.TestCase):
         self.assertAlmostEqual(dvh.min, 0.02999999)
         # Mean dose to structure
         self.assertAlmostEqual(dvh.mean, 0.647428656)
+
+    def test_dvh_calculation_with_dose_limit(self):
+        """Test if a DVH can be calculated with a max dose limit."""
+        # Set the dose limit to 100 cGy
+        limitdvh = self.calc_dvh(5, limit=500)
+
+        # Volume
+        self.assertAlmostEqual(limitdvh.volume, 440.212499999)
+        # Min dose bin
+        self.assertAlmostEqual(limitdvh.bins[0], 0)
+        # Max dose bin
+        self.assertEqual(limitdvh.bins[-1], 3.100000000)
+        # Max dose to structure
+        self.assertAlmostEqual(limitdvh.max, 3.089999999)
+        # Min dose to structure
+        self.assertAlmostEqual(limitdvh.min, 0.02999999)
+        # Mean dose to structure
+        self.assertAlmostEqual(limitdvh.mean, 0.647428656)
 
 if __name__ == '__main__':
     import sys

@@ -246,12 +246,15 @@ class DVH:
         else:
             return DVH(**dict(
                 self.__dict__,
-                counts=100 * self.counts / self.counts.max(),
-                volume_units=volume_units))
+                counts=100 * self.counts /
+                       (1 if (self.max == 0) else self.counts.max()),
+                       volume_units=volume_units))
 
     @property
     def max(self):
         """Return the maximum dose."""
+        if self.counts.size == 1:
+            return 0
         diff = self.differential
         # Find the the maximum non-zero dose bin
         return diff.bins[1:][diff.counts > 0][-1]
@@ -259,6 +262,8 @@ class DVH:
     @property
     def min(self):
         """Return the minimum dose."""
+        if self.counts.size == 1:
+            return 0
         diff = self.differential
         # Find the the minimum non-zero dose bin
         return diff.bins[1:][diff.counts > 0][0]
@@ -266,6 +271,8 @@ class DVH:
     @property
     def mean(self):
         """Return the mean dose."""
+        if self.counts.size == 1:
+            return 0
         diff = self.differential
         # Find the area under the differential histogram
         return (diff.bincenters * diff.counts).sum() / diff.counts.sum()

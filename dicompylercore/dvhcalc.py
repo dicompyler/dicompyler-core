@@ -22,9 +22,11 @@ def get_dvh(structure, dose, limit=None, callback=None):
     """Get a calculated cumulative DVH in Gy."""
     hist = calculate_dvh(structure, dose, limit, callback)
     return dvh.DVH(counts=hist,
-                   bins=np.arange(0, hist.size + 1) / 100,
+                   bins=(np.arange(0, 2) if (hist.size == 1) else
+                         np.arange(0, hist.size + 1) / 100),
                    dvh_type='differential',
                    dose_units='gy',
+                   name=structure['name']
                    ).cumulative
 
 
@@ -57,8 +59,7 @@ def calculate_dvh(structure, dose, limit=None, callback=None):
                 maxdose = limit
         hist = np.zeros(maxdose)
     else:
-        hist = np.array([0])
-    volume = 0
+        return np.array([0])
 
     n = 0
     planedata = {}
