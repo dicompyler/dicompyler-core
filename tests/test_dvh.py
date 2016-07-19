@@ -30,7 +30,7 @@ class TestDVH(unittest.TestCase):
     def setUpClass(cls):
         """Setup files for common case testing."""
         rtdose_dcm = os.path.join(example_data, "rtdose.dcm")
-        rtdose = dicomparser.DicomParser(filename=rtdose_dcm)
+        rtdose = dicomparser.DicomParser(rtdose_dcm)
 
         cls.dvh = dvh.DVH.from_dicom_dvh(rtdose.ds, 9)
         cls.rx_dose = 14

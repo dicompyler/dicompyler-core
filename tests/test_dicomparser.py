@@ -8,6 +8,7 @@
 import unittest
 import os
 from dicompylercore import dicomparser
+from dicompylercore.config import pil_available
 try:
     from pydicom.multival import MultiValue as mv
     from pydicom.valuerep import DSfloat
@@ -16,12 +17,6 @@ except ImportError:
     from dicom.valuerep import DSfloat
 from numpy import array, arange
 from numpy.testing import assert_array_equal, assert_array_almost_equal
-
-pil_available = True
-try:
-    from PIL import Image
-except:
-    pil_available = False
 
 basedata_dir = "tests/testdata"
 example_data = os.path.join(basedata_dir, "example_data")
@@ -43,7 +38,7 @@ class TestCommon(unittest.TestCase):
     def setUp(self):
         """Setup files for common case testing."""
         ct_0_dcm = os.path.join(example_data, "ct.0.dcm")
-        self.dp = dicomparser.DicomParser(filename=ct_0_dcm)
+        self.dp = dicomparser.DicomParser(ct_0_dcm)
 
     def test_file_import(self):
         """Test if a standard DICOM file can be parsed."""
@@ -99,7 +94,7 @@ class TestImage(unittest.TestCase):
     def setUp(self):
         """Setup files for Image modality testing."""
         ct_0_dcm = os.path.join(example_data, "ct.0.dcm")
-        self.dp = dicomparser.DicomParser(filename=ct_0_dcm)
+        self.dp = dicomparser.DicomParser(ct_0_dcm)
 
     def test_image_data(self):
         """Test if the image data info can be parsed."""
@@ -147,7 +142,7 @@ class TestRTStructureSet(unittest.TestCase):
     def setUp(self):
         """Setup the files for RT Structure Set modality testing."""
         rtss_dcm = os.path.join(example_data, "rtss.dcm")
-        self.dp = dicomparser.DicomParser(filename=rtss_dcm)
+        self.dp = dicomparser.DicomParser(rtss_dcm)
 
     def test_referenced_series(self):
         """Test if the referenced series can be parsed."""
@@ -206,7 +201,7 @@ class TestRTPlan(unittest.TestCase):
     def setUp(self):
         """Setup the files for RT Plan modality testing."""
         rtplan_dcm = os.path.join(example_data, "rtplan.dcm")
-        self.dp = dicomparser.DicomParser(filename=rtplan_dcm)
+        self.dp = dicomparser.DicomParser(rtplan_dcm)
 
     def test_referenced_structureset(self):
         """Test if the referenced structure set can be parsed."""
@@ -240,7 +235,7 @@ class TestRTDose(unittest.TestCase):
     def setUp(self):
         """Setup the files for RT Dose modality testing."""
         rtdose_dcm = os.path.join(example_data, "rtdose.dcm")
-        self.dp = dicomparser.DicomParser(filename=rtdose_dcm)
+        self.dp = dicomparser.DicomParser(rtdose_dcm)
 
     def test_referenced_plan(self):
         """Test if the referenced plan can be parsed."""

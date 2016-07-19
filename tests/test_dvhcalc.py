@@ -22,20 +22,15 @@ class TestDVHCalc(unittest.TestCase):
         """Setup files for common case testing."""
         rtss_dcm = os.path.join(example_data, "rtss.dcm")
         rtdose_dcm = os.path.join(example_data, "rtdose.dcm")
-        self.rtss = dicomparser.DicomParser(filename=rtss_dcm)
-        self.rtdose = dicomparser.DicomParser(filename=rtdose_dcm)
+        self.rtss = dicomparser.DicomParser(rtss_dcm)
+        self.rtdose = dicomparser.DicomParser(rtdose_dcm)
 
-        self.structures = self.rtss.GetStructures()
         self.dvhs = self.rtdose.GetDVHs()
 
     def calc_dvh(self, key, limit=None):
         """Calculate a DVH for testing."""
         # Generate the calculated DVHs
-        structure = self.structures[key]
-        structure['planes'] = self.rtss.GetStructureCoordinates(key)
-        structure['thickness'] = self.rtss.CalculatePlaneThickness(
-            structure['planes'])
-        return dvhcalc.get_dvh(structure, self.rtdose, limit)
+        return dvhcalc.get_dvh(self.rtss.ds, self.rtdose.ds, key, limit)
 
     def test_dvh_calculation_empty_structure_no_dose(self):
         """Test if a DVH returns an empty histogram for invalid data."""

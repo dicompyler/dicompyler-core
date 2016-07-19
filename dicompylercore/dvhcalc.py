@@ -18,20 +18,55 @@ import logging
 logger = logging.getLogger('dicompylercore.dvhcalc')
 
 
-def get_dvh(structure, dose, limit=None, callback=None):
-    """Get a calculated cumulative DVH in Gy."""
-    hist = calculate_dvh(structure, dose, limit, callback)
+def get_dvh(structure, dose, roi, limit=None, callback=None):
+    """Calculate a cumulative DVH in Gy from a DICOM RT Structure Set & Dose.
+
+    Parameters
+    ----------
+    structure : pydicom Dataset
+        DICOM RT Structure Set used to determine the structure data.
+    dose : pydicom Dataset
+        DICOM RT Dose used to determine the dose grid.
+    roi : int
+        The ROI number used to uniquely identify the structure in the structure
+        set.
+    limit : int, optional
+        Dose limit in cGy as a maximum bin for the histogram.
+    callback : function, optional
+        A function that will be called at every iteration of the calculation.
+    """
+    from dicompylercore import dicomparser
+    rtss = dicomparser.DicomParser(structure)
+    rtdose = dicomparser.DicomParser(dose)
+    structures = rtss.GetStructures()
+    s = structures[roi]
+    s['planes'] = rtss.GetStructureCoordinates(roi)
+    s['thickness'] = rtss.CalculatePlaneThickness(s['planes'])
+
+    hist = calculate_dvh(s, rtdose, limit, callback)
     return dvh.DVH(counts=hist,
                    bins=(np.arange(0, 2) if (hist.size == 1) else
                          np.arange(0, hist.size + 1) / 100),
                    dvh_type='differential',
                    dose_units='gy',
-                   name=structure['name']
+                   name=s['name']
                    ).cumulative
 
 
 def calculate_dvh(structure, dose, limit=None, callback=None):
-    """Calculate the differential DVH for the given structure and dose grid."""
+    """Calculate the differential DVH for the given structure and dose grid.
+
+    Parameters
+    ----------
+    structure : dict
+        A structure (ROI) from an RT Structure Set parsed using DicomParser
+    dose : DicomParser
+        A DicomParser instance of an RT Dose
+    limit : int, optional
+        Dose limit in cGy as a maximum bin for the histogram.
+    callback : function, optional
+        A function that will be called at every iteration of the calculation.
+    """
     planes = structure['planes']
     logger.debug(
         "Calculating DVH of %s %s", structure['id'], structure['name'])
@@ -84,7 +119,6 @@ def calculate_dvh(structure, dose, limit=None, callback=None):
     return hist
 
 
-# @concurrent
 def calculate_plane_histogram(plane, doseplane, dosegridpoints,
                               maxdose, dd, id, structure, hist):
     """Calculate the DVH for the given plane in the structure."""

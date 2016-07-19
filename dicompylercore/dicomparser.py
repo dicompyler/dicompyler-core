@@ -13,8 +13,10 @@ import logging
 import numpy as np
 try:
     from pydicom.dicomio import read_file
+    from pydicom.dataset import Dataset
 except ImportError:
     from dicom import read_file
+    from dicom.dataset import Dataset
 import random
 from numbers import Number
 from six import PY2, iterkeys
@@ -32,14 +34,14 @@ logger = logging.getLogger('dicompylercore.dicomparser')
 class DicomParser:
     """Parses DICOM / DICOM RT files."""
 
-    def __init__(self, dataset=None, filename=None):
+    def __init__(self, dataset):
 
-        if dataset:
+        if isinstance(dataset, Dataset):
             self.ds = dataset
-        elif filename:
+        elif isinstance(dataset, str):
             try:
                 self.ds = \
-                    read_file(filename, defer_size=100, force=True)
+                    read_file(dataset, defer_size=100, force=True)
             except:
                 # Raise the error for the calling method to handle
                 raise
