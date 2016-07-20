@@ -383,13 +383,13 @@ class DVH:
                 np.fabs(volume_counts - volume))],
             self.dose_units)
 
-    def __getattr__(self, name):
-        """Method used to automatically generate dose & volume stats properties.
+    def statistic(self, name):
+        """Return a DVH dose or volume statistic.
 
         Parameters
         ----------
-        name : string
-            Property name called to determine dose & volume statistics
+        name : str
+            DVH statistic in the form of D90, D100, D2cc, V100 or V20Gy, etc.
 
         Returns
         -------
@@ -419,6 +419,21 @@ class DVH:
                 return self.dose_constraint(int(c[1]))
             # Dose Constraints in abs volume (i.e. D2cc) & return a dose
             return self.dose_constraint(int(c[1]), c[2])
+
+    def __getattr__(self, name):
+        """Method used to dynamically determine dose or volume stats.
+
+        Parameters
+        ----------
+        name : string
+            Property name called to determine dose & volume statistics
+
+        Returns
+        -------
+        number
+            Value from the dose or volume statistic calculation.
+        """
+        return self.statistic(name)
 
 
 class DVHValue(object):
