@@ -41,7 +41,7 @@ class DVH:
         volume_units : str, optional
             Absolute volume units, i.e. 'cm3' or relative units '%'
         rx_dose : number, optional
-            Prescription dose value used to normalize dose bins
+            Prescription dose value used to normalize dose bins (in Gy)
         name : String, optional
             Name of the structure of the DVH
         """
@@ -107,7 +107,7 @@ class DVH:
                 self.volume, self.volume_units,
                 self.name,
                 0 if not self.rx_dose else self.rx_dose,
-                self.dose_units)
+                abs_dose_units)
 
     def __eq__(self, other):
         """Comparison method between two DVH objects.
