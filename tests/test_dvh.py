@@ -184,6 +184,16 @@ class TestDVH(unittest.TestCase):
         self.assertEqual(self.dvh.describe(), None)
         self.assertEqual(self.dvh.relative_dose(self.rx_dose).describe(), None)
 
+    def test_dvh_compare(self):
+        """Test if the DVH comparsion summary can be generated."""
+        self.dvh.name = "test"
+        self.assertEqual(self.dvh.compare(self.dvh), None)
+        self.assertEqual(self.dvh.relative_dose(
+            self.rx_dose).compare(
+                self.dvh.relative_dose(self.rx_dose)), None)
+        with self.assertRaises(AttributeError):
+            self.dvh.relative_dose(self.rx_dose).compare(self.dvh)
+
     @unittest.skipUnless(mpl_available, "Matplotlib not installed")
     def test_plotting(self):
         """Test if the DVH can be plotted."""

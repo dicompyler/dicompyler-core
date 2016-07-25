@@ -311,6 +311,79 @@ class DVH:
             print("V5:        {}".format(self.V5))
         print("D2cc:      {}".format(self.D2cc))
 
+    def compare(self, dvh):
+        """Compare the DVH properties with another DVH.
+
+        Parameters
+        ----------
+        dvh : DVH
+            DVH instance to compare against
+
+        Raises
+        ------
+        AttributeError
+            If DVHs do not have equivalent dose & volume units
+        """
+        if not (self.dose_units == dvh.dose_units) or \
+           not (self.volume_units == dvh.volume_units):
+            raise AttributeError("DVH units are not equivalent")
+
+        def fmtcmp(attr, units, ref=self, comp=dvh):
+            """Generate arguments for string formatting.
+
+            Parameters
+            ----------
+            attr : string
+                Attribute used for comparison
+            units : string
+                Units used for the value
+
+            Returns
+            -------
+            tuple
+                tuple used in a string formatter
+            """
+            if attr in ['volume', 'max', 'min', 'mean']:
+                val = ref.__getattribute__(attr)
+                cmpval = comp.__getattribute__(attr)
+            else:
+                val = ref.statistic(attr).value
+                cmpval = comp.statistic(attr).value
+            return attr.capitalize() + ":", val, units, cmpval, units, \
+                0 if not val else ((cmpval - val) / val) * 100, cmpval - val
+
+        print("{:11} {:>14} {:>17} {:>17} {:>14}".format(
+            'Structure:', self.name, dvh.name, 'Rel Diff', 'Abs diff'))
+        print("-----")
+        dose = "rel dose" if self.dose_units == relative_units else \
+            "abs dose: {}".format(self.dose_units)
+        vol = "rel volume" if self.volume_units == relative_units else \
+            "abs volume: {}".format(self.volume_units)
+        print("DVH Type:  {}, {}, {}".format(self.dvh_type, dose, vol))
+        fmtstr = "{:11} {:12.2f} {:3}{:14.2f} {:3}{:+14.2f} % {:+14.2f}"
+        print(fmtstr.format(*fmtcmp('volume', self.volume_units)))
+        print(fmtstr.format(*fmtcmp('max', self.dose_units)))
+        print(fmtstr.format(*fmtcmp('min', self.dose_units)))
+        print(fmtstr.format(*fmtcmp('mean', self.dose_units)))
+        print(fmtstr.format(*fmtcmp('D100', self.dose_units)))
+        print(fmtstr.format(*fmtcmp('D98', self.dose_units)))
+        print(fmtstr.format(*fmtcmp('D95', self.dose_units)))
+        # Only show volume statistics if a Rx Dose has been defined
+        # i.e. dose is in relative units
+        if self.dose_units == relative_units:
+            print(fmtstr.format(
+                *fmtcmp('V100', self.dose_units,
+                        self.relative_dose(), dvh.relative_dose())))
+            print(fmtstr.format(
+                *fmtcmp('V95', self.dose_units,
+                        self.relative_dose(), dvh.relative_dose())))
+            print(fmtstr.format(
+                *fmtcmp('V5', self.dose_units,
+                        self.relative_dose(), dvh.relative_dose())))
+        print(fmtstr.format(*fmtcmp('D2cc', self.dose_units)))
+        self.plot()
+        dvh.plot()
+
     def plot(self):
         """Plot the DVH using Matplotlib if present."""
         try:
