@@ -25,7 +25,7 @@ test_requirements = [
 
 setup(
     name='dicompyler-core',
-    version='0.5.1',
+    version='0.5.2',
     description="Core library of dicompyler",
     long_description=readme + '\n\n' + history,
     author="Aditya Panchal",
