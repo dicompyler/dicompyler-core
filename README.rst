@@ -1,7 +1,7 @@
 dicompyler-core
 ===============
 
-|pypi| |travis-ci| |coveralls| |Documentation Status| |Code Issues|
+|Binder| |pypi| |travis-ci| |coveralls| |Documentation Status| |Code Issues|
 
 Core functionality of `dicompyler <http://www.dicompyler.com>`__. This
 package includes:
@@ -69,6 +69,8 @@ Basic Usage
     >>> calcdvh.max, calcdvh.min, calcdvh.D2cc
     (3.0899999999999999, 0.029999999999999999, dvh.DVHValue(2.96, 'Gy'))
 
+Advanced Usage and Examples can be found in Binder: |Binder|
+
 Credits
 -------
 
@@ -76,6 +78,8 @@ This package was created with
 `Cookiecutter <https://github.com/audreyr/cookiecutter>`__ and the
 `audreyr/cookiecutter-pypackage <https://github.com/audreyr/cookiecutter-pypackage>`__ project template.
 
+.. |Binder| image:: http://mybinder.org/badge.svg
+   :target: http://mybinder.org/repo/bastula/dicom-notebooks
 .. |pypi| image:: https://img.shields.io/pypi/v/dicompyler-core.svg
    :target: https://pypi.python.org/pypi/dicompyler-core
 .. |travis-ci| image:: https://img.shields.io/travis/dicompyler/dicompyler-core.svg
