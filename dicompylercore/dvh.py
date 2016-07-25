@@ -18,7 +18,7 @@ abs_volume_units = 'cm3'
 relative_units = '%'
 
 
-class DVH:
+class DVH(object):
     """Class that stores dose volume histogram (DVH) data."""
 
     def __init__(self, counts, bins,
