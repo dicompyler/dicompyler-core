@@ -25,7 +25,7 @@ class DVH(object):
                  dvh_type='cumulative',
                  dose_units=abs_dose_units,
                  volume_units=abs_volume_units,
-                 rx_dose=None, name=None):
+                 rx_dose=None, name=None, color=None):
         """Initialization for a DVH from existing histogram counts and bins.
 
         Parameters
@@ -44,6 +44,8 @@ class DVH(object):
             Prescription dose value used to normalize dose bins (in Gy)
         name : String, optional
             Name of the structure of the DVH
+        color : numpy array, optional
+            RGB color triplet used for plotting the DVH
         """
         self.counts = np.array(counts)
         self.bins = np.array(bins) if bins[0] == 0 else np.append([0], bins)
@@ -52,9 +54,11 @@ class DVH(object):
         self.volume_units = volume_units.lower()
         self.rx_dose = rx_dose
         self.name = name
+        self.color = color
 
     @classmethod
-    def from_dicom_dvh(cls, dataset, roi_num, rx_dose=None, name=None):
+    def from_dicom_dvh(cls, dataset, roi_num, rx_dose=None, name=None,
+            color=None):
         """Initialization for a DVH from a pydicom RT Dose DVH sequence."""
         sequence_num = -1
         for i, d in enumerate(dataset.DVHSequence):
@@ -74,8 +78,9 @@ class DVH(object):
                    dvh_type=dvh.DVHType,
                    dose_units=dvh.DoseUnits,
                    volume_units=dvh.DVHVolumeUnits,
-                   rx_dose=None,
-                   name=name)
+                   rx_dose=rx_dose,
+                   name=name,
+                   color=color)
 
     @classmethod
     def from_data(cls, data, binsize=1):
@@ -391,7 +396,9 @@ class DVH(object):
         except ImportError:
             print('Matplotlib could not be loaded. Install and try again.')
         else:
-            plt.plot(self.bincenters, self.counts, label=self.name)
+            plt.plot(self.bincenters, self.counts, label=self.name,
+                     color=None if not isinstance(self.color, np.ndarray) else
+                     (self.color / 255))
             # plt.axis([0, self.bins[-1], 0, self.counts[0]])
             plt.xlabel('Dose [%s]' % self.dose_units)
             plt.ylabel('Volume [%s]' % self.volume_units)
