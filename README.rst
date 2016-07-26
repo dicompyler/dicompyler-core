@@ -52,7 +52,6 @@ Basic Usage
 
     >>> dvh.describe()
     Structure: Heart
-    -----
     DVH Type:  cumulative, abs dose: Gy, abs volume: cm3
     Volume:    437.46 cm3
     Max Dose:  3.10 Gy
