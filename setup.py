@@ -25,8 +25,9 @@ test_requirements = [
 
 setup(
     name='dicompyler-core',
-    version='0.5.1',
-    description="Core library of dicompyler",
+    version='0.5.2',
+    description="A library of core radiation therapy modules for DICOM / " +
+                "DICOM RT used by dicompyler",
     long_description=readme + '\n\n' + history,
     author="Aditya Panchal",
     author_email='apanchal@bastula.org',
@@ -40,7 +41,8 @@ setup(
     install_requires=[
         "numpy>=1.2",
         "six>=1.5",
-        "pydicom>=0.9.9"
+        "pydicom>=0.9.9",
+        "matplotlib>=1.3.0, <=1.5.1"
     ],
     extras_require={
         'image': ["pillow>=1.0"]
@@ -56,7 +58,7 @@ setup(
         'dicompyler'
     ],
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Intended Audience :: Healthcare Industry',
         'Intended Audience :: Science/Research',

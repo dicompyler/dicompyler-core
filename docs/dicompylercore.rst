@@ -4,10 +4,26 @@ dicompylercore package
 Submodules
 ----------
 
+dicompylercore.config module
+---------------------------------
+
+.. automodule:: dicompylercore.config
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 dicompylercore.dicomparser module
 ---------------------------------
 
 .. automodule:: dicompylercore.dicomparser
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+dicompylercore.dvh module
+-------------------------
+
+.. automodule:: dicompylercore.dvh
     :members:
     :undoc-members:
     :show-inheritance:

@@ -8,20 +8,15 @@
 import unittest
 import os
 from dicompylercore import dicomparser
+from dicompylercore.config import pil_available
 try:
     from pydicom.multival import MultiValue as mv
     from pydicom.valuerep import DSfloat
 except ImportError:
     from dicom.multival import MultiValue as mv
     from dicom.valuerep import DSfloat
-from numpy import array
+from numpy import array, arange
 from numpy.testing import assert_array_equal, assert_array_almost_equal
-
-pil_available = True
-try:
-    from PIL import Image
-except:
-    pil_available = False
 
 basedata_dir = "tests/testdata"
 example_data = os.path.join(basedata_dir, "example_data")
@@ -43,7 +38,7 @@ class TestCommon(unittest.TestCase):
     def setUp(self):
         """Setup files for common case testing."""
         ct_0_dcm = os.path.join(example_data, "ct.0.dcm")
-        self.dp = dicomparser.DicomParser(filename=ct_0_dcm)
+        self.dp = dicomparser.DicomParser(ct_0_dcm)
 
     def test_file_import(self):
         """Test if a standard DICOM file can be parsed."""
@@ -99,7 +94,7 @@ class TestImage(unittest.TestCase):
     def setUp(self):
         """Setup files for Image modality testing."""
         ct_0_dcm = os.path.join(example_data, "ct.0.dcm")
-        self.dp = dicomparser.DicomParser(filename=ct_0_dcm)
+        self.dp = dicomparser.DicomParser(ct_0_dcm)
 
     def test_image_data(self):
         """Test if the image data info can be parsed."""
@@ -147,7 +142,7 @@ class TestRTStructureSet(unittest.TestCase):
     def setUp(self):
         """Setup the files for RT Structure Set modality testing."""
         rtss_dcm = os.path.join(example_data, "rtss.dcm")
-        self.dp = dicomparser.DicomParser(filename=rtss_dcm)
+        self.dp = dicomparser.DicomParser(rtss_dcm)
 
     def test_referenced_series(self):
         """Test if the referenced series can be parsed."""
@@ -206,7 +201,7 @@ class TestRTPlan(unittest.TestCase):
     def setUp(self):
         """Setup the files for RT Plan modality testing."""
         rtplan_dcm = os.path.join(example_data, "rtplan.dcm")
-        self.dp = dicomparser.DicomParser(filename=rtplan_dcm)
+        self.dp = dicomparser.DicomParser(rtplan_dcm)
 
     def test_referenced_structureset(self):
         """Test if the referenced structure set can be parsed."""
@@ -240,7 +235,7 @@ class TestRTDose(unittest.TestCase):
     def setUp(self):
         """Setup the files for RT Dose modality testing."""
         rtdose_dcm = os.path.join(example_data, "rtdose.dcm")
-        self.dp = dicomparser.DicomParser(filename=rtdose_dcm)
+        self.dp = dicomparser.DicomParser(rtdose_dcm)
 
     def test_referenced_plan(self):
         """Test if the referenced plan can be parsed."""
@@ -253,23 +248,16 @@ class TestRTDose(unittest.TestCase):
 
     def test_dvh_data(self):
         """Test if the DVH data can be parsed."""
-        dvh = {
-            'data': array([3.110000e+02,  -4.744815e-13]),
-            'bins': 311,
-            'type': 'CUMULATIVE',
-            'min': 1.6044148e-1,
-            'max': 22.1100949169492,
-            'mean': 4.62539474348025,
-            'doseunits': 'GY',
-            'volumeunits': 'CM3',
-            'scaling': 1.0,
-            'volume': 437.46231750264297
-        }
-        dvhs = self.dp.GetDVHs()
-        # Pop the data numpy array
-        assert_array_almost_equal(dvhs[5].pop('data')[:, -1],
-                           dvh.pop('data'))
-        self.assertEqual(dvhs[5], dvh)
+        dvh = self.dp.GetDVHs()[5]
+        dvh.rx_dose = 14
+        assert_array_almost_equal(dvh.bins, arange(0, 3.12, 0.01))
+        self.assertEqual(dvh.dvh_type, 'cumulative')
+        self.assertEqual(dvh.dose_units, 'Gy')
+        self.assertEqual(dvh.volume_units, 'cm3')
+        self.assertEqual(dvh.volume, 437.46231750264502)
+        self.assertEqual(dvh.relative_dose().max, 22.142857142856986)
+        self.assertEqual(dvh.relative_dose().min, 0.14285714285714285)
+        self.assertEqual(dvh.relative_dose().mean, 4.5909162803374084)
 
     def test_dose_grid(self):
         """Test if the dose grid can be parsed."""
