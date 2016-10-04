@@ -22,9 +22,9 @@ Dose volume histogram (DVH) data can be accessed in a Pythonic manner using the 
 .. code-block:: python
 
     rtdose = dicomparser.DicomParser("rtdose.dcm")
-    dvh = dvh.DVH.from_dicom_dvh(rtdose.ds, 5)
+    heartdvh = dvh.DVH.from_dicom_dvh(rtdose.ds, 5)
 
-    >>> dvh.describe()
+    >>> heartdvh.describe()
     Structure: Heart
     -----
     DVH Type:  cumulative, abs dose: Gy, abs volume: cm3
@@ -37,8 +37,8 @@ Dose volume histogram (DVH) data can be accessed in a Pythonic manner using the 
     D95:       0.03 Gy
     D2cc:      2.93 Gy
 
-    >>> calcdvh.max, calcdvh.min, calcdvh.D2cc
-    (3.0899999999999999, 0.029999999999999999, dvh.DVHValue(2.96, 'Gy'))
+    >>> heartdvh.max, heartdvh.min, heartdvh.D2cc
+    (3.0999999999999779, 0.02, dvh.DVHValue(2.9299999999999815, 'Gy'))
 
 Dose volume histograms (DVHs) can be independently calculated using the dvh :mod:`dicompylercore.dvhcalc` module:
 
