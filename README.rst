@@ -48,9 +48,9 @@ Basic Usage
 
     # Access DVH data
     rtdose = dicomparser.DicomParser("rtdose.dcm")
-    dvh = dvh.DVH.from_dicom_dvh(rtdose.ds, 5)
+    heartdvh = dvh.DVH.from_dicom_dvh(rtdose.ds, 5)
 
-    >>> dvh.describe()
+    >>> heartdvh.describe()
     Structure: Heart
     DVH Type:  cumulative, abs dose: Gy, abs volume: cm3
     Volume:    437.46 cm3
