@@ -25,7 +25,7 @@ class DVH(object):
                  dvh_type='cumulative',
                  dose_units=abs_dose_units,
                  volume_units=abs_volume_units,
-                 rx_dose=None, name=None, color=None):
+                 rx_dose=None, name=None, color=None, notes=None):
         """Initialization for a DVH from existing histogram counts and bins.
 
         Parameters
@@ -46,6 +46,8 @@ class DVH(object):
             Name of the structure of the DVH
         color : numpy array, optional
             RGB color triplet used for plotting the DVH
+        notes : String, optional
+            Additional notes about the DVH instance
         """
         self.counts = np.array(counts)
         self.bins = np.array(bins) if bins[0] == 0 else np.append([0], bins)
@@ -55,6 +57,7 @@ class DVH(object):
         self.rx_dose = rx_dose
         self.name = name
         self.color = color
+        self.notes = notes
 
     @classmethod
     def from_dicom_dvh(cls, dataset, roi_num, rx_dose=None, name=None,
@@ -106,13 +109,14 @@ class DVH(object):
     def __repr__(self):
         """String representation of the class."""
         return 'DVH(%s, %r bins: [%r:%r] %s, volume: %r %s, name: %r, ' \
-            'rx_dose: %d %s)' % \
+            'rx_dose: %d %s%s)' % \
             (self.dvh_type, self.counts.size, self.bins.min(),
                 self.bins.max(), self.dose_units,
                 self.volume, self.volume_units,
                 self.name,
                 0 if not self.rx_dose else self.rx_dose,
-                abs_dose_units)
+                abs_dose_units,
+                ', *Notes: ' + self.notes if self.notes else '')
 
     def __eq__(self, other):
         """Comparison method between two DVH objects.
@@ -315,6 +319,8 @@ class DVH(object):
             print("V95:       {}".format(self.V95))
             print("V5:        {}".format(self.V5))
         print("D2cc:      {}".format(self.D2cc))
+        if self.notes:
+            print("Notes:     *{}".format(self.notes))
 
     def compare(self, dvh):
         """Compare the DVH properties with another DVH.

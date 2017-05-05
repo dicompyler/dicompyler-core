@@ -620,7 +620,7 @@ class DicomParser:
                 return self.ds.pixel_array[frame]
             # Check if the requested plane is within the dose grid boundaries
             elif ((z < np.amin(planes)) or (z > np.amax(planes))):
-                return []
+                return np.array([])
             # The requested plane was not found, so interpolate between planes
             else:
                 # Determine the upper and lower bounds
@@ -636,7 +636,7 @@ class DicomParser:
                     self.ds.pixel_array[ub], self.ds.pixel_array[lb], fz)
                 return plane
         else:
-            return []
+            return np.array([])
 
     def InterpolateDosePlanes(self, uplane, lplane, fz):
         """Interpolates a dose plane between two bounding planes at the given

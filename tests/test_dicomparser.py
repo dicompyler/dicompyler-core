@@ -265,7 +265,7 @@ class TestRTDose(unittest.TestCase):
         # Test for plane that is listed in the GFOV
         self.assertEqual(self.dp.GetDoseGrid(-122.4407).mean(), mean)
         # Test for plane that doesn't exist in the dose grid
-        self.assertEqual(self.dp.GetDoseGrid(-10000), [])
+        assert_array_equal(self.dp.GetDoseGrid(-10000), array([]))
 
     def test_isodose_points(self):
         """Test if isodose points can be generated from the dose grid."""

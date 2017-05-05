@@ -9,6 +9,12 @@ import unittest
 import os
 from dicompylercore import dicomparser, dvhcalc
 from dicompylercore.dvh import DVH
+try:
+    from pydicom.dataset import Dataset
+    from pydicom.sequence import Sequence
+except ImportError:
+    from dicom.dataset import Dataset
+    from dicom.sequence import Sequence
 from numpy import arange
 
 basedata_dir = "tests/testdata"
@@ -27,10 +33,12 @@ class TestDVHCalc(unittest.TestCase):
 
         self.dvhs = self.rtdose.GetDVHs()
 
-    def calc_dvh(self, key, limit=None):
+    def calc_dvh(self, key, limit=None, calculate_full_volume=True):
         """Calculate a DVH for testing."""
         # Generate the calculated DVHs
-        return dvhcalc.get_dvh(self.rtss.ds, self.rtdose.ds, key, limit)
+        return dvhcalc.get_dvh(
+            self.rtss.ds, self.rtdose.ds, key, limit,
+            calculate_full_volume=calculate_full_volume)
 
     def test_dvh_calculation_empty_structure_no_dose(self):
         """Test if a DVH returns an empty histogram for invalid data."""
@@ -71,6 +79,37 @@ class TestDVHCalc(unittest.TestCase):
         self.assertAlmostEqual(limitdvh.min, 0.02999999)
         # Mean dose to structure
         self.assertAlmostEqual(limitdvh.mean, 0.647428656)
+
+    def test_dvh_contour_outside_dose_grid(self):
+        """Test if a DVH can be calculated with contours outside a dosegrid."""
+        # Add a set of contours outside of the dose grid
+        roi_id = 8
+        roic = self.rtss.ds.ROIContourSequence[roi_id - 1]
+        new_contour = Dataset()
+        # Create a ContourImageSequence for the referenced Image
+        new_contour.ContourImageSequence = Sequence([])
+        contour_image = Dataset()
+        last_contour = roic.ContourSequence[-1].ContourImageSequence[-1]
+        contour_image.ReferencedSOPClassUID = \
+            last_contour.ReferencedSOPClassUID
+        contour_image.ReferencedSOPInstanceUID = \
+            last_contour.ReferencedSOPInstanceUID
+        new_contour.ContourImageSequence.append(contour_image)
+        new_contour.ContourGeometricType = 'CLOSED_PLANAR'
+        new_contour.NumberOfContourPoints = 4
+        new_contour.ContourData = [
+            0.0, -250.0, 180.0,
+            5.0, -250.0, 180.0,
+            5.0, -245.0, 180.0,
+            0.0, -245.0, 180.0]
+        roic.ContourSequence.append(new_contour)
+
+        # Full structure volume (calculated inside/outside dose grid)
+        include_vol_dvh = self.calc_dvh(8, calculate_full_volume=True)
+        self.assertAlmostEqual(include_vol_dvh.volume, 0.54086538)
+        # Partial volume (calculated only within dose grid)
+        partial_vol_dvh = self.calc_dvh(8, calculate_full_volume=False)
+        self.assertAlmostEqual(partial_vol_dvh.volume, 0.46874999)
 
 if __name__ == '__main__':
     import sys
