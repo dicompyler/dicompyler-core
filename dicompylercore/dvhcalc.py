@@ -52,8 +52,7 @@ def get_dvh(structure,
     s['planes'] = rtss.GetStructureCoordinates(roi)
     s['thickness'] = rtss.CalculatePlaneThickness(s['planes'])
 
-    calcdvh = calculate_dvh(s, rtdose, limit, calculate_full_volume,
-                               callback)
+    calcdvh = calculate_dvh(s, rtdose, limit, calculate_full_volume, callback)
     return dvh.DVH(counts=calcdvh.histogram,
                    bins=(np.arange(0, 2) if (calcdvh.histogram.size == 1) else
                          np.arange(0, calcdvh.histogram.size + 1) / 100),
@@ -119,7 +118,6 @@ def calculate_dvh(structure,
     planedata = {}
     # Iterate over each plane in the structure
     for z, plane in iteritems(planes):
-        print(z)
         # Get the dose plane for the current structure plane
         doseplane = dose.GetDoseGrid(z)
         if doseplane.size:
@@ -131,14 +129,14 @@ def calculate_dvh(structure,
             # but only use it to calculate the volume for the slice
             if not calculate_full_volume:
                 logger.warning('Dose plane not found for %s. Contours' +
-                            ' not used for volume calculation.', z)
+                               ' not used for volume calculation.', z)
                 notes = 'Dose grid does not encompass every contour.' + \
                     ' Volume calculated within dose grid.'
             else:
                 origin_z = id['position'][2]
                 logger.warning('Dose plane not found for %s.' +
-                            ' Using %s to calculate contour volume.', z,
-                            origin_z)
+                               ' Using %s to calculate contour volume.',
+                               z, origin_z)
                 _, vol = calculate_plane_histogram(
                     plane, dose.GetDoseGrid(origin_z), dosegridpoints, maxdose,
                     dd, id, structure, hist)
@@ -152,7 +150,10 @@ def calculate_dvh(structure,
     volume = sum([p[1] for p in planedata.values()]) / 1000
     # Rescale the histogram to reflect the total volume
     hist = sum([p[0] for p in planedata.values()])
-    hist = hist * volume / sum(hist)
+    if hist.max() > 0:
+        hist = hist * volume / sum(hist)
+    else:
+        return calcdvh('Empty DVH', np.array([0]))
     # Remove the bins above the max dose for the structure
     hist = np.trim_zeros(hist, trim='b')
 

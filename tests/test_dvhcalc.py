@@ -64,7 +64,7 @@ class TestDVHCalc(unittest.TestCase):
 
     def test_dvh_calculation_with_dose_limit(self):
         """Test if a DVH can be calculated with a max dose limit."""
-        # Set the dose limit to 100 cGy
+        # Set the dose limit to 500 cGy (lower than max dose)
         limitdvh = self.calc_dvh(5, limit=500)
 
         # Volume
@@ -79,6 +79,16 @@ class TestDVHCalc(unittest.TestCase):
         self.assertAlmostEqual(limitdvh.min, 0.02999999)
         # Mean dose to structure
         self.assertAlmostEqual(limitdvh.mean, 0.647428656)
+
+        # Set the dose limit to 2000 cGy (higher than max dose)
+        highlimitdvh = self.calc_dvh(5, limit=2000)
+        # Max dose bin
+        self.assertEqual(highlimitdvh.bins[-1], 3.100000000)
+
+        # Set the dose limit to 1 cGy (should produce an empty histogram)
+        lowlimitdvh = self.calc_dvh(5, limit=1)
+        # Max dose bin
+        self.assertEqual(lowlimitdvh.bins[-1], 1)
 
     def test_dvh_contour_outside_dose_grid(self):
         """Test if a DVH can be calculated with contours outside a dosegrid."""
