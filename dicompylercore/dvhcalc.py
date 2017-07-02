@@ -83,7 +83,7 @@ def calculate_dvh(structure,
     callback : function, optional
         A function that will be called at every iteration of the calculation.
     """
-    planes = collections.OrderedDict(sorted(iteritems(structure['planes'])))
+    planes = collections.OrderedDict(sorted(structure['planes'].items()))
     calcdvh = collections.namedtuple('DVH', ['notes', 'histogram'])
     logger.debug("Calculating DVH of %s %s", structure['id'],
                  structure['name'])
@@ -117,7 +117,7 @@ def calculate_dvh(structure,
     notes = None
     planedata = {}
     # Iterate over each plane in the structure
-    for z, plane in iteritems(planes):
+    for z, plane in planes.items():
         # Get the dose plane for the current structure plane
         doseplane = dose.GetDoseGrid(z)
         if doseplane.size:
