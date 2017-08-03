@@ -2,6 +2,13 @@
 History
 =======
 
+0.5.3 (2017-08-03)
+------------------
+* Added support for plotting structure colors.
+* Support Python 2 unicode filenames in dicomparser.
+* Support DVH calculation of structures partially covered by the dose grid.
+
+
 0.5.2 (2016-07-25)
 ------------------
 
