@@ -4,10 +4,12 @@ python:
     - 3.3
     - 3.4
     - 3.5
+    - 3.6
 install:
     - pip install pillow
     - pip install coverage
     - pip install coveralls
+    - pip install codecov
 before_script: # configure a headless display to test plot generation
     - "export DISPLAY=:99.0"
     - "sh -e /etc/init.d/xvfb start"
@@ -15,4 +17,5 @@ before_script: # configure a headless display to test plot generation
 script:
   coverage run --source=dicompylercore setup.py test
 after_success:
-  coveralls
+  - coveralls
+  - codecov
