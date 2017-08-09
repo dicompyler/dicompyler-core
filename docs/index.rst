@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 Welcome to dicompyler-core's documentation!
-======================================
+===========================================
 
 Contents:
 
@@ -14,6 +14,7 @@ Contents:
    readme
    installation
    usage
+   Module Reference <modules>
    contributing
    authors
    history

@@ -1,7 +1,7 @@
 dicompyler-core
 ===============
 
-|Binder| |pypi| |travis-ci| |coveralls| |Documentation Status| |Code Issues|
+|Binder| |pypi| |travis-ci| |circleci| |coveralls| |Codacy| |Codecov| |Documentation Status|
 
 Core functionality of `dicompyler <http://www.dicompyler.com>`__. This
 package includes:
@@ -24,7 +24,7 @@ Dependencies
 -  `numpy <http://www.numpy.org>`__ 1.2 or higher
 -  `pydicom <http://www.pydicom.org>`__ 0.9.9 or higher
 
-   -  pydicom 1.0 is preferred and can be installed via pip using: ``pip install https://github.com/darcymason/pydicom/archive/master.zip``
+   -  pydicom 1.0 is preferred and can be installed via pip using: ``pip install https://github.com/darcymason/pydicom/archive/master.zip --upgrade``
 
 -  `matplotlib <http://matplotlib.org>`__ 1.3.0 or higher (for DVH calculation)
 -  `six <https://pythonhosted.org/six/>`__ 1.5 or higher
@@ -83,10 +83,13 @@ This package was created with
    :target: https://pypi.python.org/pypi/dicompyler-core
 .. |travis-ci| image:: https://img.shields.io/travis/dicompyler/dicompyler-core.svg
    :target: https://travis-ci.org/dicompyler/dicompyler-core
+.. |circleci| image:: https://circleci.com/gh/dicompyler/dicompyler-core.svg?style=svg
+   :target: https://circleci.com/gh/dicompyler/dicompyler-core
 .. |coveralls| image:: https://coveralls.io/repos/github/dicompyler/dicompyler-core/badge.svg?branch=master
    :target: https://coveralls.io/github/dicompyler/dicompyler-core?branch=master
+.. |Codacy| image:: https://api.codacy.com/project/badge/Grade/d8e948ed96914dc19293e34060847d3f
+   :target: https://www.codacy.com/app/bastula/dicompyler-core?utm_campaign=Badge_Coverage
+.. |Codecov| image:: https://codecov.io/gh/dicompyler/dicompyler-core/branch/master/graph/badge.svg
+   :target: https://codecov.io/gh/dicompyler/dicompyler-core
 .. |Documentation Status| image:: https://readthedocs.org/projects/dicompyler-core/badge/?version=latest
-   :target: https://readthedocs.org/projects/dicompyler-core/?badge=latest
-.. |Code Issues| image:: https://www.quantifiedcode.com/api/v1/project/f2b08831f654419ca842871df4467cf9/badge.svg
-   :target: https://www.quantifiedcode.com/app/project/f2b08831f654419ca842871df4467cf9
-   :alt: Code issues
+   :target: https://dicompyler-core.readthedocs.io/en/latest/

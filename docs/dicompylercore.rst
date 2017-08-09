@@ -36,22 +36,6 @@ dicompylercore.dvhcalc module
     :undoc-members:
     :show-inheritance:
 
-dicompylercore.dvhdata module
------------------------------
-
-.. automodule:: dicompylercore.dvhdata
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-dicompylercore.dvhdoses module
-------------------------------
-
-.. automodule:: dicompylercore.dvhdoses
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 dicompylercore.util module
 --------------------------
 

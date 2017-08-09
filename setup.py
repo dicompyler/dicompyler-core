@@ -42,13 +42,13 @@ setup(
         "numpy>=1.2",
         "six>=1.5",
         "pydicom>=0.9.9",
-        "matplotlib>=1.3.0, <=1.5.1"
+        "matplotlib>=1.3.0"
     ],
     extras_require={
         'image': ["pillow>=1.0"]
     },
     dependency_links=[
-        "git+https://github.com/darcymason/pydicom.git#egg=pydicom-1.0.0"
+        "git+https://github.com/darcymason/pydicom.git#egg=pydicom-1.0.0a1"
     ],
     license="BSD License",
     zip_safe=False,
@@ -70,6 +70,7 @@ setup(
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Topic :: Scientific/Engineering :: Medical Science Apps.',
         'Topic :: Scientific/Engineering :: Physics'
     ],
