@@ -504,7 +504,7 @@ class DVH(object):
             if len(c) == 2:
                 return self.dose_constraint(int(c[1]))
             # Dose Constraints in abs volume (i.e. D2cc) & return a dose
-            return self.dose_constraint(int(c[1]), c[2])
+            return self.dose_constraint(float(c[1]), c[2])
 
     def __getattr__(self, name):
         """Method used to dynamically determine dose or volume stats.
