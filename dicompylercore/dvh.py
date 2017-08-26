@@ -51,9 +51,9 @@ class DVH(object):
         """
         self.counts = np.array(counts)
         self.bins = np.array(bins) if bins[0] == 0 else np.append([0], bins)
-        self.dvh_type = dvh_type.lower()
-        self.dose_units = dose_units.capitalize()
-        self.volume_units = volume_units.lower()
+        self.dvh_type = dvh_type
+        self.dose_units = dose_units
+        self.volume_units = volume_units
         self.rx_dose = rx_dose
         self.name = name
         self.color = color
@@ -78,9 +78,9 @@ class DVH(object):
         data = np.array(dvh.DVHData)
         return cls(counts=data[1::2] * dvh.DVHDoseScaling,
                    bins=data[0::2].cumsum(),
-                   dvh_type=dvh.DVHType,
-                   dose_units=dvh.DoseUnits,
-                   volume_units=dvh.DVHVolumeUnits,
+                   dvh_type=dvh.DVHType.lower(),
+                   dose_units=dvh.DoseUnits.capitalize(),
+                   volume_units=dvh.DVHVolumeUnits.lower(),
                    rx_dose=rx_dose,
                    name=name,
                    color=color)
@@ -115,7 +115,7 @@ class DVH(object):
                 self.volume, self.volume_units,
                 self.name,
                 0 if not self.rx_dose else self.rx_dose,
-                abs_dose_units,
+                self.dose_units,
                 ', *Notes: ' + self.notes if self.notes else '')
 
     def __eq__(self, other):

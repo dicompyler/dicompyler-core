@@ -36,9 +36,11 @@ class TestDVHCalc(unittest.TestCase):
     def calc_dvh(self, key, limit=None, calculate_full_volume=True):
         """Calculate a DVH for testing."""
         # Generate the calculated DVHs
-        return dvhcalc.get_dvh(
+        dvh = dvhcalc.get_dvh(
             self.rtss.ds, self.rtdose.ds, key, limit,
             calculate_full_volume=calculate_full_volume)
+        dvh.dose_units = 'Gy'
+        return dvh
 
     def test_dvh_calculation_empty_structure_no_dose(self):
         """Test if a DVH returns an empty histogram for invalid data."""
