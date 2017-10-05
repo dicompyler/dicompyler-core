@@ -184,7 +184,7 @@ class DVH(object):
         AttributeError
             Description
         """
-        if self.dose_units == dose_units:
+        if not (self.dose_units == relative_units):
             return self
         else:
             # Raise an error if no rx_dose defined
