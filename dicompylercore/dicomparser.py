@@ -462,7 +462,8 @@ class DicomParser:
         if 'RTROIObservationsSequence' in self.ds:
             for item in self.ds.RTROIObservationsSequence:
                 number = item.ReferencedROINumber
-                structures[number]['type'] = item.RTROIInterpretedType
+                if number in structures:
+                    structures[number]['type'] = item.RTROIInterpretedType
 
         # The coordinate data of each ROI is stored within ROIContourSequence
         if 'ROIContourSequence' in self.ds:
