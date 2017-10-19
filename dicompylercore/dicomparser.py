@@ -19,7 +19,7 @@ except ImportError:
     from dicom.dataset import Dataset
 import random
 from numbers import Number
-from six import PY2, iterkeys, string_types
+from six import PY2, iterkeys, string_types, BytesIO
 from six.moves import range
 from dicompylercore import dvh, util
 
@@ -38,7 +38,7 @@ class DicomParser:
 
         if isinstance(dataset, Dataset):
             self.ds = dataset
-        elif isinstance(dataset, string_types):
+        elif isinstance(dataset, (string_types, BytesIO)):
             try:
                 self.ds = \
                     read_file(dataset, defer_size=100, force=True)
