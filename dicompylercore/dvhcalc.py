@@ -24,6 +24,7 @@ def get_dvh(structure,
             roi,
             limit=None,
             calculate_full_volume=True,
+            thickness=None,
             callback=None):
     """Calculate a cumulative DVH in Gy from a DICOM RT Structure Set & Dose.
 
@@ -41,6 +42,8 @@ def get_dvh(structure,
     calculate_full_volume : bool, optional
         Calculate the full structure volume including contours outside of the
         dose grid.
+    thickness : float, optional
+        Structure thickness used to calculate volume of a voxel.
     callback : function, optional
         A function that will be called at every iteration of the calculation.
     """
@@ -50,14 +53,15 @@ def get_dvh(structure,
     structures = rtss.GetStructures()
     s = structures[roi]
     s['planes'] = rtss.GetStructureCoordinates(roi)
-    s['thickness'] = rtss.CalculatePlaneThickness(s['planes'])
+    s['thickness'] = thickness if thickness else rtss.CalculatePlaneThickness(
+        s['planes'])
 
     calcdvh = calculate_dvh(s, rtdose, limit, calculate_full_volume, callback)
     return dvh.DVH(counts=calcdvh.histogram,
                    bins=(np.arange(0, 2) if (calcdvh.histogram.size == 1) else
                          np.arange(0, calcdvh.histogram.size + 1) / 100),
                    dvh_type='differential',
-                   dose_units='gy',
+                   dose_units='Gy',
                    notes=calcdvh.notes,
                    name=s['name']).cumulative
 
