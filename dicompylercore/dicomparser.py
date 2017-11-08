@@ -28,6 +28,11 @@ try:
     from PIL import Image
 except:
     pil_available = False
+shapely_available = True
+try:
+    from shapely.geometry import Polygon
+except:
+    shapely_available = False
 
 logger = logging.getLogger('dicompylercore.dicomparser')
 
@@ -563,6 +568,37 @@ class DicomParser:
             thickness = 0
 
         return thickness
+
+    def CalculateStructureVolume(self, coords, thickness):
+        """Calculates the volume of the given structure.
+
+        Parameters
+        ----------
+        coords : dict
+            Coordinates of each plane of the structure
+        thickness : float
+            Thickness of the structure
+        """
+
+        if not shapely_available:
+            print("Shapely library not available." +
+                  " Please install to calculate.")
+            return 0
+
+        s = 0
+        # TODO: need to account for holes in structures
+        for i, z in enumerate(sorted(coords.items())):
+            contours = [[x[0:2] for x in c['data']] for c in z[1]]
+            for contour in contours:
+                p = Polygon(contour)
+                if ((i == 0) or (i == len(coords.items()) - 1)) and \
+                        not (len(coords.items()) == 1):
+                    s += (p.area // 2)
+                else:
+                    s += p.area
+                # print(f'\t coord num: {i}, total: {s}, p.area: {p.area}')
+        vol = s * thickness / 1000
+        return vol
 
 ############################## RT Dose Methods ###############################
 

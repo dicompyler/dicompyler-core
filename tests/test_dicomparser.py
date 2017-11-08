@@ -194,6 +194,13 @@ class TestRTStructureSet(unittest.TestCase):
         self.assertAlmostEqual(
             self.dp.CalculatePlaneThickness(planes), thickness)
 
+    def test_structure_volume(self):
+        """Test if a structure volume can be calculated."""
+        coords = self.dp.GetStructureCoordinates(5)
+        volume = 432.84104445
+        self.assertAlmostEqual(
+            self.dp.CalculateStructureVolume(coords, 3), volume)
+
 
 class TestRTPlan(unittest.TestCase):
     """Unit tests for RT Plan Modality."""
@@ -300,6 +307,7 @@ class TestRTDose(unittest.TestCase):
         assert_array_almost_equal(
             dosedata.pop('lut')[0][-1], data.pop('lut'))
         self.assertEqual(dosedata, data)
+
 
 if __name__ == '__main__':
     import sys

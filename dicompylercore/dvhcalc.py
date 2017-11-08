@@ -12,6 +12,8 @@ from __future__ import division
 import numpy as np
 import numpy.ma as ma
 import matplotlib.path
+# from tqdm import tqdm
+from shapely.geometry import Point, Polygon
 from dicompylercore import dvh
 import collections
 from six import iteritems
@@ -122,12 +124,14 @@ def calculate_dvh(structure,
     planedata = {}
     # Iterate over each plane in the structure
     for z, plane in iteritems(planes):
+    # for z, plane in tqdm(iteritems(planes), total=len(planes), unit='plane'):
         # Get the dose plane for the current structure plane
         doseplane = dose.GetDoseGrid(z)
         if doseplane.size:
             planedata[z] = calculate_plane_histogram(plane, doseplane,
                                                      dosegridpoints, maxdose,
                                                      dd, id, structure, hist)
+            # print(f'Slice: {z}, volume: {planedata[z][1]}')
         else:
             # If the dose plane is not found, still perform the calculation
             # but only use it to calculate the volume for the slice
@@ -152,6 +156,7 @@ def calculate_dvh(structure,
             callback(n, len(planes))
     # Volume units are given in cm^3
     volume = sum([p[1] for p in planedata.values()]) / 1000
+    # print(f'total volume: {volume}')
     # Rescale the histogram to reflect the total volume
     hist = sum([p[0] for p in planedata.values()])
     if hist.max() > 0:
@@ -188,6 +193,17 @@ def get_contour_mask(dd, id, dosegridpoints, contour):
     doselut = dd['lut']
 
     c = matplotlib.path.Path(list(contour))
+
+    # def inpolygon(polygon, xp, yp):
+    #     return np.array(
+    #         [Point(x, y).intersects(polygon) for x, y in zip(xp, yp)],
+    #         dtype=np.bool)
+
+    # p = Polygon(contour)
+    # x, y = np.meshgrid(np.array(dd['lut'][0]), np.array(dd['lut'][1]))
+    # mask = inpolygon(p, x.ravel(), y.ravel())
+    # return mask.reshape((len(doselut[1]), len(doselut[0])))
+
     grid = c.contains_points(dosegridpoints)
     grid = grid.reshape((len(doselut[1]), len(doselut[0])))
 
