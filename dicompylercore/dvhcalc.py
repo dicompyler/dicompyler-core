@@ -128,6 +128,7 @@ def calculate_dvh(structure,
             planedata[z] = calculate_plane_histogram(plane, doseplane,
                                                      dosegridpoints, maxdose,
                                                      dd, id, structure, hist)
+            print(f'Slice: {z}, volume: {vol}')
         else:
             # If the dose plane is not found, still perform the calculation
             # but only use it to calculate the volume for the slice
@@ -152,6 +153,7 @@ def calculate_dvh(structure,
             callback(n, len(planes))
     # Volume units are given in cm^3
     volume = sum([p[1] for p in planedata.values()]) / 1000
+    print(f'total volume: {volume}')
     # Rescale the histogram to reflect the total volume
     hist = sum([p[0] for p in planedata.values()])
     if hist.max() > 0:

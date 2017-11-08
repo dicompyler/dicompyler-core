@@ -45,7 +45,8 @@ setup(
         "matplotlib>=1.3.0"
     ],
     extras_require={
-        'image': ["pillow>=1.0"]
+        'image': ["pillow>=1.0"],
+        'volume': ["shapely[vectorized]>=1.6"]
     },
     dependency_links=[
         "git+https://github.com/darcymason/pydicom.git#egg=pydicom-1.0.0a1"
