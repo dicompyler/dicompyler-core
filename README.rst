@@ -1,7 +1,7 @@
 dicompyler-core
 ===============
 
-|Binder| |pypi| |travis-ci| |circleci| |coveralls| |Codacy| |Codecov| |Documentation Status|
+|Binder| |pypi| |travis-ci| |coveralls| |Codacy| |Codecov| |Documentation Status|
 
 Core functionality of `dicompyler <http://www.dicompyler.com>`__. This
 package includes:
@@ -84,8 +84,6 @@ This package was created with
    :target: https://pypi.python.org/pypi/dicompyler-core
 .. |travis-ci| image:: https://img.shields.io/travis/dicompyler/dicompyler-core.svg
    :target: https://travis-ci.org/dicompyler/dicompyler-core
-.. |circleci| image:: https://circleci.com/gh/dicompyler/dicompyler-core.svg?style=svg
-   :target: https://circleci.com/gh/dicompyler/dicompyler-core
 .. |coveralls| image:: https://coveralls.io/repos/github/dicompyler/dicompyler-core/badge.svg?branch=master
    :target: https://coveralls.io/github/dicompyler/dicompyler-core?branch=master
 .. |Codacy| image:: https://api.codacy.com/project/badge/Grade/d8e948ed96914dc19293e34060847d3f
