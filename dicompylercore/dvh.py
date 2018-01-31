@@ -235,7 +235,7 @@ class DVH(object):
         volume_units : str, optional
             Units for the absolute volume
         """
-        if self.volume_units == volume_units:
+        if not (self.volume_units == relative_units):
             return self
         else:
             return DVH(**dict(
