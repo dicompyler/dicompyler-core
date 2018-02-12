@@ -201,6 +201,13 @@ class TestRTStructureSet(unittest.TestCase):
         self.assertAlmostEqual(
             self.dp.CalculateStructureVolume(coords, 3), volume)
 
+    def test_structure_volume_holes(self):
+        """Test if a structure volume with holes can be calculated."""
+        coords = self.dp.GetStructureCoordinates(6)
+        volume = 1995.1847937
+        self.assertAlmostEqual(
+            self.dp.CalculateStructureVolume(coords, 3), volume)
+
 
 class TestRTPlan(unittest.TestCase):
     """Unit tests for RT Plan Modality."""

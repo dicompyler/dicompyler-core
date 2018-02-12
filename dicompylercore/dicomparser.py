@@ -585,18 +585,43 @@ class DicomParser:
                   " Please install to calculate.")
             return 0
 
+        class Within(Polygon):
+            def __init__(self, o):
+                self.o = o
+
+            def __lt__(self, other):
+                return self.o.within(other.o)
+
         s = 0
-        # TODO: need to account for holes in structures
         for i, z in enumerate(sorted(coords.items())):
+            # Skip contour data if it is not CLOSED_PLANAR
+            if z[1][0]['type'] != 'CLOSED_PLANAR':
+                continue
+            polygons = []
             contours = [[x[0:2] for x in c['data']] for c in z[1]]
             for contour in contours:
                 p = Polygon(contour)
+                polygons.append(p)
+            # Sort polygons according whether they are contained
+            # by the previous polygon
+            if len(polygons) > 1:
+                ordered_polygons = sorted(polygons, key=Within, reverse=True)
+            else:
+                ordered_polygons = polygons
+            for ip, p in enumerate(ordered_polygons):
+                pa = 0
                 if ((i == 0) or (i == len(coords.items()) - 1)) and \
                         not (len(coords.items()) == 1):
-                    s += (p.area // 2)
+                    pa += (p.area // 2)
                 else:
-                    s += p.area
-                # print(f'\t coord num: {i}, total: {s}, p.area: {p.area}')
+                    pa += p.area
+                # Subtract the volume if polygon is contained within the parent
+                # and is not the parent itself
+                if p.within(ordered_polygons[0]) and \
+                        (p != ordered_polygons[0]):
+                    s -= pa
+                else:
+                    s += pa
         vol = s * thickness / 1000
         return vol
 
