@@ -805,7 +805,7 @@ class DicomParser:
                 for beam in beams:
                     if "BeamDose" in beam:
                         self.plan['rxdose'] += beam.BeamDose * fx * 100
-        self.plan['rxdose'] = int(self.plan['rxdose'])
+        self.plan['rxdose'] = round(self.plan['rxdose'])
         self.plan['brachy'] = False
         if ("BrachyTreatmentTechnique" in self.ds) or \
                 ("BrachyTreatmentType" in self.ds):
