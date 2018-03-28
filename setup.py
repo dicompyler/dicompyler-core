@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # __init__.py
 """setup.py for dicompyler-core."""
-# Copyright (c) 2009-2016 Aditya Panchal
+# Copyright (c) 2009-2018 Aditya Panchal
 # This file is part of dicompyler-core, relased under a BSD license.
 #    See the file license.txt included with this distribution, also
 #    available at https://github.com/dicompyler/dicompyler-core/
@@ -25,7 +25,7 @@ test_requirements = [
 
 setup(
     name='dicompyler-core',
-    version='0.5.3',
+    version='0.5.4',
     description="A library of core radiation therapy modules for DICOM / " +
                 "DICOM RT used by dicompyler",
     long_description=readme + '\n\n' + history,
@@ -46,6 +46,7 @@ setup(
     ],
     extras_require={
         'image': ["pillow>=1.0"],
+        'dvhinterpolation': ["scikit-image"],
         'volume': ["shapely>=1.6"]
     },
     dependency_links=[

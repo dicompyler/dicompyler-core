@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """unittest cases for dvhcalc."""
 # test_dvhcalc.py
-# Copyright (c) 2016 Aditya Panchal
+# Copyright (c) 2016-2018 Aditya Panchal
 
 
 import unittest
@@ -33,12 +33,19 @@ class TestDVHCalc(unittest.TestCase):
 
         self.dvhs = self.rtdose.GetDVHs()
 
-    def calc_dvh(self, key, limit=None, calculate_full_volume=True):
+    def calc_dvh(self, key, limit=None,
+                 calculate_full_volume=True,
+                 use_structure_extents=False,
+                 interpolation_resolution=None,
+                 interpolation_segments=0):
         """Calculate a DVH for testing."""
         # Generate the calculated DVHs
         dvh = dvhcalc.get_dvh(
             self.rtss.ds, self.rtdose.ds, key, limit,
-            calculate_full_volume=calculate_full_volume)
+            calculate_full_volume=calculate_full_volume,
+            use_structure_extents=use_structure_extents,
+            interpolation_resolution=interpolation_resolution,
+            interpolation_segments_between_planes=interpolation_segments)
         dvh.dose_units = 'Gy'
         return dvh
 
@@ -122,6 +129,83 @@ class TestDVHCalc(unittest.TestCase):
         # Partial volume (calculated only within dose grid)
         partial_vol_dvh = self.calc_dvh(8, calculate_full_volume=False)
         self.assertAlmostEqual(partial_vol_dvh.volume, 0.46874999)
+
+    def test_dvh_with_in_plane_interpolation(self):
+        """Test if DVH can be calculated using in plane interpolation."""
+        interp_dvh = self.calc_dvh(
+            8, use_structure_extents=True,
+            interpolation_resolution=(2.5 / 8))
+
+        # Volume
+        self.assertAlmostEqual(interp_dvh.volume, 0.5124023)
+        # Min dose bin
+        self.assertAlmostEqual(interp_dvh.bins[0], 0)
+        # Max dose bin
+        self.assertEqual(interp_dvh.bins[-1], 12.95)
+        # Max dose to structure
+        self.assertAlmostEqual(interp_dvh.max, 12.9)
+        # Min dose to structure
+        self.assertAlmostEqual(interp_dvh.min, 1.32)
+        # Mean dose to structure
+        self.assertAlmostEqual(interp_dvh.mean, 7.46926529)
+
+    def test_dvh_with_structure_extents(self):
+        """Test if DVH calculation is same as normal with structure extents."""
+        orig_dvh = self.calc_dvh(8)
+        structure_extents_dvh = self.calc_dvh(8, use_structure_extents=True)
+        self.assertEqual(orig_dvh, structure_extents_dvh)
+
+    def test_dvh_with_structure_extents_larger_than_dose_grid(self):
+        """Test DVH calculation using large structure structure extents."""
+        # Add a set of contours larger than the dose grid plane
+        roi_id = 3
+        roic = self.rtss.ds.ROIContourSequence[roi_id - 1]
+        new_contour = Dataset()
+        # Create a ContourImageSequence for the referenced Image
+        new_contour.ContourImageSequence = Sequence([])
+        contour_image = Dataset()
+        last_contour = roic.ContourSequence[-1].ContourImageSequence[-1]
+        contour_image.ReferencedSOPClassUID = \
+            last_contour.ReferencedSOPClassUID
+        contour_image.ReferencedSOPInstanceUID = \
+            last_contour.ReferencedSOPInstanceUID
+        new_contour.ContourImageSequence.append(contour_image)
+        new_contour.ContourGeometricType = 'CLOSED_PLANAR'
+        new_contour.NumberOfContourPoints = 4
+        new_contour.ContourData = [
+            -230.0, -520.0, 24.56,
+            260.0, -520.0, 24.56,
+            260.0, 0.0, 24.56,
+            -230.0, 0.0, 24.56]
+        roic.ContourSequence.append(new_contour)
+
+        structure_extents_dvh = self.calc_dvh(3, use_structure_extents=True)
+        self.assertAlmostEqual(structure_extents_dvh.volume, 470.4187500)
+
+    def test_dvh_with_in_plane_interpolation_sampling_fail(self):
+        """Test if DVH calculation fails when the sampling rate is invalid."""
+        with self.assertRaises(AttributeError):
+            self.calc_dvh(
+                8, use_structure_extents=True,
+                interpolation_resolution=(3 / 8))
+
+    def test_dvh_calculation_with_interpolation_between_planes(self):
+        """Test if DVH can be calculated using interpolation between planes."""
+        dvh = self.calc_dvh(8, interpolation_segments=2)
+
+        # Volume
+        self.assertAlmostEqual(dvh.volume, 0.4687499999)
+        # Min dose bin
+        self.assertAlmostEqual(dvh.bins[0], 0)
+        # Max dose bin
+        self.assertEqual(dvh.bins[-1], 10.0)
+        # Max dose to structure
+        self.assertAlmostEqual(dvh.max, 9.98)
+        # Min dose to structure
+        self.assertAlmostEqual(dvh.min, 2.03)
+        # Mean dose to structure
+        self.assertAlmostEqual(dvh.mean, 6.4298000000)
+
 
 if __name__ == '__main__':
     import sys
