@@ -12,8 +12,6 @@ from __future__ import division
 import numpy as np
 import numpy.ma as ma
 import matplotlib.path
-# from shapely.geometry import Polygon
-# from tqdm import tqdm
 from dicompylercore import dvh
 import collections
 from six import iteritems
