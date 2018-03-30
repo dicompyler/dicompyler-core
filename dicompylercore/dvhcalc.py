@@ -128,18 +128,20 @@ def calculate_dvh(structure,
         id = dose.GetImageData()
 
         dgindexextents = []
+        # Determine structure and respectively dose grid extents
+        extents = []
         if use_structure_extents:
-            # Determine structure and respectively dose grid extents
             extents = structure_extents(structure['planes'])
-            dgindexextents = dosegrid_extents_indices(extents, dd)
-            dgextents = dosegrid_extents_positions(dgindexextents, dd)
+        dgindexextents = dosegrid_extents_indices(extents, dd)
+        dgextents = dosegrid_extents_positions(dgindexextents, dd)
             # Determine LUT from extents
-            if interpolation_resolution:
-                dd['lut'] = lut_from_extents(
-                    dgextents, sampling_rate=interpolation_resolution,
-                    min_sampling_rate=id['pixelspacing'][0])
-                dd['rows'] = dd['lut'][1].shape[0]
-                dd['columns'] = dd['lut'][0].shape[0]
+        # If interpolation is enabled, generate new LUT from extents
+        if interpolation_resolution:
+            dd['lut'] = get_resampled_lut(
+                dgextents, pixel_spacing=interpolation_resolution,
+                min_pixel_spacing=id['pixelspacing'][0])
+            dd['rows'] = dd['lut'][1].shape[0]
+            dd['columns'] = dd['lut'][0].shape[0]
 
         # Generate a 2d mesh grid to create a polygon mask in dose coordinates
         # Code taken from Stack Overflow Answer from Joe Kington:
@@ -280,7 +282,18 @@ def calculate_contour_dvh(mask, doseplane, maxdose, dd, id, structure):
 
 
 def structure_extents(coords):
-    """Determine structure extents in patient coordinates."""
+    """Determine structure extents in patient coordinates.
+
+    Parameters
+    ----------
+    coords : dict
+        Structure coordinates from dicomparser.GetStructureCoordinates.
+
+    Returns
+    -------
+    list
+        Structure extents in patient coordintes: [xmin, ymin, xmax, ymax].
+    """
     bounds = []
     for i, z in enumerate(sorted(coords.items())):
         contours = [[x[0:2] for x in c['data']] for c in z[1]]
@@ -296,6 +309,8 @@ def structure_extents(coords):
 
 def dosegrid_extents_indices(extents, dd, padding=1):
     """Determine dose grid extents as array indices."""
+    if not len(extents):
+        return [0, 0, dd['lut'][0].shape[0] - 1, dd['lut'][1].shape[0] - 1]
     dgxmin = np.argmin(np.fabs(dd['lut'][0] - extents[0])) - padding
     if dd['lut'][0][dgxmin] > extents[0]:
         dgxmin -= 1
@@ -308,32 +323,82 @@ def dosegrid_extents_indices(extents, dd, padding=1):
         dgxmax = dd['lut'][0].shape[0] - 1
     if dgymax == dd['lut'][1].shape[0]:
         dgymax = dd['lut'][1].shape[0] - 1
-    return np.array([dgxmin, dgymin, dgxmax, dgymax])
+    return [dgxmin, dgymin, dgxmax, dgymax]
 
 
 def dosegrid_extents_positions(extents, dd):
     """Determine dose grid extents in patient coordinate indices."""
-    return np.array([dd['lut'][0][extents[0]],
-                     dd['lut'][1][extents[1]],
-                     dd['lut'][0][extents[2]],
-                     dd['lut'][1][extents[3]]])
+    return [
+        dd['lut'][0][extents[0]], dd['lut'][1][extents[1]],
+        dd['lut'][0][extents[2]], dd['lut'][1][extents[3]]
+    ]
 
 
-def lut_from_extents(extents, sampling_rate, min_sampling_rate=3):
-    """Determine new patient to pixel LUT from sampling rate."""
-    if (min_sampling_rate % sampling_rate != 0.0):
+def get_resampled_lut(extents, pixel_spacing, min_pixel_spacing=3):
+    """Determine the patient to pixel LUT based on new pixel spacing.
+
+    Parameters
+    ----------
+    extents : list
+        Dose grid extents in pixel coordinates.
+    pixel_spacing : float
+        New pixel spacing in mm
+    min_pixel_spacing : int, optional
+        Minimum pixel spacing used to determine the new pixel spacing
+
+    Returns
+    -------
+    tuple
+        A tuple of lists (x, y) of patient to pixel coordinate mappings.
+
+    Raises
+    ------
+    AttributeError
+        Raised if the new pixel_spacing is not a factor of the minimum pixel
+        spacing.
+
+    Notes
+    -----
+    The new pixel spacing must be a factor of the original (minimum) pixel
+    spacing. For example if the original pixel spacing was ``3`` mm, the new
+    pixel spacing should be: ``3 / (2^n)`` mm, where ``n`` is an integer.
+
+    Examples
+    --------
+    Original pixel spacing: ``3`` mm, new pixel spacing: ``0.375`` mm
+    Derived via: ``(3 / 2^16) == 0.375``
+
+    """
+    if (min_pixel_spacing % pixel_spacing != 0.0):
         raise AttributeError(
-            "Sampling rate must be a factor of %g/(2^n)," % min_sampling_rate +
-            " where n is an integer. Value provided was %g." % sampling_rate)
-    xsamples = int(abs((extents[0] - extents[2]) / sampling_rate) + 1)
-    ysamples = int(abs((extents[1] - extents[3]) / sampling_rate) + 1)
+            "Pixel spacing must be a factor of %g/(2^n)," % min_pixel_spacing +
+            " where n is an integer. Value provided was %g." % pixel_spacing)
+    xsamples = int(abs((extents[0] - extents[2]) / pixel_spacing) + 1)
+    ysamples = int(abs((extents[1] - extents[3]) / pixel_spacing) + 1)
     x = np.linspace(extents[0], extents[2], xsamples, dtype=np.float)
     y = np.linspace(extents[1], extents[3], ysamples, dtype=np.float)
     return x[:-1], y[:-1]
 
 
 def get_interpolated_dose(dose, z, resolution, extents=[]):
-    """Get interpolated dose for the given z, resolution & array extents."""
+    """Get interpolated dose for the given z, resolution & array extents.
+
+    Parameters
+    ----------
+    dose : DicomParser
+        A DicomParser instance of an RT Dose.
+    z : float
+        Index in mm of z plane of dose grid.dose
+    resolution : float
+        Interpolation resolution less than or equal to dose grid pixel spacing.
+    extents : list, optional
+        Dose grid index extents.
+
+    Returns
+    -------
+    ndarray
+        Interpolated dose grid with a shape larger than the input dose grid.
+    """
     d = dose.GetDoseGrid(z)
     scale = (np.array(dose.ds.PixelSpacing) / resolution).tolist()
     extent_dose = d[extents[1]:extents[3],

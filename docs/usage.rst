@@ -40,7 +40,7 @@ Dose volume histogram (DVH) data can be accessed in a Pythonic manner using the 
     >>> heartdvh.max, heartdvh.min, heartdvh.D2cc
     (3.0999999999999779, 0.02, dvh.DVHValue(2.9299999999999815, 'Gy'))
 
-Dose volume histograms (DVHs) can be independently calculated using the dvh :mod:`dicompylercore.dvhcalc` module:
+Dose volume histograms (DVHs) can be independently calculated using the :mod:`dicompylercore.dvhcalc` module:
 
 .. code-block:: python
 
@@ -49,3 +49,39 @@ Dose volume histograms (DVHs) can be independently calculated using the dvh :mod
 
     >>> calcdvh.max, calcdvh.min, calcdvh.D2cc
     (3.0899999999999999, 0.029999999999999999, dvh.DVHValue(2.96, 'Gy'))
+
+Structure and dose data for independently calculated DVHs can also be interpolated in-plane and between planes:
+
+.. code-block:: python
+
+    # Calculate a DVH using interpolation to super-sample the dose grid in plane,
+    # interpolate dose between planes and restrict calculation to the structure
+    # extents
+    interpscar = dvhcalc.get_dvh("rtss.dcm", "rtdose.dcm", 8,
+        interpolation_resolution=(2.5/16),
+        interpolation_segments_between_planes=2,
+        use_structure_extents=True)
+    interpscar.name += ' interp'
+
+    # Compare against un-interpolated DVH
+    origscar = dvhcalc.get_dvh("rtss.dcm", "rtdose.dcm", 8)
+
+    >>> origscar.compare(interpscar)
+    Structure:          Scar            Scar interp       Rel Diff       Abs diff
+    -----
+    DVH Type:  cumulative, abs dose: Gy, abs volume: cm3
+    Volume:             0.47 cm3          0.50 cm3         +6.55 %          +0.03
+    Max:                9.50 Gy          13.18 Gy         +38.74 %          +3.68
+    Min:                2.36 Gy           1.23 Gy         -47.88 %          -1.13
+    Mean:               6.38 Gy           7.53 Gy         +18.02 %          +1.15
+    D100:               0.00 Gy           0.00 Gy          +0.00 %          +0.00
+    D98:                2.36 Gy           2.44 Gy          +3.39 %          +0.08
+    D95:                2.36 Gy           3.09 Gy         +30.93 %          +0.73
+    D2cc:               0.00 Gy           0.00 Gy          +0.00 %          +0.00
+
+.. figure:: dvh_interpolation.png
+   :scale: 75 %
+   :align: center
+   :alt: Comparison of interpolated DVH vs un-interpolated DVH
+
+   Comparison of interpolated DVH vs un-interpolated DVH
