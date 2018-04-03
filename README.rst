@@ -32,6 +32,7 @@ Dependencies
 
    -  `Pillow <http://python-pillow.org/>`__ (for image display)
    -  `Shapely <https://github.com/Toblerity/Shapely>`__ (for structure volume calculation)
+   -  `scikit-image <http://scikit-image.org/>`__ (for DVH interpolation)
 
 Basic Usage
 ------------

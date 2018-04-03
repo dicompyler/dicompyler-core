@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # dvhcalc.py
 """Calculate dose volume histogram (DVH) from DICOM RT Structure/Dose data."""
-# Copyright (c) 2011-2016 Aditya Panchal
+# Copyright (c) 2011-2018 Aditya Panchal
 # Copyright (c) 2010 Roy Keyes
 # This file is part of dicompyler-core, released under a BSD license.
 #    See the file license.txt included with this distribution, also
@@ -12,13 +12,17 @@ from __future__ import division
 import numpy as np
 import numpy.ma as ma
 import matplotlib.path
-# from tqdm import tqdm
-from shapely.geometry import Point, Polygon
 from dicompylercore import dvh
 import collections
 from six import iteritems
 import logging
 logger = logging.getLogger('dicompylercore.dvhcalc')
+
+skimage_available = True
+try:
+    from skimage.transform import rescale
+except ImportError:
+    skimage_available = False
 
 
 def get_dvh(structure,
@@ -26,6 +30,9 @@ def get_dvh(structure,
             roi,
             limit=None,
             calculate_full_volume=True,
+            use_structure_extents=False,
+            interpolation_resolution=None,
+            interpolation_segments_between_planes=0,
             thickness=None,
             callback=None):
     """Calculate a cumulative DVH in Gy from a DICOM RT Structure Set & Dose.
@@ -44,6 +51,12 @@ def get_dvh(structure,
     calculate_full_volume : bool, optional
         Calculate the full structure volume including contours outside of the
         dose grid.
+    use_structure_extents : bool, optional
+        Limit the DVH calculation to the in-plane structure boundaries.
+    interpolation_resolution : float, optional
+        Resolution in mm to interpolate the structure and dose data to.
+    interpolation_segments_between_planes : integer, optional
+        Number of segments to interpolate between structure slices.
     thickness : float, optional
         Structure thickness used to calculate volume of a voxel.
     callback : function, optional
@@ -58,7 +71,10 @@ def get_dvh(structure,
     s['thickness'] = thickness if thickness else rtss.CalculatePlaneThickness(
         s['planes'])
 
-    calcdvh = calculate_dvh(s, rtdose, limit, calculate_full_volume, callback)
+    calcdvh = calculate_dvh(s, rtdose, limit, calculate_full_volume,
+                            use_structure_extents, interpolation_resolution,
+                            interpolation_segments_between_planes,
+                            callback)
     return dvh.DVH(counts=calcdvh.histogram,
                    bins=(np.arange(0, 2) if (calcdvh.histogram.size == 1) else
                          np.arange(0, calcdvh.histogram.size + 1) / 100),
@@ -72,6 +88,9 @@ def calculate_dvh(structure,
                   dose,
                   limit=None,
                   calculate_full_volume=True,
+                  use_structure_extents=False,
+                  interpolation_resolution=None,
+                  interpolation_segments_between_planes=0,
                   callback=None):
     """Calculate the differential DVH for the given structure and dose grid.
 
@@ -86,6 +105,12 @@ def calculate_dvh(structure,
     calculate_full_volume : bool, optional
         Calculate the full structure volume including contours outside of the
         dose grid.
+    use_structure_extents : bool, optional
+        Limit the DVH calculation to the in-plane structure boundaries.
+    interpolation_resolution : float, optional
+        Resolution in mm to interpolate the structure and dose data to.
+    interpolation_segments_between_planes : integer, optional
+        Number of segments to interpolate between structure slices.
     callback : function, optional
         A function that will be called at every iteration of the calculation.
     """
@@ -101,6 +126,21 @@ def calculate_dvh(structure,
         # Get the dose and image data information
         dd = dose.GetDoseData()
         id = dose.GetImageData()
+
+        # Determine structure and respectively dose grid extents
+        extents = []
+        if use_structure_extents:
+            extents = structure_extents(structure['planes'])
+        dgindexextents = dosegrid_extents_indices(extents, dd)
+        dgextents = dosegrid_extents_positions(dgindexextents, dd)
+            # Determine LUT from extents
+        # If interpolation is enabled, generate new LUT from extents
+        if interpolation_resolution:
+            dd['lut'] = get_resampled_lut(
+                dgextents, pixel_spacing=interpolation_resolution,
+                min_pixel_spacing=id['pixelspacing'][0])
+            dd['rows'] = dd['lut'][1].shape[0]
+            dd['columns'] = dd['lut'][0].shape[0]
 
         # Generate a 2d mesh grid to create a polygon mask in dose coordinates
         # Code taken from Stack Overflow Answer from Joe Kington:
@@ -122,11 +162,25 @@ def calculate_dvh(structure,
     n = 0
     notes = None
     planedata = {}
+    # Interpolate between planes in the direction of the structure
+    if interpolation_segments_between_planes:
+        planes = interpolate_between_planes(
+            planes, interpolation_segments_between_planes)
+        # Thickness derived from total number of segments relative to original
+        structure['thickness'] = structure[
+            'thickness'] / (interpolation_segments_between_planes + 1)
+
     # Iterate over each plane in the structure
     for z, plane in iteritems(planes):
-    # for z, plane in tqdm(iteritems(planes), total=len(planes), unit='plane'):
         # Get the dose plane for the current structure plane
-        doseplane = dose.GetDoseGrid(z)
+        if interpolation_resolution and not skimage_available:
+            raise ImportError(
+                "scikit-image must be installed to perform DVH interpolation.")
+        if interpolation_resolution and skimage_available:
+            doseplane = get_interpolated_dose(
+                dose, z, interpolation_resolution, dgindexextents)
+        else:
+            doseplane = dose.GetDoseGrid(z)
         if doseplane.size:
             planedata[z] = calculate_plane_histogram(plane, doseplane,
                                                      dosegridpoints, maxdose,
@@ -220,7 +274,197 @@ def calculate_contour_dvh(mask, doseplane, maxdose, dd, id, structure):
                                range=(0, maxdose))
 
     # Calculate the volume for the contour for the given dose plane
-    vol = sum(hist) * ((id['pixelspacing'][0]) *
-                       (id['pixelspacing'][1]) *
+    vol = sum(hist) * ((np.mean(np.diff(dd['lut'][0]))) *
+                       (np.mean(np.diff(dd['lut'][1]))) *
                        (structure['thickness']))
     return hist, vol
+
+
+def structure_extents(coords):
+    """Determine structure extents in patient coordinates.
+
+    Parameters
+    ----------
+    coords : dict
+        Structure coordinates from dicomparser.GetStructureCoordinates.
+
+    Returns
+    -------
+    list
+        Structure extents in patient coordintes: [xmin, ymin, xmax, ymax].
+    """
+    bounds = []
+    for z in sorted(coords.items()):
+        contours = [[x[0:2] for x in c['data']] for c in z[1]]
+        for contour in contours:
+            x, y = np.array([x[0:1] for x in contour]), np.array(
+                [x[1:2] for x in contour])
+            bounds.append([np.min(x), np.min(y), np.max(x), np.max(y)])
+    extents = np.array(bounds)
+    return np.array(
+        [np.amin(extents, axis=0)[0:2],
+         np.amax(extents, axis=0)[2:4]]).flatten().tolist()
+
+
+def dosegrid_extents_indices(extents, dd, padding=1):
+    """Determine dose grid extents from structure extents as array indices.
+
+    Parameters
+    ----------
+    extents : list
+        Structure extents in patient coordintes: [xmin, ymin, xmax, ymax].
+        If an empty list, no structure extents will be used in the calculation.
+    dd : dict
+        Dose data from dicomparser.GetDoseData.
+    padding : int, optional
+        Pixel padding around the structure extents.
+
+    Returns
+    -------
+    list
+        Dose grid extents in pixel coordintes as array indices:
+        [xmin, ymin, xmax, ymax].
+    """
+    if not len(extents):
+        return [0, 0, dd['lut'][0].shape[0] - 1, dd['lut'][1].shape[0] - 1]
+    dgxmin = np.argmin(np.fabs(dd['lut'][0] - extents[0])) - padding
+    if dd['lut'][0][dgxmin] > extents[0]:
+        dgxmin -= 1
+    dgxmax = np.argmin(np.fabs(dd['lut'][0] - extents[2])) + padding
+    dgymin = np.argmin(np.fabs(dd['lut'][1] - extents[1])) - padding
+    dgymax = np.argmin(np.fabs(dd['lut'][1] - extents[3])) + padding
+    dgxmin = 0 if dgxmin < 0 else dgxmin
+    dgymin = 0 if dgymin < 0 else dgymin
+    if dgxmax == dd['lut'][0].shape[0]:
+        dgxmax = dd['lut'][0].shape[0] - 1
+    if dgymax == dd['lut'][1].shape[0]:
+        dgymax = dd['lut'][1].shape[0] - 1
+    return [dgxmin, dgymin, dgxmax, dgymax]
+
+
+def dosegrid_extents_positions(extents, dd):
+    """Determine dose grid extents in patient coordinate indices.
+
+    Parameters
+    ----------
+    extents : list
+        Dose grid extents in pixel coordintes: [xmin, ymin, xmax, ymax].
+    dd : dict
+        Dose data from dicomparser.GetDoseData.
+
+    Returns
+    -------
+    list
+        Dose grid extents in patient coordintes: [xmin, ymin, xmax, ymax].
+    """
+    return [
+        dd['lut'][0][extents[0]], dd['lut'][1][extents[1]],
+        dd['lut'][0][extents[2]], dd['lut'][1][extents[3]]
+    ]
+
+
+def get_resampled_lut(extents, pixel_spacing, min_pixel_spacing=3):
+    """Determine the patient to pixel LUT based on new pixel spacing.
+
+    Parameters
+    ----------
+    extents : list
+        Dose grid extents in pixel coordinates.
+    pixel_spacing : float
+        New pixel spacing in mm
+    min_pixel_spacing : int, optional
+        Minimum pixel spacing used to determine the new pixel spacing
+
+    Returns
+    -------
+    tuple
+        A tuple of lists (x, y) of patient to pixel coordinate mappings.
+
+    Raises
+    ------
+    AttributeError
+        Raised if the new pixel_spacing is not a factor of the minimum pixel
+        spacing.
+
+    Notes
+    -----
+    The new pixel spacing must be a factor of the original (minimum) pixel
+    spacing. For example if the original pixel spacing was ``3`` mm, the new
+    pixel spacing should be: ``3 / (2^n)`` mm, where ``n`` is an integer.
+
+    Examples
+    --------
+    Original pixel spacing: ``3`` mm, new pixel spacing: ``0.375`` mm
+    Derived via: ``(3 / 2^16) == 0.375``
+
+    """
+    if (min_pixel_spacing % pixel_spacing != 0.0):
+        raise AttributeError(
+            "Pixel spacing must be a factor of %g/(2^n)," % min_pixel_spacing +
+            " where n is an integer. Value provided was %g." % pixel_spacing)
+    xsamples = int(abs((extents[0] - extents[2]) / pixel_spacing) + 1)
+    ysamples = int(abs((extents[1] - extents[3]) / pixel_spacing) + 1)
+    x = np.linspace(extents[0], extents[2], xsamples, dtype=np.float)
+    y = np.linspace(extents[1], extents[3], ysamples, dtype=np.float)
+    return x[:-1], y[:-1]
+
+
+def get_interpolated_dose(dose, z, resolution, extents):
+    """Get interpolated dose for the given z, resolution & array extents.
+
+    Parameters
+    ----------
+    dose : DicomParser
+        A DicomParser instance of an RT Dose.
+    z : float
+        Index in mm of z plane of dose grid.dose
+    resolution : float
+        Interpolation resolution less than or equal to dose grid pixel spacing.
+    extents : list
+        Dose grid index extents.
+
+    Returns
+    -------
+    ndarray
+        Interpolated dose grid with a shape larger than the input dose grid.
+    """
+    d = dose.GetDoseGrid(z)
+    scale = (np.array(dose.ds.PixelSpacing) / resolution).tolist()
+    extent_dose = d[extents[1]:extents[3],
+                    extents[0]:extents[2]] if len(extents) else d
+    interp_dose = rescale(
+        extent_dose,
+        scale=scale,
+        mode='symmetric',
+        order=1,
+        preserve_range=True)
+    return interp_dose
+
+
+def interpolate_between_planes(planes, n=2):
+    """Interpolate n additional structure planes (segments) in between planes.
+
+    Parameters
+    ----------
+    planes : dict
+        RT Structure plane data from dicomparser.GetStructureCoordinates.
+    n : int, optional
+        Number of planes to interpolate in between the existing planes.
+
+    Returns
+    -------
+    dict
+        Plane data with additional keys representing interpolated planes.
+    """
+    keymap = {np.array([k], dtype=np.float32)[0]: k for k in planes.keys()}
+    sorted_keys = np.sort(np.array(list(planes.keys()), dtype=np.float32))
+    num_new_samples = (len(planes.keys()) * (n + 1)) - n
+    newgrid = np.linspace(sorted_keys[0], sorted_keys[-1], num_new_samples)
+    new_planes = {}
+    # If the plane already exists in the dictionary, use it
+    # otherwise use the closest plane
+    # TODO: Add actual interpolation of structure data between planes
+    for plane in newgrid:
+        new_plane = sorted_keys[np.argmin(np.fabs(sorted_keys - plane))]
+        new_planes[plane] = planes[keymap[new_plane]]
+    return new_planes
