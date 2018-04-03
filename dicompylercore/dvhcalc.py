@@ -127,7 +127,6 @@ def calculate_dvh(structure,
         dd = dose.GetDoseData()
         id = dose.GetImageData()
 
-        dgindexextents = []
         # Determine structure and respectively dose grid extents
         extents = []
         if use_structure_extents:
@@ -308,7 +307,24 @@ def structure_extents(coords):
 
 
 def dosegrid_extents_indices(extents, dd, padding=1):
-    """Determine dose grid extents as array indices."""
+    """Determine dose grid extents from structure extents as array indices.
+
+    Parameters
+    ----------
+    extents : list
+        Structure extents in patient coordintes: [xmin, ymin, xmax, ymax].
+        If an empty list, no structure extents will be used in the calculation.
+    dd : dict
+        Dose data from dicomparser.GetDoseData.
+    padding : int, optional
+        Pixel padding around the structure extents.
+
+    Returns
+    -------
+    list
+        Dose grid extents in pixel coordintes as array indices:
+        [xmin, ymin, xmax, ymax].
+    """
     if not len(extents):
         return [0, 0, dd['lut'][0].shape[0] - 1, dd['lut'][1].shape[0] - 1]
     dgxmin = np.argmin(np.fabs(dd['lut'][0] - extents[0])) - padding
@@ -327,7 +343,20 @@ def dosegrid_extents_indices(extents, dd, padding=1):
 
 
 def dosegrid_extents_positions(extents, dd):
-    """Determine dose grid extents in patient coordinate indices."""
+    """Determine dose grid extents in patient coordinate indices.
+
+    Parameters
+    ----------
+    extents : list
+        Dose grid extents in pixel coordintes: [xmin, ymin, xmax, ymax].
+    dd : dict
+        Dose data from dicomparser.GetDoseData.
+
+    Returns
+    -------
+    list
+        Dose grid extents in patient coordintes: [xmin, ymin, xmax, ymax].
+    """
     return [
         dd['lut'][0][extents[0]], dd['lut'][1][extents[1]],
         dd['lut'][0][extents[2]], dd['lut'][1][extents[3]]
@@ -414,6 +443,18 @@ def get_interpolated_dose(dose, z, resolution, extents=[]):
 
 def interpolate_between_planes(planes, n=2):
     """Interpolate n additional structure planes (segments) in between planes.
+
+    Parameters
+    ----------
+    planes : dict
+        RT Structure plane data from dicomparser.GetStructureCoordinates.
+    n : int, optional
+        Number of planes to interpolate in between the existing planes.
+
+    Returns
+    -------
+    dict
+        Plane data with additional keys representing interpolated planes.
     """
     keymap = {np.array([k], dtype=np.float32)[0]: k for k in planes.keys()}
     sorted_keys = np.sort(np.array(list(planes.keys()), dtype=np.float32))
