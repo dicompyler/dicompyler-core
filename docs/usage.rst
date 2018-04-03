@@ -79,9 +79,8 @@ Structure and dose data for independently calculated DVHs can also be interpolat
     D95:                2.36 Gy           3.09 Gy         +30.93 %          +0.73
     D2cc:               0.00 Gy           0.00 Gy          +0.00 %          +0.00
 
-.. figure:: ../docs/_static/dvh_interpolation.png
+.. image:: _static/DVH_interpolation.png
    :scale: 75 %
    :align: center
    :alt: Comparison of interpolated DVH vs un-interpolated DVH
 
-   Comparison of interpolated DVH vs un-interpolated DVH
