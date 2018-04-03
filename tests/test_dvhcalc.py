@@ -50,6 +50,31 @@ class TestDVHCalc(unittest.TestCase):
         dvh.dose_units = 'Gy'
         return dvh
 
+    def create_new_contour(self, roi_id, extents, z):
+        """Create a new contour sequence for the given ROI id."""
+
+        roic = self.rtss.ds.ROIContourSequence[roi_id - 1]
+        new_contour = Dataset()
+        # Create a ContourImageSequence for the referenced Image
+        new_contour.ContourImageSequence = Sequence([])
+        contour_image = Dataset()
+        last_contour = roic.ContourSequence[-1].ContourImageSequence[-1]
+        contour_image.ReferencedSOPClassUID = \
+            last_contour.ReferencedSOPClassUID
+        contour_image.ReferencedSOPInstanceUID = \
+            last_contour.ReferencedSOPInstanceUID
+        new_contour.ContourImageSequence.append(contour_image)
+        new_contour.ContourGeometricType = 'CLOSED_PLANAR'
+        new_contour.NumberOfContourPoints = 4
+        xmin, ymin, xmax, ymax = extents
+        new_contour.ContourData = [
+            xmin, ymin, z,
+            xmax, ymin, z,
+            xmax, ymax, z,
+            xmin, ymax, z
+        ]
+        roic.ContourSequence.append(new_contour)
+
     def test_dvh_calculation_empty_structure_no_dose(self):
         """Test if a DVH returns an empty histogram for invalid data."""
         dvh = self.calc_dvh(2)
@@ -103,26 +128,7 @@ class TestDVHCalc(unittest.TestCase):
     def test_dvh_contour_outside_dose_grid(self):
         """Test if a DVH can be calculated with contours outside a dosegrid."""
         # Add a set of contours outside of the dose grid
-        roi_id = 8
-        roic = self.rtss.ds.ROIContourSequence[roi_id - 1]
-        new_contour = Dataset()
-        # Create a ContourImageSequence for the referenced Image
-        new_contour.ContourImageSequence = Sequence([])
-        contour_image = Dataset()
-        last_contour = roic.ContourSequence[-1].ContourImageSequence[-1]
-        contour_image.ReferencedSOPClassUID = \
-            last_contour.ReferencedSOPClassUID
-        contour_image.ReferencedSOPInstanceUID = \
-            last_contour.ReferencedSOPInstanceUID
-        new_contour.ContourImageSequence.append(contour_image)
-        new_contour.ContourGeometricType = 'CLOSED_PLANAR'
-        new_contour.NumberOfContourPoints = 4
-        new_contour.ContourData = [
-            0.0, -250.0, 180.0,
-            5.0, -250.0, 180.0,
-            5.0, -245.0, 180.0,
-            0.0, -245.0, 180.0]
-        roic.ContourSequence.append(new_contour)
+        self.create_new_contour(8, [0.0, -250.0, 5.0, -245.0], 180.0)
 
         # Full structure volume (calculated inside/outside dose grid)
         include_vol_dvh = self.calc_dvh(8, calculate_full_volume=True)
@@ -159,26 +165,7 @@ class TestDVHCalc(unittest.TestCase):
     def test_dvh_with_structure_extents_larger_than_dose_grid(self):
         """Test DVH calculation using large structure structure extents."""
         # Add a set of contours larger than the dose grid plane
-        roi_id = 3
-        roic = self.rtss.ds.ROIContourSequence[roi_id - 1]
-        new_contour = Dataset()
-        # Create a ContourImageSequence for the referenced Image
-        new_contour.ContourImageSequence = Sequence([])
-        contour_image = Dataset()
-        last_contour = roic.ContourSequence[-1].ContourImageSequence[-1]
-        contour_image.ReferencedSOPClassUID = \
-            last_contour.ReferencedSOPClassUID
-        contour_image.ReferencedSOPInstanceUID = \
-            last_contour.ReferencedSOPInstanceUID
-        new_contour.ContourImageSequence.append(contour_image)
-        new_contour.ContourGeometricType = 'CLOSED_PLANAR'
-        new_contour.NumberOfContourPoints = 4
-        new_contour.ContourData = [
-            -230.0, -520.0, 24.56,
-            260.0, -520.0, 24.56,
-            260.0, 0.0, 24.56,
-            -230.0, 0.0, 24.56]
-        roic.ContourSequence.append(new_contour)
+        self.create_new_contour(3, [-230.0, -520.0, 260.0, 0.0], 24.56)
 
         structure_extents_dvh = self.calc_dvh(3, use_structure_extents=True)
         self.assertAlmostEqual(structure_extents_dvh.volume, 470.4187500)
