@@ -294,7 +294,7 @@ def structure_extents(coords):
         Structure extents in patient coordintes: [xmin, ymin, xmax, ymax].
     """
     bounds = []
-    for i, z in enumerate(sorted(coords.items())):
+    for z in sorted(coords.items()):
         contours = [[x[0:2] for x in c['data']] for c in z[1]]
         for contour in contours:
             x, y = np.array([x[0:1] for x in contour]), np.array(
@@ -409,7 +409,7 @@ def get_resampled_lut(extents, pixel_spacing, min_pixel_spacing=3):
     return x[:-1], y[:-1]
 
 
-def get_interpolated_dose(dose, z, resolution, extents=[]):
+def get_interpolated_dose(dose, z, resolution, extents):
     """Get interpolated dose for the given z, resolution & array extents.
 
     Parameters
@@ -420,7 +420,7 @@ def get_interpolated_dose(dose, z, resolution, extents=[]):
         Index in mm of z plane of dose grid.dose
     resolution : float
         Interpolation resolution less than or equal to dose grid pixel spacing.
-    extents : list, optional
+    extents : list
         Dose grid index extents.
 
     Returns
@@ -464,7 +464,7 @@ def interpolate_between_planes(planes, n=2):
     # If the plane already exists in the dictionary, use it
     # otherwise use the closest plane
     # TODO: Add actual interpolation of structure data between planes
-    for i, plane in enumerate(newgrid):
+    for plane in newgrid:
         new_plane = sorted_keys[np.argmin(np.fabs(sorted_keys - plane))]
         new_planes[plane] = planes[keymap[new_plane]]
     return new_planes
