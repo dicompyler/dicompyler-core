@@ -9,6 +9,7 @@ from __future__ import division
 import unittest
 import os
 from dicompylercore import dicomparser, dvhcalc
+from dicompylercore.config import skimage_available
 from dicompylercore.dvh import DVH
 try:
     from pydicom.dataset import Dataset
@@ -137,6 +138,7 @@ class TestDVHCalc(unittest.TestCase):
         partial_vol_dvh = self.calc_dvh(8, calculate_full_volume=False)
         self.assertAlmostEqual(partial_vol_dvh.volume, 0.46874999)
 
+    @unittest.skipUnless(skimage_available, "scikit-image not installed")
     def test_dvh_with_in_plane_interpolation(self):
         """Test if DVH can be calculated using in plane interpolation."""
         interp_dvh = self.calc_dvh(

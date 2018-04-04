@@ -12,3 +12,13 @@ try:
     from PIL import Image
 except:
     pil_available = False
+shapely_available = True
+try:
+    from shapely.geometry import Polygon
+except:
+    shapely_available = False
+skimage_available = True
+try:
+    from skimage.transform import rescale
+except ImportError:
+    skimage_available = False
