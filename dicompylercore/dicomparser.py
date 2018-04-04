@@ -22,17 +22,12 @@ from numbers import Number
 from six import PY2, iterkeys, string_types, BytesIO
 from six.moves import range
 from dicompylercore import dvh, util
+from dicompylercore.config import pil_available, shapely_available
 
-pil_available = True
-try:
+if pil_available:
     from PIL import Image
-except:
-    pil_available = False
-shapely_available = True
-try:
+if shapely_available:
     from shapely.geometry import Polygon
-except:
-    shapely_available = False
 
 logger = logging.getLogger('dicompylercore.dicomparser')
 

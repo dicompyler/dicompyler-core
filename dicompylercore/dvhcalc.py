@@ -13,16 +13,14 @@ import numpy as np
 import numpy.ma as ma
 import matplotlib.path
 from dicompylercore import dvh
+from dicompylercore.config import skimage_available
 import collections
 from six import iteritems
 import logging
 logger = logging.getLogger('dicompylercore.dvhcalc')
 
-skimage_available = True
-try:
+if skimage_available:
     from skimage.transform import rescale
-except ImportError:
-    skimage_available = False
 
 
 def get_dvh(structure,

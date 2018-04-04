@@ -8,7 +8,7 @@
 import unittest
 import os
 from dicompylercore import dicomparser
-from dicompylercore.config import pil_available
+from dicompylercore.config import pil_available, shapely_available
 try:
     from pydicom.multival import MultiValue as mv
     from pydicom.valuerep import DSfloat
@@ -194,6 +194,7 @@ class TestRTStructureSet(unittest.TestCase):
         self.assertAlmostEqual(
             self.dp.CalculatePlaneThickness(planes), thickness)
 
+    @unittest.skipUnless(shapely_available, "shapely not installed")
     def test_structure_volume(self):
         """Test if a structure volume can be calculated."""
         coords = self.dp.GetStructureCoordinates(5)
@@ -201,6 +202,7 @@ class TestRTStructureSet(unittest.TestCase):
         self.assertAlmostEqual(
             self.dp.CalculateStructureVolume(coords, 3), volume)
 
+    @unittest.skipUnless(shapely_available, "shapely not installed")
     def test_structure_volume_holes(self):
         """Test if a structure volume with holes can be calculated."""
         coords = self.dp.GetStructureCoordinates(6)
