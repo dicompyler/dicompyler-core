@@ -8,29 +8,25 @@ package includes:
 
 -  ``dicomparser``: parse DICOM objects in an easy-to-use manner
 -  ``dvh``: Pythonic access to dose volume histogram (DVH) data
--  ``dvhcalc``: independent dose volume histogram (DVH) calculation if dose grid and structure data is present
+-  ``dvhcalc``: Independent DVH calculation using DICOM RT Dose & RT Structure Set
 
 Other information
 -----------------
 
 -  Free software: `BSD license <https://github.com/dicompyler/dicompyler-core/blob/master/LICENSE>`__
--  Documentation: `Read the
-   docs <https://dicompyler-core.readthedocs.org>`__
--  Tested on Python 2.7/3.4+
+-  Documentation: `Read the docs <https://dicompyler-core.readthedocs.io>`__
+-  Tested on Python 2.7, 3.4, 3.5, 3.6
 
 Dependencies
 ------------
 
 -  `numpy <http://www.numpy.org>`__ 1.2 or higher
--  `pydicom <http://www.pydicom.org>`__ 0.9.9 or higher
-
-   -  pydicom 1.0 is preferred and can be installed via pip using: ``pip install https://github.com/darcymason/pydicom/archive/master.zip --upgrade``
-
+-  `pydicom <https://pydicom.github.io>`__ 0.9.9 or higher (pydicom 1.0 compatible)
 -  `matplotlib <http://matplotlib.org>`__ 1.3.0 or higher (for DVH calculation)
 -  `six <https://pythonhosted.org/six/>`__ 1.5 or higher
 -  Optional:
 
-   -  `Pillow <http://python-pillow.org/>`__ (for image display)
+   -  `Pillow <https://pillow.readthedocs.io>`__ (for image display)
    -  `Shapely <https://github.com/Toblerity/Shapely>`__ (for structure volume calculation)
    -  `scikit-image <http://scikit-image.org/>`__ (for DVH interpolation)
 
