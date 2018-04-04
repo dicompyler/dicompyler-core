@@ -3,7 +3,7 @@ dicompyler-core
 
 |Binder| |pypi| |travis-ci| |coveralls| |Codacy| |Codecov| |Documentation Status|
 
-Core functionality of `dicompyler <http://www.dicompyler.com>`__. This
+A library of core radiation therapy modules for DICOM / DICOM RT used by `dicompyler <http://www.dicompyler.com>`__. This
 package includes:
 
 -  ``dicomparser``: parse DICOM objects in an easy-to-use manner
