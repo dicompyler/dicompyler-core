@@ -146,17 +146,17 @@ class TestDVHCalc(unittest.TestCase):
             interpolation_resolution=(2.5 / 8))
 
         # Volume
-        self.assertAlmostEqual(interp_dvh.volume, 0.5124023)
+        self.assertAlmostEqual(interp_dvh.volume, 0.51560486)
         # Min dose bin
         self.assertAlmostEqual(interp_dvh.bins[0], 0)
         # Max dose bin
-        self.assertEqual(interp_dvh.bins[-1], 12.95)
+        self.assertEqual(interp_dvh.bins[-1], 12.98)
         # Max dose to structure
-        self.assertAlmostEqual(interp_dvh.max, 12.9)
+        self.assertAlmostEqual(interp_dvh.max, 12.95)
         # Min dose to structure
         self.assertAlmostEqual(interp_dvh.min, 1.32)
         # Mean dose to structure
-        self.assertAlmostEqual(interp_dvh.mean, 7.46926529)
+        self.assertAlmostEqual(interp_dvh.mean, 7.69203790)
 
     def test_dvh_with_structure_extents(self):
         """Test if DVH calculation is same as normal with structure extents."""
