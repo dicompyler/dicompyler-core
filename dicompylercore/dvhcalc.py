@@ -131,11 +131,13 @@ def calculate_dvh(structure,
             extents = structure_extents(structure['planes'])
         dgindexextents = dosegrid_extents_indices(extents, dd)
         dgextents = dosegrid_extents_positions(dgindexextents, dd)
-            # Determine LUT from extents
+        # Determine LUT from extents
         # If interpolation is enabled, generate new LUT from extents
         if interpolation_resolution:
             dd['lut'] = get_resampled_lut(
-                dgextents, pixel_spacing=interpolation_resolution,
+                dgindexextents,
+                dgextents,
+                new_pixel_spacing=interpolation_resolution,
                 min_pixel_spacing=id['pixelspacing'][0])
             dd['rows'] = dd['lut'][1].shape[0]
             dd['columns'] = dd['lut'][0].shape[0]
@@ -361,16 +363,21 @@ def dosegrid_extents_positions(extents, dd):
     ]
 
 
-def get_resampled_lut(extents, pixel_spacing, min_pixel_spacing=3):
+def get_resampled_lut(index_extents,
+                      extents,
+                      new_pixel_spacing,
+                      min_pixel_spacing):
     """Determine the patient to pixel LUT based on new pixel spacing.
 
     Parameters
     ----------
+    index_extents : list
+        Dose grid extents as array indices.
     extents : list
-        Dose grid extents in pixel coordinates.
-    pixel_spacing : float
+        Dose grid extents in patient coordinates.
+    new_pixel_spacing : float
         New pixel spacing in mm
-    min_pixel_spacing : int, optional
+    min_pixel_spacing : float
         Minimum pixel spacing used to determine the new pixel spacing
 
     Returns
@@ -396,15 +403,20 @@ def get_resampled_lut(extents, pixel_spacing, min_pixel_spacing=3):
     Derived via: ``(3 / 2^16) == 0.375``
 
     """
-    if (min_pixel_spacing % pixel_spacing != 0.0):
+    if (min_pixel_spacing % new_pixel_spacing != 0.0):
         raise AttributeError(
-            "Pixel spacing must be a factor of %g/(2^n)," % min_pixel_spacing +
-            " where n is an integer. Value provided was %g." % pixel_spacing)
-    xsamples = int(abs((extents[0] - extents[2]) / pixel_spacing) + 1)
-    ysamples = int(abs((extents[1] - extents[3]) / pixel_spacing) + 1)
-    x = np.linspace(extents[0], extents[2], xsamples, dtype=np.float)
-    y = np.linspace(extents[1], extents[3], ysamples, dtype=np.float)
-    return x[:-1], y[:-1]
+            "New pixel spacing must be a factor of %g/(2^n),"
+            % min_pixel_spacing +
+            " where n is an integer. Value provided was %g."
+            % new_pixel_spacing)
+    sampling_rate = np.array([
+        abs(index_extents[0] - index_extents[2]),
+        abs(index_extents[1] - index_extents[3])
+    ])
+    xsamples, ysamples = sampling_rate * min_pixel_spacing / new_pixel_spacing
+    x = np.linspace(extents[0], extents[2], int(xsamples), dtype=np.float)
+    y = np.linspace(extents[1], extents[3], int(ysamples), dtype=np.float)
+    return x, y
 
 
 def get_interpolated_dose(dose, z, resolution, extents):
