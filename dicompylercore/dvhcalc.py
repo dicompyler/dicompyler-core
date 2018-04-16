@@ -126,19 +126,24 @@ def calculate_dvh(structure,
         id = dose.GetImageData()
 
         # Determine structure and respectively dose grid extents
-        extents = []
-        if use_structure_extents:
-            extents = structure_extents(structure['planes'])
-        dgindexextents = dosegrid_extents_indices(extents, dd)
-        dgextents = dosegrid_extents_positions(dgindexextents, dd)
-        # Determine LUT from extents
-        # If interpolation is enabled, generate new LUT from extents
-        if interpolation_resolution:
-            dd['lut'] = get_resampled_lut(
-                dgindexextents,
-                dgextents,
-                new_pixel_spacing=interpolation_resolution,
-                min_pixel_spacing=id['pixelspacing'][0])
+        if interpolation_resolution or use_structure_extents:
+            extents = []
+            if use_structure_extents:
+                extents = structure_extents(structure['planes'])
+            dgindexextents = dosegrid_extents_indices(extents, dd)
+            dgextents = dosegrid_extents_positions(dgindexextents, dd)
+            # Determine LUT from extents
+            if use_structure_extents:
+                dd['lut'] = \
+                    (dd['lut'][0][dgindexextents[0]:dgindexextents[2]],
+                     dd['lut'][1][dgindexextents[1]:dgindexextents[3]])
+            # If interpolation is enabled, generate new LUT from extents
+            if interpolation_resolution:
+                dd['lut'] = get_resampled_lut(
+                    dgindexextents,
+                    dgextents,
+                    new_pixel_spacing=interpolation_resolution,
+                    min_pixel_spacing=id['pixelspacing'][0])
             dd['rows'] = dd['lut'][1].shape[0]
             dd['columns'] = dd['lut'][0].shape[0]
 
@@ -173,10 +178,7 @@ def calculate_dvh(structure,
     # Iterate over each plane in the structure
     for z, plane in iteritems(planes):
         # Get the dose plane for the current structure plane
-        if interpolation_resolution and not skimage_available:
-            raise ImportError(
-                "scikit-image must be installed to perform DVH interpolation.")
-        if interpolation_resolution and skimage_available:
+        if interpolation_resolution or use_structure_extents:
             doseplane = get_interpolated_dose(
                 dose, z, interpolation_resolution, dgindexextents)
         else:
@@ -438,10 +440,16 @@ def get_interpolated_dose(dose, z, resolution, extents):
     ndarray
         Interpolated dose grid with a shape larger than the input dose grid.
     """
+    # Return the dose bounded by extents if interpolation is not required
     d = dose.GetDoseGrid(z)
-    scale = (np.array(dose.ds.PixelSpacing) / resolution).tolist()
     extent_dose = d[extents[1]:extents[3],
                     extents[0]:extents[2]] if len(extents) else d
+    if not resolution:
+        return extent_dose
+    if not skimage_available:
+        raise ImportError(
+            "scikit-image must be installed to perform DVH interpolation.")
+    scale = (np.array(dose.ds.PixelSpacing) / resolution).tolist()
     interp_dose = rescale(
         extent_dose,
         scale=scale,

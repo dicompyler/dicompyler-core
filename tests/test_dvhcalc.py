@@ -170,13 +170,13 @@ class TestDVHCalc(unittest.TestCase):
         self.create_new_contour(3, [-230.0, -520.0, 260.0, 0.0], 24.56)
 
         structure_extents_dvh = self.calc_dvh(3, use_structure_extents=True)
-        self.assertAlmostEqual(structure_extents_dvh.volume, 470.4187500)
+        self.assertAlmostEqual(structure_extents_dvh.volume, 464.38125)
 
     def test_dvh_with_in_plane_interpolation_sampling_fail(self):
         """Test if DVH calculation fails when the sampling rate is invalid."""
         with self.assertRaises(AttributeError):
             self.calc_dvh(
-                8, use_structure_extents=True,
+                8, use_structure_extents=False,
                 interpolation_resolution=(3 / 8))
 
     def test_dvh_calculation_with_interpolation_between_planes(self):
