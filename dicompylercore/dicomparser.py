@@ -793,10 +793,10 @@ class DicomParser:
                         self.plan['rxdose'] = item.TargetPrescriptionDose * 100
         if (("FractionGroupSequence" in self.ds) and (self.plan['rxdose'] == 0)):
             fg = self.ds.FractionGroupSequence[0]
-            if ("ReferencedBeams" in fg) and \
-               ("NumberofFractionsPlanned" in fg):
-                beams = fg.ReferencedBeams
-                fx = fg.NumberofFractionsPlanned
+            if ("ReferencedBeamSequence" in fg) and \
+               ("NumberOfFractionsPlanned" in fg):
+                beams = fg.ReferencedBeamSequence
+                fx = fg.NumberOfFractionsPlanned
                 for beam in beams:
                     if "BeamDose" in beam:
                         self.plan['rxdose'] += beam.BeamDose * fx * 100
