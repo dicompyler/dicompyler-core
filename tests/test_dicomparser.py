@@ -234,7 +234,15 @@ class TestRTPlan(unittest.TestCase):
             'rxdose': 1400,
             'brachy': False,
         }
+
+        # Test DoseRefererenceSequence
         plandata = self.dp.GetPlan()
+        self.assertEqual(plandata, data)
+
+        # Test FractionGroupSequence
+        del self.dp.ds.DoseReferenceSequence
+        plandata = self.dp.GetPlan()
+        data['name'] = ''
         self.assertEqual(plandata, data)
 
     def test_plan_beams_in_fraction(self):
