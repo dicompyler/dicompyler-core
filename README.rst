@@ -1,7 +1,7 @@
 dicompyler-core
 ===============
 
-|Binder| |pypi| |travis-ci| |coveralls| |Codacy| |Codecov| |Documentation Status|
+|Binder| |pypi| |travis-ci| |coveralls| |Codacy| |Codecov| |Documentation Status| |Zenodo|
 
 A library of core radiation therapy modules for DICOM / DICOM RT used by `dicompyler <http://www.dicompyler.com>`__. This
 package includes:
@@ -68,6 +68,11 @@ Basic Usage
 
 Advanced Usage and Examples can be found in Binder: |Binder|
 
+Citing dicompyler-core
+----------------------
+A DOI for dicompyler-core with various citation styles can be found at Zenodo: |Zenodo|
+
+
 Credits
 -------
 
@@ -89,3 +94,5 @@ This package was created with
    :target: https://codecov.io/gh/dicompyler/dicompyler-core
 .. |Documentation Status| image:: https://readthedocs.org/projects/dicompyler-core/badge/?version=latest
    :target: https://dicompyler-core.readthedocs.io/en/latest/
+.. |Zenodo| image:: https://zenodo.org/badge/51550203.svg
+   :target: https://zenodo.org/badge/latestdoi/51550203
