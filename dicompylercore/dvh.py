@@ -154,7 +154,7 @@ class DVH(object):
         else:
             return DVH(**dict(
                 self.__dict__,
-                counts=np.append(abs(np.diff(self.counts) * -1), [0]),
+                counts=abs(np.diff(np.append(self.counts, 0))),
                 dvh_type=dvh_type))
 
     @property
