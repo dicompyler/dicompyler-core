@@ -496,15 +496,15 @@ class DVH(object):
         if c[0] == ('v'):
             # Volume Constraints (i.e. V100) & return a volume
             if len(c) == 2:
-                return self.volume_constraint(float(c[1]))
+                return self.cumulative.volume_constraint(float(c[1]))
             # Volume Constraints in abs dose (i.e. V20Gy) & return a volume
-            return self.volume_constraint(float(c[1]), c[2])
+            return self.cumulative.volume_constraint(float(c[1]), c[2])
         elif c[0] == ('d'):
             # Dose Constraints (i.e. D90) & return a dose
             if len(c) == 2:
-                return self.dose_constraint(float(c[1]))
+                return self.cumulative.dose_constraint(float(c[1]))
             # Dose Constraints in abs volume (i.e. D2cc) & return a dose
-            return self.dose_constraint(float(c[1]), c[2])
+            return self.cumulative.dose_constraint(float(c[1]), c[2])
 
     def __getattr__(self, name):
         """Method used to dynamically determine dose or volume stats.
