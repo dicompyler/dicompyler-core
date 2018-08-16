@@ -278,10 +278,10 @@ class TestRTDose(unittest.TestCase):
         self.assertEqual(dvh.dvh_type, 'cumulative')
         self.assertEqual(dvh.dose_units, 'Gy')
         self.assertEqual(dvh.volume_units, 'cm3')
-        self.assertEqual(dvh.volume, 437.46231750264502)
-        self.assertEqual(dvh.relative_dose().max, 22.142857142856986)
+        self.assertEqual(dvh.volume, 437.4623175026471)
+        self.assertEqual(dvh.relative_dose().max, 22.214285714285555)
         self.assertEqual(dvh.relative_dose().min, 0.14285714285714285)
-        self.assertEqual(dvh.relative_dose().mean, 4.5909162803374084)
+        self.assertEqual(dvh.relative_dose().mean, 4.590916280337491)
 
     def test_dose_grid(self):
         """Test if the dose grid can be parsed."""
