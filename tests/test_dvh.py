@@ -40,7 +40,7 @@ class TestDVH(unittest.TestCase):
         self.assertEqual(dvh.DVH.from_data(1, 1), dvh.DVH([1], [1]))
         self.assertEqual(
             repr(dvh.DVH.from_data(1, 1)),
-            "DVH(cumulative, 1 bins: [0:1] Gy, volume: 0 cm3, "
+            "DVH(cumulative, 1 bins: [0:1] Gy, volume: 1 cm3, "
             "name: None, rx_dose: 0 Gy)")
         assert_array_equal(dvh.DVH.from_data(0, 1).bins, array([0, 0]))
         assert_array_equal(dvh.DVH.from_data(5, 2).bins, array([0, 2, 4, 5]))
@@ -122,10 +122,10 @@ class TestDVH(unittest.TestCase):
 
     def test_dvh_properties(self):
         """Test if the DVH properties can be derived."""
-        self.assertEqual(self.dvh.max, 14.569999999999734)
+        self.assertEqual(self.dvh.max, 14.579999999999734)
         self.assertEqual(self.dvh.min, 14.069999999999744)
-        self.assertEqual(self.dvh.mean, 14.285830178442305)
-        self.assertEqual(self.dvh.volume, 12.809180549338702)
+        self.assertEqual(self.dvh.mean, 14.285830178442307)
+        self.assertEqual(self.dvh.volume, 12.809180549338803)
 
     def test_dvh_value(self):
         """Test if the DVHValue class works as expected."""

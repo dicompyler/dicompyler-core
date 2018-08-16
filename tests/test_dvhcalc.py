@@ -86,17 +86,17 @@ class TestDVHCalc(unittest.TestCase):
         dvh = self.calc_dvh(5)
 
         # Volume
-        self.assertAlmostEqual(dvh.volume, 440.212499999)
+        self.assertAlmostEqual(dvh.volume, 440.23124999)
         # Min dose bin
         self.assertAlmostEqual(dvh.bins[0], 0)
         # Max dose bin
-        self.assertEqual(dvh.bins[-1], 3.100000000)
+        self.assertEqual(dvh.bins[-1], 3.1)
         # Max dose to structure
-        self.assertAlmostEqual(dvh.max, 3.089999999)
+        self.assertAlmostEqual(dvh.max, 3.1)
         # Min dose to structure
-        self.assertAlmostEqual(dvh.min, 0.02999999)
+        self.assertAlmostEqual(dvh.min, 0.03)
         # Mean dose to structure
-        self.assertAlmostEqual(dvh.mean, 0.647428656)
+        self.assertAlmostEqual(dvh.mean, 0.6475329)
 
     def test_dvh_calculation_with_dose_limit(self):
         """Test if a DVH can be calculated with a max dose limit."""
@@ -104,22 +104,22 @@ class TestDVHCalc(unittest.TestCase):
         limitdvh = self.calc_dvh(5, limit=500)
 
         # Volume
-        self.assertAlmostEqual(limitdvh.volume, 440.212499999)
+        self.assertAlmostEqual(limitdvh.volume, 440.23124999)
         # Min dose bin
         self.assertAlmostEqual(limitdvh.bins[0], 0)
         # Max dose bin
-        self.assertEqual(limitdvh.bins[-1], 3.100000000)
+        self.assertEqual(limitdvh.bins[-1], 3.1)
         # Max dose to structure
-        self.assertAlmostEqual(limitdvh.max, 3.089999999)
+        self.assertAlmostEqual(limitdvh.max, 3.1)
         # Min dose to structure
-        self.assertAlmostEqual(limitdvh.min, 0.02999999)
+        self.assertAlmostEqual(limitdvh.min, 0.03)
         # Mean dose to structure
-        self.assertAlmostEqual(limitdvh.mean, 0.647428656)
+        self.assertAlmostEqual(limitdvh.mean, 0.6475329)
 
         # Set the dose limit to 2000 cGy (higher than max dose)
         highlimitdvh = self.calc_dvh(5, limit=2000)
         # Max dose bin
-        self.assertEqual(highlimitdvh.bins[-1], 3.100000000)
+        self.assertEqual(highlimitdvh.bins[-1], 3.1)
 
         # Set the dose limit to 1 cGy (should produce an empty histogram)
         lowlimitdvh = self.calc_dvh(5, limit=1)
@@ -133,10 +133,10 @@ class TestDVHCalc(unittest.TestCase):
 
         # Full structure volume (calculated inside/outside dose grid)
         include_vol_dvh = self.calc_dvh(8, calculate_full_volume=True)
-        self.assertAlmostEqual(include_vol_dvh.volume, 0.54086538)
+        self.assertAlmostEqual(include_vol_dvh.volume, 0.56249999)
         # Partial volume (calculated only within dose grid)
         partial_vol_dvh = self.calc_dvh(8, calculate_full_volume=False)
-        self.assertAlmostEqual(partial_vol_dvh.volume, 0.46874999)
+        self.assertAlmostEqual(partial_vol_dvh.volume, 0.48749999)
 
     @unittest.skipUnless(skimage_available, "scikit-image not installed")
     def test_dvh_with_in_plane_interpolation(self):
@@ -146,17 +146,17 @@ class TestDVHCalc(unittest.TestCase):
             interpolation_resolution=(2.5 / 8))
 
         # Volume
-        self.assertAlmostEqual(interp_dvh.volume, 0.51560486)
+        self.assertAlmostEqual(interp_dvh.volume, 0.51590551)
         # Min dose bin
         self.assertAlmostEqual(interp_dvh.bins[0], 0)
         # Max dose bin
         self.assertEqual(interp_dvh.bins[-1], 12.98)
         # Max dose to structure
-        self.assertAlmostEqual(interp_dvh.max, 12.95)
+        self.assertAlmostEqual(interp_dvh.max, 12.98)
         # Min dose to structure
         self.assertAlmostEqual(interp_dvh.min, 1.32)
         # Mean dose to structure
-        self.assertAlmostEqual(interp_dvh.mean, 7.69203790)
+        self.assertAlmostEqual(interp_dvh.mean, 7.695116550116536)
 
     def test_dvh_with_structure_extents(self):
         """Test if DVH calculation is same as normal with structure extents."""
@@ -170,7 +170,7 @@ class TestDVHCalc(unittest.TestCase):
         self.create_new_contour(3, [-230.0, -520.0, 260.0, 0.0], 24.56)
 
         structure_extents_dvh = self.calc_dvh(3, use_structure_extents=True)
-        self.assertAlmostEqual(structure_extents_dvh.volume, 464.38125)
+        self.assertAlmostEqual(structure_extents_dvh.volume, 464.40000)
 
     def test_dvh_with_in_plane_interpolation_sampling_fail(self):
         """Test if DVH calculation fails when the sampling rate is invalid."""
@@ -184,17 +184,17 @@ class TestDVHCalc(unittest.TestCase):
         dvh = self.calc_dvh(8, interpolation_segments=2)
 
         # Volume
-        self.assertAlmostEqual(dvh.volume, 0.4687499999)
+        self.assertAlmostEqual(dvh.volume, 0.47499999)
         # Min dose bin
         self.assertAlmostEqual(dvh.bins[0], 0)
         # Max dose bin
         self.assertEqual(dvh.bins[-1], 10.0)
         # Max dose to structure
-        self.assertAlmostEqual(dvh.max, 9.98)
+        self.assertAlmostEqual(dvh.max, 10.0)
         # Min dose to structure
         self.assertAlmostEqual(dvh.min, 2.03)
         # Mean dose to structure
-        self.assertAlmostEqual(dvh.mean, 6.4298000000)
+        self.assertAlmostEqual(dvh.mean, 6.4767105)
 
 
 if __name__ == '__main__':
