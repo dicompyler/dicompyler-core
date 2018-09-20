@@ -149,6 +149,11 @@ class TestRTStructureSet(unittest.TestCase):
         series = '2.16.840.1.113662.2.12.0.3057.1241703565.43'
         self.assertEqual(self.dp.GetReferencedSeries(), series)
 
+    def test_referenced_frame_of_reference(self):
+        """Test if the referenced frame of reference can be parsed."""
+        referenceframe = '2.16.840.1.113662.2.12.0.3057.1241703565.36'
+        self.assertEqual(self.dp.GetFrameOfReferenceUID(), referenceframe)
+
     def test_structure_set_info(self):
         """Test if the structure set info can be parsed."""
         structure = {
