@@ -399,7 +399,7 @@ class DVH(object):
         """Plot the DVH using Matplotlib if present."""
         try:
             import matplotlib.pyplot as plt
-        except ImportError:
+        except (ImportError, RuntimeError):
             print('Matplotlib could not be loaded. Install and try again.')
         else:
             plt.plot(self.bincenters, self.counts, label=self.name,
