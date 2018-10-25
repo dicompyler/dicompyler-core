@@ -350,8 +350,8 @@ class DicomParser:
         # Add a black background if requested
         if background:
             bg = Image.new('RGBA', size, (0, 0, 0, 255))
-            bg.paste(im, ((size[0] - im.size[0]) / 2,
-                     (size[1] - im.size[1]) / 2))
+            bg.paste(im, ((size[0] - im.size[0]) // 2,
+                     (size[1] - im.size[1]) // 2))
             return bg
 
         return im
