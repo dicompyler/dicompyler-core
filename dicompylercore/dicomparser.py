@@ -142,8 +142,10 @@ class DicomParser:
         """Determine the Frame of Reference UID of the current file."""
 
         if 'FrameOfReferenceUID' in self.ds:
-            return self.ds.FrameOfReferenceUID
-        elif 'ReferencedFrameOfReferenceSequence' in self.ds:
+            # Some Files contain a Ref FoR but do not contain an FoR themselves
+            if not self.ds.FrameOfReferenceUID == '':
+                return self.ds.FrameOfReferenceUID
+        if 'ReferencedFrameOfReferenceSequence' in self.ds:
             return self.ds.ReferencedFrameOfReferenceSequence[0].FrameOfReferenceUID
         else:
             return ''
