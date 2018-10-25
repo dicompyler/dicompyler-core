@@ -178,7 +178,7 @@ class DicomParser:
             if PY2:
                 self.ds.decode()
             name = self.ds.PatientName
-            patient['name'] = name
+            patient['name'] = str(name)
             patient['given_name'] = name.given_name
             patient['middle_name'] = name.middle_name
             patient['family_name'] = name.family_name
