@@ -154,6 +154,9 @@ class TestDVH(unittest.TestCase):
             self.dvh.volume_constraint(100, 'Gy'),
             dvh.DVHValue(0.0, 'cm3'))
         self.assertEqual(
+            self.dvh.dose_constraint(100),
+            dvh.DVHValue(14.059999999999745, 'Gy'))
+        self.assertEqual(
             self.dvh.dose_constraint(90),
             dvh.DVHValue(14.169999999999742, 'Gy'))
         self.assertEqual(
