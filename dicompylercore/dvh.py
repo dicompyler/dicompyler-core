@@ -461,8 +461,23 @@ class DVH(object):
             volume_counts = self.relative_volume.counts
         else:
             volume_counts = self.absolute_volume(self.volume).counts
+
         if volume > volume_counts.max():
             return DVHValue(0.0, self.dose_units)
+
+        # D100 case
+        if volume == 100 and not volume_units:
+            # Flipping the difference volume array
+            reversed_difference_of_volume = np.flip(
+                    np.fabs(volume_counts - volume), 0)
+
+            # Index of the first minimum value in reversed array
+            index_min_value = np.argmin(reversed_difference_of_volume)
+            index_range = len(reversed_difference_of_volume) - 1
+
+            return DVHValue(
+                self.bins[index_range - index_min_value], self.dose_units)
+
         # TODO Add interpolation
         return DVHValue(
             self.bins[np.argmin(
