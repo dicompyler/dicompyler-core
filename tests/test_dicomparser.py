@@ -54,18 +54,21 @@ class TestCommon(unittest.TestCase):
         study = {
             'description': 'No description',
             'date': '19010101',
-            'id': '2.16.840.1.113662.2.12.0.3057.1241703565.35'
+            'id': '2.16.840.1.113662.2.12.0.3057.1241703565.35',
+            'time': '000000'
         }
         self.assertEqual(self.dp.GetStudyInfo(), study)
 
     def test_series_info(self):
         """Test if the series info can be parsed."""
         series = {
+            'date': '19010101',
             'description': 'No description',
             'id': '2.16.840.1.113662.2.12.0.3057.1241703565.43',
             'study': '2.16.840.1.113662.2.12.0.3057.1241703565.35',
             'referenceframe': '2.16.840.1.113662.2.12.0.3057.1241703565.36',
-            'modality': 'CT'
+            'modality': 'CT',
+            'time': '000000'
         }
         self.assertEqual(self.dp.GetSeriesInfo(), series)
 
