@@ -91,6 +91,11 @@ class DicomParser:
         else:
             date = None
         study['date'] = date
+        if 'StudyTime' in self.ds:
+            time = self.ds.StudyTime
+        else:
+            time = None
+        study['time'] = time
         # Don't assume that every dataset includes a study UID
         if 'StudyInstanceUID' in self.ds:
             study['id'] = self.ds.StudyInstanceUID
@@ -98,6 +103,26 @@ class DicomParser:
             study['id'] = str(random.randint(0, 65535))
 
         return study
+
+    def GetSeriesDateTime(self):
+        """Return the series date/time information."""
+        dt = {}
+        if 'SeriesDate' in self.ds:
+            date = self.ds.SeriesDate
+        elif 'InstanceCreationDate' in self.ds:
+            date = self.ds.InstanceCreationDate
+        else:
+            date = None
+        dt['date'] = date
+        if 'SeriesTime' in self.ds:
+            time = self.ds.SeriesTime
+        elif 'InstanceCreationTime' in self.ds:
+            time = self.ds.InstanceCreationTime
+        else:
+            time = None
+        dt['time'] = time
+
+        return dt
 
     def GetSeriesInfo(self):
         """Return the series information of the current file."""
@@ -111,6 +136,7 @@ class DicomParser:
         series['id'] = self.ds.SeriesInstanceUID
         # Don't assume that every dataset includes a study UID
         series['study'] = self.ds.SeriesInstanceUID
+        series.update(self.GetSeriesDateTime())
         if 'StudyInstanceUID' in self.ds:
             series['study'] = self.ds.StudyInstanceUID
         series['referenceframe'] = self.ds.FrameOfReferenceUID \
