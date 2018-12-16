@@ -542,7 +542,7 @@ class DicomParser:
                         # Locate the contour sequence for each referenced ROI
                         for c in roi.ContourSequence:
                             # For each plane, initialize a new plane dict
-                            plane = {}
+                            plane = dict()
 
                             # Determine all the plane properties
                             plane['type'] = c.ContourGeometricType
@@ -550,15 +550,12 @@ class DicomParser:
                             plane['data'] = \
                                 self.GetContourPoints(c.ContourData)
 
-                            # Each plane which coincides with an image slice
-                            # will have a unique ID
-                            if 'ContourImageSequence' in c:
-                                # Add each plane to the planes dict
-                                # of the current ROI
-                                z = str(round(plane['data'][0][2], 2)) + '0'
-                                if z not in planes:
-                                    planes[z] = []
-                                planes[z].append(plane)
+                            # Add each plane to the planes dict
+                            # of the current ROI
+                            z = str(round(plane['data'][0][2], 2)) + '0'
+                            if z not in planes:
+                                planes[z] = []
+                            planes[z].append(plane)
 
         return planes
 
