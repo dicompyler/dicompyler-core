@@ -204,6 +204,27 @@ class TestDVH(unittest.TestCase):
         self.dvh.name = "test"
         self.assertEqual(self.dvh.plot(), self.dvh)
 
+    def test_dvh_statistics_with_no_counts(self):
+        subject = dvh.DVH(array([]), array([0]))
+        self.assertEqual(subject.max, 0)
+        self.assertEqual(subject.min, 0)
+        self.assertEqual(subject.mean, 0)
+
+    def test_dose_constraint_with_no_counts(self):
+        subject = dvh.DVH(array([]), array([0]))
+        subject.dose_constraint(1)
+
+    def test_dvh_statistics_with_zero_volume(self):
+        subject = dvh.DVH(array([0, 0]), array([0, 1]))
+        self.assertEqual(subject.max, 0)
+        self.assertEqual(subject.min, 0)
+        self.assertEqual(subject.mean, 0)
+
+    def test_dose_constraint_with_zero_volume(self):
+        subject = dvh.DVH(array([0, 0]), array([0, 1]))
+        subject.dose_constraint(1)
+
+
 if __name__ == '__main__':
     import sys
     sys.exit(unittest.main())
