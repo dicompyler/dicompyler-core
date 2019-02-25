@@ -262,7 +262,7 @@ class DVH(object):
     @property
     def max(self):
         """Return the maximum dose."""
-        if self.counts.size == 1:
+        if self.counts.size <= 1 or max(self.counts) == 0:
             return 0
         diff = self.differential
         # Find the the maximum non-zero dose bin
@@ -271,7 +271,7 @@ class DVH(object):
     @property
     def min(self):
         """Return the minimum dose."""
-        if self.counts.size == 1:
+        if self.counts.size <= 1 or max(self.counts) == 0:
             return 0
         diff = self.differential
         # Find the the minimum non-zero dose bin
@@ -280,7 +280,7 @@ class DVH(object):
     @property
     def mean(self):
         """Return the mean dose."""
-        if self.counts.size == 1:
+        if self.counts.size <= 1 or max(self.counts) == 0:
             return 0
         diff = self.differential
         # Find the area under the differential histogram
@@ -462,7 +462,7 @@ class DVH(object):
         else:
             volume_counts = self.absolute_volume(self.volume).counts
 
-        if volume > volume_counts.max():
+        if volume_counts.size == 0 or volume > volume_counts.max():
             return DVHValue(0.0, self.dose_units)
 
         # D100 case
