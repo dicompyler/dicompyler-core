@@ -410,7 +410,7 @@ class DicomParser:
             if (pixel_array.min() < wmin):
                 wmin = pixel_array.min()
             # Default window is the range of the data array
-            window = int(abs(wmax) + abs(wmin))
+            window = int(wmax - wmin)
             # Default level is the range midpoint minus the window minimum
             level = int(window / 2 - abs(wmin))
         return window, level
