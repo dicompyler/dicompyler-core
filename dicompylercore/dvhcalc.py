@@ -155,7 +155,7 @@ def calculate_dvh(structure,
         x, y = x.flatten(), y.flatten()
         dosegridpoints = np.vstack((x, y)).T
 
-        maxdose = int(dd['dosemax'] * dd['dosegridscaling'] * 100)
+        maxdose = int(dd['dosemax'] * dd['dosegridscaling'] * 100) + 1
         # Remove values above the limit (cGy) if specified
         if isinstance(limit, int):
             if (limit < maxdose):
