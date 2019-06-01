@@ -61,7 +61,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'dicompyler-core'
-copyright = u'2016-2018, Aditya Panchal'
+copyright = u'2016-2019, Aditya Panchal'
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout

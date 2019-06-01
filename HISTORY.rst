@@ -2,6 +2,43 @@
 History
 =======
 
+0.5.5 (2019-05-31)
+------------------
+
+dvhcalc
+~~~~~~~
+- Refactored bounding & resampling set up code to only execute
+  if conditions are met.
+- Fix a bug where the resampled LUT was not calculated
+  correctly for DVH interpolation.
+
+dvh
+~~~
+- Differential DVH calculation modified. `(#60) <https://github.com/dicompyler/dicompyler-core/pull/60>`__ `[Hideki Nakamoto] <https://github.com/inamoto85>`__
+- Fix an issue with D100 not returning 0 Gy. `(#74) <https://github.com/dicompyler/dicompyler-core/pull/74>`__ `[Gabriel Couture] <https://github.com/gacou54>`__
+- Preserve global maximum dose. `(#106) <https://github.com/dicompyler/dicompyler-core/pull/106>`__ `[Akihisa Wakita] <https://github.com/wkt84>`__
+
+dicomparser
+~~~~~~~~~~~
+- Remove the test for existence of `ContourImageSequence` in
+  `GetStructureCoordinates`. `(#81) <https://github.com/dicompyler/dicompyler-core/pull/81>`__ `[Gabriel Couture] <https://github.com/gacou54>`__
+- Utilize integer division when generating a background for
+  an image.
+- Return a string for the patient's name as `PersonName3`
+  cannot be serialized.
+- Fix a bug to return a referenced FoR if the
+  FrameOfReference is blank.
+- Fix a bug in `GetPlan` where the wrong object names were
+  used. `(#43) <https://github.com/dicompyler/dicompyler-core/pull/43>`__ `[gertsikkema] <https://github.com/gertsikkema>`__
+- Ensure that Rx Dose from RT Plan is rounded instead of
+  truncated.
+- Account for holes and bifurcated structures for structure
+  volume calculation.
+- Implement structure volume calculation using Shapely.
+- Fix window calculation if not present in header.
+- Add checks in max, mean, min and dose_constraint for case where counts array is empty or all 0's. `(#96) <https://github.com/dicompyler/dicompyler-core/pull/96>`__ `[Nicolas Galler] <https://github.com/nicocrm>`__
+
+
 0.5.4 (2018-04-02)
 ------------------
 
