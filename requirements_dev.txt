@@ -1,7 +1,7 @@
 bumpversion==0.5.3
 wheel==0.33.6
 flake8==3.7.8
-tox==3.12.1
+tox==3.13.2
 coverage==4.5.3
 Sphinx==2.0.1
 sphinx-rtd-theme==0.4.3
