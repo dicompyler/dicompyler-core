@@ -15,7 +15,7 @@ Other information
 
 -  Free software: `BSD license <https://github.com/dicompyler/dicompyler-core/blob/master/LICENSE>`__
 -  Documentation: `Read the docs <https://dicompyler-core.readthedocs.io>`__
--  Tested on Python 2.7, 3.5, 3.6
+-  Tested on Python 2.7, 3.5, 3.6, 3.7
 
 Dependencies
 ------------
