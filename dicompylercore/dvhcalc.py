@@ -15,6 +15,10 @@ import matplotlib.path
 from dicompylercore import dvh
 from dicompylercore.config import skimage_available
 import collections
+try:
+    from collections.abc import Sequence
+except ImportError:
+    from collections import Sequence
 from six import iteritems
 import logging
 logger = logging.getLogger('dicompylercore.dvhcalc')
@@ -51,8 +55,9 @@ def get_dvh(structure,
         dose grid.
     use_structure_extents : bool, optional
         Limit the DVH calculation to the in-plane structure boundaries.
-    interpolation_resolution : float, optional
-        Resolution in mm to interpolate the structure and dose data to.
+    interpolation_resolution : tuple or float, optional
+        Resolution in mm (row, col) to interpolate structure and dose data to.
+        If float is provided, original dose grid pixel spacing must be square.
     interpolation_segments_between_planes : integer, optional
         Number of segments to interpolate between structure slices.
     thickness : float, optional
@@ -105,8 +110,9 @@ def calculate_dvh(structure,
         dose grid.
     use_structure_extents : bool, optional
         Limit the DVH calculation to the in-plane structure boundaries.
-    interpolation_resolution : float, optional
-        Resolution in mm to interpolate the structure and dose data to.
+    interpolation_resolution : tuple or float, optional
+        Resolution in mm (row, col) to interpolate structure and dose data to.
+        If float is provided, original dose grid pixel spacing must be square.
     interpolation_segments_between_planes : integer, optional
         Number of segments to interpolate between structure slices.
     callback : function, optional
@@ -143,7 +149,7 @@ def calculate_dvh(structure,
                     dgindexextents,
                     dgextents,
                     new_pixel_spacing=interpolation_resolution,
-                    min_pixel_spacing=id['pixelspacing'][0])
+                    min_pixel_spacing=id['pixelspacing'])
             dd['rows'] = dd['lut'][1].shape[0]
             dd['columns'] = dd['lut'][0].shape[0]
 
@@ -377,10 +383,11 @@ def get_resampled_lut(index_extents,
         Dose grid extents as array indices.
     extents : list
         Dose grid extents in patient coordinates.
-    new_pixel_spacing : float
-        New pixel spacing in mm
-    min_pixel_spacing : float
-        Minimum pixel spacing used to determine the new pixel spacing
+    new_pixel_spacing : tuple or float
+        New pixel spacing in mm (row, column).
+        If float is provided, original dose grid pixel spacing must be square.
+    min_pixel_spacing : tuple
+        Min pixel spacing used to determine new pixel spacing (row, column).
 
     Returns
     -------
@@ -398,6 +405,10 @@ def get_resampled_lut(index_extents,
     The new pixel spacing must be a factor of the original (minimum) pixel
     spacing. For example if the original pixel spacing was ``3`` mm, the new
     pixel spacing should be: ``3 / (2^n)`` mm, where ``n`` is an integer.
+    This applies independently to both the row and column pixel spacing.
+
+    If a single float value is provided it will be applied to both row and
+    column. Additionally, the original dose grid pixel spacing must be square.
 
     Examples
     --------
@@ -405,17 +416,30 @@ def get_resampled_lut(index_extents,
     Derived via: ``(3 / 2^16) == 0.375``
 
     """
-    if (min_pixel_spacing % new_pixel_spacing != 0.0):
+    if not isinstance(new_pixel_spacing, Sequence):
+        if not (min_pixel_spacing[0] == min_pixel_spacing[1]):
+            raise AttributeError(
+                "New pixel spacing must be provided as a (row, column) tuple.")
+        else:
+            new_pixel_spacing = (new_pixel_spacing, new_pixel_spacing)
+    if (min_pixel_spacing[0] % new_pixel_spacing[0] != 0.0):
         raise AttributeError(
-            "New pixel spacing must be a factor of %g/(2^n),"
-            % min_pixel_spacing +
-            " where n is an integer. Value provided was %g."
-            % new_pixel_spacing)
+            "New row pixel spacing must be a factor of %s/(2^n),"
+            % min_pixel_spacing[0] +
+            " where n is an integer. Value provided was %s."
+            % new_pixel_spacing[0])
+    if (min_pixel_spacing[1] % new_pixel_spacing[1] != 0.0):
+        raise AttributeError(
+            "New column pixel spacing must be a factor of %s/(2^n),"
+            % min_pixel_spacing[1] +
+            " where n is an integer. Value provided was %s."
+            % new_pixel_spacing[1])
     sampling_rate = np.array([
         abs(index_extents[0] - index_extents[2]),
         abs(index_extents[1] - index_extents[3])
     ])
-    xsamples, ysamples = sampling_rate * min_pixel_spacing / new_pixel_spacing
+    xsamples = sampling_rate[0] * min_pixel_spacing[1] / new_pixel_spacing[1]
+    ysamples = sampling_rate[1] * min_pixel_spacing[0] / new_pixel_spacing[0]
     x = np.linspace(extents[0], extents[2], int(xsamples), dtype=np.float)
     y = np.linspace(extents[1], extents[3], int(ysamples), dtype=np.float)
     return x, y
@@ -430,8 +454,9 @@ def get_interpolated_dose(dose, z, resolution, extents):
         A DicomParser instance of an RT Dose.
     z : float
         Index in mm of z plane of dose grid.dose
-    resolution : float
+    resolution : tuple
         Interpolation resolution less than or equal to dose grid pixel spacing.
+        Provided in (row, col) format.
     extents : list
         Dose grid index extents.
 
@@ -453,9 +478,11 @@ def get_interpolated_dose(dose, z, resolution, extents):
     interp_dose = rescale(
         extent_dose,
         scale=scale,
-        mode='symmetric',
         order=1,
-        preserve_range=True)
+        mode='symmetric',
+        preserve_range=True,
+        multichannel=False
+        )
     return interp_dose
 
 

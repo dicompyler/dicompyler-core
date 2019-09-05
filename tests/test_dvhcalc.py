@@ -158,6 +158,50 @@ class TestDVHCalc(unittest.TestCase):
         # Mean dose to structure
         self.assertAlmostEqual(interp_dvh.mean, 7.695116550116536)
 
+    @unittest.skipUnless(skimage_available, "scikit-image not installed")
+    def test_dvh_with_in_plane_interpolation_non_square_pixel_spacing(self):
+        """Test non-square pixel spacing DVH calculation with interpolation."""
+        interp_dvh = self.calc_dvh(
+            8, use_structure_extents=True,
+            interpolation_resolution=((2.5 / 8), (2.5 / 16)))
+
+        # Volume
+        self.assertAlmostEqual(interp_dvh.volume, 0.51215152)
+        # Min dose bin
+        self.assertAlmostEqual(interp_dvh.bins[0], 0)
+        # Max dose bin
+        self.assertEqual(interp_dvh.bins[-1], 13.01)
+        # Max dose to structure
+        self.assertAlmostEqual(interp_dvh.max, 13.01)
+        # Min dose to structure
+        self.assertAlmostEqual(interp_dvh.min, 1.37)
+        # Mean dose to structure
+        self.assertAlmostEqual(interp_dvh.mean, 7.660532286212908)
+
+        # Fake irregular pixel spacing to test resampled LUT errors
+        # for non square pixel spacing
+        print(self.rtdose.ds.PixelSpacing)
+        self.rtdose.ds.PixelSpacing = [2.0, 3.0]
+
+        # Test that a non-sequence resolution is invalid
+        # for non-square pixel spacing
+        with self.assertRaises(AttributeError):
+            self.calc_dvh(
+                8, use_structure_extents=True,
+                interpolation_resolution=(2.5 / 8))
+
+        # Test row incorrect new pixel spacing
+        with self.assertRaises(AttributeError):
+            self.calc_dvh(
+                8, use_structure_extents=True,
+                interpolation_resolution=((2.1 / 8), (3.0 / 16)))
+
+        # Test column incorrect pixel spacing
+        with self.assertRaises(AttributeError):
+            self.calc_dvh(
+                8, use_structure_extents=True,
+                interpolation_resolution=((2.0 / 8), (3.1 / 8)))
+
     def test_dvh_with_structure_extents(self):
         """Test if DVH calculation is same as normal with structure extents."""
         orig_dvh = self.calc_dvh(8)
