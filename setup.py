@@ -42,9 +42,6 @@ setup(
         'dvhinterpolation': ["scikit-image"],
         'volume': ["shapely>=1.6"]
     },
-    dependency_links=[
-        "git+https://github.com/darcymason/pydicom.git#egg=pydicom-1.0.0a1"
-    ],
     license="BSD License",
     zip_safe=False,
     keywords=[
