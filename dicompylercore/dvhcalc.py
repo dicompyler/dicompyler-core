@@ -36,14 +36,15 @@ def get_dvh(structure,
             interpolation_resolution=None,
             interpolation_segments_between_planes=0,
             thickness=None,
+            memmap_rtdose=False,
             callback=None):
     """Calculate a cumulative DVH in Gy from a DICOM RT Structure Set & Dose.
 
     Parameters
     ----------
-    structure : pydicom Dataset
+    structure : pydicom Dataset or filename
         DICOM RT Structure Set used to determine the structure data.
-    dose : pydicom Dataset
+    dose : pydicom Dataset or filename
         DICOM RT Dose used to determine the dose grid.
     roi : int
         The ROI number used to uniquely identify the structure in the structure
@@ -62,12 +63,15 @@ def get_dvh(structure,
         Number of segments to interpolate between structure slices.
     thickness : float, optional
         Structure thickness used to calculate volume of a voxel.
+    memmap_rtdose : bool, optional
+        Use memory mapping to access the pixel array of the DICOM RT Dose.
+        This reduces memory usage at the expense of increased calculation time.
     callback : function, optional
         A function that will be called at every iteration of the calculation.
     """
     from dicompylercore import dicomparser
     rtss = dicomparser.DicomParser(structure)
-    rtdose = dicomparser.DicomParser(dose)
+    rtdose = dicomparser.DicomParser(dose, memmap_pixel_array=memmap_rtdose)
     structures = rtss.GetStructures()
     s = structures[roi]
     s['planes'] = rtss.GetStructureCoordinates(roi)
@@ -125,7 +129,7 @@ def calculate_dvh(structure,
 
     # Create an empty array of bins to store the histogram in cGy
     # only if the structure has contour data or the dose grid exists
-    if ((len(planes)) and ("PixelData" in dose.ds)):
+    if ((len(planes)) and (hasattr(dose, 'pixel_array'))):
 
         # Get the dose and image data information
         dd = dose.GetDoseData()
