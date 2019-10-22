@@ -98,6 +98,24 @@ class TestDVHCalc(unittest.TestCase):
         # Mean dose to structure
         self.assertAlmostEqual(dvh.mean, 0.6475329)
 
+    def test_dvh_calculation_memmap(self):
+        """Test if DVHs can be calculated with memmapped RT Dose."""
+        dvh = dvhcalc.get_dvh(os.path.join(
+            example_data, "rtss.dcm"), os.path.join(
+            example_data, "rtdose.dcm"), 5, memmap_rtdose=True)
+        # Volume
+        self.assertAlmostEqual(dvh.volume, 440.23124999)
+        # Min dose bin
+        self.assertAlmostEqual(dvh.bins[0], 0)
+        # Max dose bin
+        self.assertEqual(dvh.bins[-1], 3.1)
+        # Max dose to structure
+        self.assertAlmostEqual(dvh.max, 3.1)
+        # Min dose to structure
+        self.assertAlmostEqual(dvh.min, 0.03)
+        # Mean dose to structure
+        self.assertAlmostEqual(dvh.mean, 0.6475329)
+
     def test_dvh_calculation_with_dose_limit(self):
         """Test if a DVH can be calculated with a max dose limit."""
         # Set the dose limit to 500 cGy (lower than max dose)

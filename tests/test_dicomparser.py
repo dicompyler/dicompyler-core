@@ -304,6 +304,14 @@ class TestRTDose(unittest.TestCase):
         points = [(106, 20), (108, 20), (110, 20)]
         self.assertEqual(self.dp.GetIsodosePoints()[0:3], points)
 
+    def test_isodose_points_memmap(self):
+        """Test if isodose points can be generated via a memmapped dose grid."""
+        points = [(106, 20), (108, 20), (110, 20)]
+        dp = dicomparser.DicomParser(
+            os.path.join(example_data, "rtdose.dcm"),
+            memmap_pixel_array=True)
+        self.assertEqual(dp.GetIsodosePoints()[0:3], points)
+
     def test_dose_data(self):
         """Test if the dose data can be parsed."""
         data = {
@@ -329,6 +337,14 @@ class TestRTDose(unittest.TestCase):
         }
         dosedata = self.dp.GetDoseData()
         # Pop the LUT numpy array
+        assert_array_almost_equal(
+            dosedata.pop('lut')[0][-1], data.pop('lut'))
+        self.assertEqual(dosedata, data)
+        dp = dicomparser.DicomParser(
+            os.path.join(example_data, "rtdose.dcm"),
+            memmap_pixel_array=True)
+        dosedata = dp.GetDoseData()
+        data['lut'] = 253.8458085
         assert_array_almost_equal(
             dosedata.pop('lut')[0][-1], data.pop('lut'))
         self.assertEqual(dosedata, data)

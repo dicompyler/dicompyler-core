@@ -14,6 +14,7 @@ import numpy as np
 try:
     from pydicom.dicomio import read_file
     from pydicom.dataset import Dataset
+    from pydicom.pixel_data_handlers.util import pixel_dtype
 except ImportError:
     from dicom import read_file
     from dicom.dataset import Dataset
@@ -33,15 +34,17 @@ logger = logging.getLogger('dicompylercore.dicomparser')
 
 class DicomParser:
     """Parses DICOM / DICOM RT files."""
-
-    def __init__(self, dataset):
-
+    def __init__(self, dataset, memmap_pixel_array=False):
+        self.memmap_pixel_array = memmap_pixel_array
         if isinstance(dataset, Dataset):
             self.ds = dataset
         elif isinstance(dataset, (string_types, BytesIO)):
             try:
-                self.ds = \
-                    read_file(dataset, defer_size=100, force=True)
+                with open(dataset, "rb") as fp:
+                    self.ds = read_file(fp, defer_size=100, force=True,
+                                        stop_before_pixels=memmap_pixel_array)
+                    if memmap_pixel_array:
+                        self.offset = fp.tell() + 8
             except:
                 # Raise the error for the calling method to handle
                 raise
@@ -55,6 +58,12 @@ class DicomParser:
                     raise AttributeError
         else:
             raise AttributeError
+        if memmap_pixel_array:
+            self.filename = dataset
+            self.pixel_array = self.get_pixel_array
+        else:
+            if "PixelData" in self.ds:
+                self.pixel_array = self.ds.pixel_array
 
 ######################## SOP Class and Instance Methods #######################
 
@@ -251,6 +260,33 @@ class DicomParser:
 
         return data
 
+    def GetPixelArray(self):
+        """Generate a memory mapped numpy accessor to the pixel array."""
+        if self.memmap_pixel_array is False:
+            return self.pixel_array
+        data = self.GetImageData()
+        filename = self.filename
+        dtype = pixel_dtype(self.ds)
+        offset = self.offset
+        frames = int(data['frames'])
+        shape = (int(self.GetNumberOfFrames()),
+                 data['rows'], data['columns']) if frames > 1 \
+            else (data['rows'], data['columns'])
+
+        def get_pixel_array(filename, dtype, offset, shape):
+            array = np.memmap(
+                filename,
+                dtype=dtype,
+                mode="r",
+                offset=offset,
+                shape=shape
+            )
+            yield array
+            del array
+        return list(get_pixel_array(filename, dtype, offset, shape))[0]
+
+    get_pixel_array = property(GetPixelArray)
+
     def GetImageLocation(self):
         """Calculate the location of the current image slice."""
 
@@ -301,15 +337,13 @@ class DicomParser:
         if 'NumberOfFrames' in self.ds:
             frames = self.ds.NumberOfFrames.real
         else:
-            try:
-                self.ds.pixel_array
-            except:
+            if "PixelData" not in self.ds:
                 return 0
             else:
-                if (self.ds.pixel_array.ndim > 2):
+                if (self.pixel_array.ndim > 2):
                     if (self.ds.SamplesPerPixel == 1) and not \
                        (self.ds.PhotometricInterpretation == 'RGB'):
-                        frames = self.ds.pixel_array.shape[0]
+                        frames = self.pixel_array.shape[0]
         return frames
 
     def GetRescaleInterceptSlope(self):
@@ -333,11 +367,11 @@ class DicomParser:
                 " Cannot generate images.")
             return
 
-        # Return None if the Numpy pixel array cannot be accessed
+        # Return a black image if the Numpy pixel array cannot be accessed
         try:
-            self.ds.pixel_array
+            self.pixel_array
         except:
-            return Image.new('RGB', size, (0, 0, 0))
+            return Image.new('L', size)
 
         # Samples per pixel are > 1 & RGB format
         if (self.ds.SamplesPerPixel > 1) and \
@@ -350,7 +384,7 @@ class DicomParser:
             # Big Endian
             else:
                 im = Image.fromarray(np.rollaxis(
-                    self.ds.pixel_array.transpose(), 0, 2))
+                    self.pixel_array.transpose(), 0, 2))
 
         # Otherwise the image is monochrome
         else:
@@ -360,9 +394,9 @@ class DicomParser:
             intercept, slope = self.GetRescaleInterceptSlope()
             # Get the requested frame if multi-frame
             if (frames > 0):
-                pixel_array = self.ds.pixel_array[frames]
+                pixel_array = self.pixel_array[frames]
             else:
-                pixel_array = self.ds.pixel_array
+                pixel_array = self.pixel_array
 
             rescaled_image = pixel_array * slope + intercept
 
@@ -403,7 +437,7 @@ class DicomParser:
             wmin = 0
             # Rescale the slope and intercept of the image if present
             intercept, slope = self.GetRescaleInterceptSlope()
-            pixel_array = self.ds.pixel_array * slope + intercept
+            pixel_array = self.pixel_array * slope + intercept
 
             if (pixel_array.max() > wmax):
                 wmax = pixel_array.max()
@@ -685,6 +719,7 @@ class DicomParser:
         # If this is a multi-frame dose pixel array,
         # determine the offset for each frame
         if 'GridFrameOffsetVector' in self.ds:
+            pixel_array = self.GetPixelArray()
             z = float(z)
             # Get the initial dose grid position (z) in patient coordinates
             imagepatpos = self.ds.ImagePositionPatient[2]
@@ -699,7 +734,7 @@ class DicomParser:
                 frame = np.argmin(np.fabs(planes - z))
             # Return the requested dose plane, since it was found
             if not (frame == -1):
-                return self.ds.pixel_array[frame]
+                return pixel_array[frame]
             # Check if the requested plane is within the dose grid boundaries
             elif ((z < np.amin(planes)) or (z > np.amax(planes))):
                 return np.array([])
@@ -715,7 +750,7 @@ class DicomParser:
                 # Fractional distance of dose plane between upper & lower bound
                 fz = (z - planes[lb]) / (planes[ub] - planes[lb])
                 plane = self.InterpolateDosePlanes(
-                    self.ds.pixel_array[ub], self.ds.pixel_array[lb], fz)
+                    pixel_array[ub], pixel_array[lb], fz)
                 return plane
         else:
             return np.array([])
@@ -765,7 +800,14 @@ class DicomParser:
             if 'DoseComment' in self.ds else ''
         data['dosesummationtype'] = self.ds.DoseSummationType
         data['dosegridscaling'] = self.ds.DoseGridScaling
-        data['dosemax'] = float(self.ds.pixel_array.max())
+        dosemax = 0
+        for x in range(data["frames"]):
+            pixel_array = self.GetPixelArray()
+            newmax = pixel_array[x].max()
+            dosemax = newmax if newmax > dosemax else dosemax
+            if self.memmap_pixel_array:
+                del pixel_array
+        data['dosemax'] = float(dosemax)
         data['lut'] = self.GetPatientToPixelLUT()
         data['fraction'] = ''
         if "ReferencedRTPlanSequence" in self.ds:
