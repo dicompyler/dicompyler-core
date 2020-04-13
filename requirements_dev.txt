@@ -3,6 +3,6 @@ wheel==0.34.2
 flake8==3.7.9
 tox==3.14.6
 coverage==5.1
-Sphinx==2.4.0
+Sphinx==3.0.1
 sphinx-rtd-theme==0.4.3
 cryptography==2.8
