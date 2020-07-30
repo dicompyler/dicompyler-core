@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# dosesum.py
+# dose.py
 """Class for summing DICOM-RT Dose grid data."""
 # Copyright (c) 2009-2016 Aditya Panchal
 # Copyright (c) 2019-2020 Dan Cutright
@@ -15,6 +15,12 @@ from copy import deepcopy
 import numpy as np
 from scipy.ndimage import map_coordinates
 from dicompylercore import dicomparser
+from pydicom.uid import generate_uid
+from pydicom.datadict import dictionary_VR, keyword_dict
+from dicompylercore.config import dicompyler_uid_prefix_rtdose
+from datetime import datetime
+from pydicom.sequence import Sequence
+from pydicom.dataset import Dataset
 
 
 class DoseGrid:
@@ -44,7 +50,12 @@ class DoseGrid:
         self.order = order
         self.try_full_interp = try_full_interp
         self.interp_block_size = interp_block_size
+
         self.summation_type = None
+        self.sop_class_uid = self.ds.SOPClassUID
+        self.sop_instance_uid = self.ds.SOPInstanceUID
+        self.other_sop_class_uid = None
+        self.other_sop_instance_uid = None
 
         if self.ds:
             self.__set_axes()
@@ -148,8 +159,9 @@ class DoseGrid:
     def direct_sum(self, other, other_factor=1):
         """Directly sum two dose grids (only works if both are coincident)"""
         self.dose_grid += other.dose_grid * other_factor
-        self.set_pixel_data()
         self.summation_type = "DIRECT"
+
+        self.summation_post_processing(other)
 
     def interp_sum(self, other):
         """
@@ -167,8 +179,15 @@ class DoseGrid:
             other_grid = self.interp_by_block(other)
 
         self.dose_grid += other_grid
-        self.set_pixel_data()
         self.summation_type = "INTERPOLATED"
+
+        self.summation_post_processing(other)
+
+    def summation_post_processing(self, other):
+        self.set_pixel_data()
+        self.other_sop_class_uid = other.sop_class_uid
+        self.other_sop_instance_uid = other.sop_instance_uid
+        self.update_dicom_tags()
 
     def interp_entire_grid(self, other):
         """
@@ -199,3 +218,66 @@ class DoseGrid:
                                                     order=self.order)
 
         return other_grid.reshape(self.shape)
+
+    def update_dicom_tags(self):
+
+        # Store the source SOPClassUID and SOPInstanceUID
+        seq_data = {'ReferencedSOPClassUID': self.sop_class_uid,
+                    'ReferencedSOPInstanceUID': self.sop_instance_uid}
+        add_dicom_sequence(self.ds, 'ReferencedInstanceSequence', seq_data)
+
+        seq_data = {'ReferencedSOPClassUID': self.other_sop_class_uid,
+                    'ReferencedSOPInstanceUID': self.other_sop_instance_uid}
+        add_dicom_sequence(self.ds, 'ReferencedInstanceSequence', seq_data)
+
+        # Create a new SOPInstanceUID
+        set_dicom_tag_value(self.ds, 'SOPInstanceUID', generate_uid(prefix=dicompyler_uid_prefix_rtdose))
+
+        # Store the dose summation type in the DoseComment tag
+        if self.summation_type:
+            set_dicom_tag_value(self.ds, 'DoseComment', "%s SUMMATION" % self.summation_type)
+
+        # Update the Date and Time tags
+        now = datetime.now()
+        set_dicom_tag_value(self.ds, 'ContentDate', now.strftime("%Y%m%d"))
+        set_dicom_tag_value(self.ds, 'ContentTime', now.strftime("%H%M%S"))
+
+
+def set_dicom_tag_value(ds, tag, value):
+    """
+    Edit a DICOM tag value, create a new element if it does not exist in the pydicom dataset
+    :param ds: pydicom dataset
+    :param tag: DICOM tag or keyword
+    :type tag: int, tuple, or str
+    :param value: new value for the tag's element
+    """
+    try:
+        ds[tag].value = value
+    except KeyError:
+        if tag in keyword_dict:  # Keyword provided rather than int or tuple
+            tag = keyword_dict[tag]
+        try:
+            ds.add_new(tag, dictionary_VR(tag), value)
+        except Exception as e:
+            print("Invalid DICOM tag/keyword: %s\n%s" % (tag, e))
+
+
+def add_dicom_sequence(ds, seq_keyword, data_set_dict):
+    """
+    Add a sequence to a data set
+    :param ds: pydicom dataset
+    :param seq_keyword: the DICOM keyword for the sequence
+    :param data_set_dict: dictionary of tags and values for the sequence element
+    """
+
+    seq_ds = Dataset()
+    for tag, value in data_set_dict.items():
+        set_dicom_tag_value(seq_ds, tag, value)
+
+    if hasattr(ds, seq_keyword):
+        getattr(ds, seq_keyword).append(seq_ds)
+    else:
+        setattr(ds, seq_keyword, Sequence([seq_ds]))
+
+
+
