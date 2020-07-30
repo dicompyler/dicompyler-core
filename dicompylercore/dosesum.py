@@ -3,6 +3,7 @@
 # dosesum.py
 """Class for summing DICOM-RT Dose grid data."""
 # Copyright (c) 2009-2016 Aditya Panchal
+# Copyright (c) 2019-2020 Dan Cutright
 # This file is part of dicompyler-core, released under a BSD license.
 #    See the file license.txt included with this distribution, also
 #    available at https://github.com/dicompyler/dicompyler-core/
@@ -43,6 +44,7 @@ class DoseGrid:
         self.order = order
         self.try_full_interp = try_full_interp
         self.interp_block_size = interp_block_size
+        self.summation_type = None
 
         if self.ds:
             self.__set_axes()
@@ -147,6 +149,7 @@ class DoseGrid:
         """Directly sum two dose grids (only works if both are coincident)"""
         self.dose_grid += other.dose_grid * other_factor
         self.set_pixel_data()
+        self.summation_type = "DIRECT"
 
     def interp_sum(self, other):
         """
@@ -165,6 +168,7 @@ class DoseGrid:
 
         self.dose_grid += other_grid
         self.set_pixel_data()
+        self.summation_type = "INTERPOLATED"
 
     def interp_entire_grid(self, other):
         """
