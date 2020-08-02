@@ -38,9 +38,7 @@ class DoseGrid:
 
     """
 
-    def __init__(
-        self, rt_dose, order=1, try_full_interp=True, interp_block_size=50000
-    ):
+    def __init__(self, rt_dose, order=1):
         """ Initialization of a DoseGrid from a DICOM-RT Dose file or dataset.
 
         Parameters
@@ -50,18 +48,10 @@ class DoseGrid:
         order : int, optional
             The order of the spline interpolation.
             0: the nearest grid point, 1: trilinear, 2 to 5: spline
-        try_full_interp : bool, optional
-            Attempt to interpolate the entire grid at once before calculating
-            one block at a time (block size defined in self.interp_by_block)
-        interp_block_size : int, optional
-            calculate this many points at a time if not try_full_interp or
-            MemoryError
         """
 
         self.ds = dicomparser.DicomParser(rt_dose).ds
         self.order = order
-        self.try_full_interp = try_full_interp
-        self.interp_block_size = interp_block_size
 
         self.summation_type = None
         self.sop_class_uid = self.ds.SOPClassUID
@@ -183,10 +173,11 @@ class DoseGrid:
         pixel_data = (
             np.swapaxes(self.dose_grid, 0, 2) / self.ds.DoseGridScaling
         )
-        self.ds.PixelData = np.uint32(pixel_data).tostring()
+        self.ds.PixelData = np.uint32(pixel_data).tobytes()
 
     def save_dcm(self, file_path):
         """Save the pydicom.FileDataset to file"""
+        self.update_dicom_tags()
         self.ds.save_as(file_path)
 
     def get_ijk_points(self, other_axes):
@@ -266,16 +257,8 @@ class DoseGrid:
         other: DoseGrid
             Another DoseGrid object.
         """
-        other_grid = None
-        if self.try_full_interp:
-            try:
-                other_grid = self.interp_entire_grid(other)
-            except MemoryError:
-                pass
-        if other_grid is None:
-            other_grid = self.interp_by_block(other)
 
-        self.dose_grid += other_grid
+        self.dose_grid += self.interp_entire_grid(other)
         self.summation_type = "INTERPOLATED"
 
         self.summation_post_processing(other)
@@ -286,7 +269,6 @@ class DoseGrid:
         if other is not None:
             self.other_sop_class_uid = other.sop_class_uid
             self.other_sop_instance_uid = other.sop_instance_uid
-        self.update_dicom_tags()
 
     def interp_entire_grid(self, other):
         """
@@ -303,50 +285,11 @@ class DoseGrid:
         np.array
             The other dose grid interpolated to this dose grid's axes
         """
-        points = other.get_ijk_points(self.axes)
         return map_coordinates(
-            input=other.dose_grid, coordinates=points, order=self.order
+            input=other.dose_grid,
+            coordinates=other.get_ijk_points(self.axes),
+            order=self.order,
         ).reshape(self.shape)
-
-    def interp_by_block(self, other, interp_block_size=None):
-        """Interpolate another dose grid to this one, by one block at a time.
-
-        Parameters
-        ----------
-        other : DoseGrid
-            Other DoseGrid object to interpolate from.
-        interp_block_size : int, optional
-            calculate this many points at a time
-            If not provided, the value provide at the time of DoseGrid init
-            will be used
-
-        Returns
-        -------
-        np.array
-            The other dose grid interpolated to this dose grid's axes
-        """
-        points = other.get_ijk_points(self.axes)
-        point_count = np.product(self.shape)
-        other_grid = np.zeros(point_count)
-
-        interp_block_size = (
-            self.interp_block_size
-            if interp_block_size is None
-            else interp_block_size
-        )
-
-        block_count = int(np.floor(point_count / interp_block_size))
-
-        for i in range(block_count):
-            start = i * interp_block_size
-            end = (i + 1) * interp_block_size if i + 1 < block_count else -1
-            other_grid[start:end] = map_coordinates(
-                input=other.dose_grid,
-                coordinates=points[start:end],
-                order=self.order,
-            )
-
-        return other_grid.reshape(self.shape)
 
     def update_dicom_tags(self):
         """Update DICOM UIDs, Content Date/Time, and Dose Comment"""

@@ -9,9 +9,7 @@
 from __future__ import division
 import unittest
 import os
-from dicompylercore import dicomparser, dvhcalc, dose
-from dicompylercore.dvh import DVH
-from dicompylercore.config import scipy_available
+from dicompylercore import dicomparser, dose
 try:
     from pydicom.dataset import Dataset
     from pydicom.sequence import Sequence
@@ -40,7 +38,7 @@ class TestDose(unittest.TestCase):
         self.dosegrid = dose.DoseGrid(self.rtdose_dcm)
 
     def test_shape(self):
-        """Test if the dose grid shape can be extracted from the DICOM data."""
+        """Test dose grid shape extraction from the DICOM data."""
         shape = self.dosegrid.shape
 
         # x-dimension
@@ -51,7 +49,7 @@ class TestDose(unittest.TestCase):
         self.assertEqual(shape[2], 98)
 
     def test_scale(self):
-        """Test if the dose grid resolution can be extracted from the DICOM data."""
+        """Test dose grid resolution extraction from the DICOM data."""
         scale = self.dosegrid.scale
 
         # x-dimension
@@ -62,7 +60,7 @@ class TestDose(unittest.TestCase):
         self.assertEqual(scale[2], 3.)
 
     def test_offset(self):
-        """Test if the dose grid resolution can be extracted from the DICOM data."""
+        """Test dose grid resolution extraction from the DICOM data."""
         offset = self.dosegrid.offset
 
         # x-dimension
@@ -93,32 +91,25 @@ class TestDose(unittest.TestCase):
         self.assertEqual(self.dosegrid.is_coincident(other), False)
 
         # GridFrameOffsetVector
-        # other = dose.DoseGrid(self.rtdose_dcm)
-        # other.ds.pixel_array = zeros([10, 10, 10])  # AttributeError: can't set attribute
-        # self.assertEqual(self.dosegrid.is_coincident(other), False)
+        check = arange(0, 98) * 3
+        assert_array_equal(self.dosegrid.ds.GridFrameOffsetVector, check)
 
     def test_dose_direct_sum(self):
         # Direct Sum with a factor
-        other = dose.DoseGrid(self.rtdose_dcm)
-        other.direct_sum(self.dosegrid, other_factor=2)
+        other = dose.DoseGrid(self.rtdose_dcm) * 2
+        other.direct_sum(self.dosegrid)
         assert_array_equal(other.dose_grid, self.dosegrid.dose_grid * 3)
 
     def test_dose_interp_sum(self):
         # Interp Sum with a factor
-        other = dose.DoseGrid(self.rtdose_dcm)
-        other.interp_sum(self.dosegrid, other_factor=2)
+        other = dose.DoseGrid(self.rtdose_dcm) * 2
+        other.interp_sum(self.dosegrid)
         assert_array_almost_equal(other.dose_grid, self.dosegrid.dose_grid * 3)
 
     def test_interp_entire_grid(self):
         # Interp Sum, entire grid in one operation
         other = dose.DoseGrid(self.rtdose_dcm)
         other.interp_entire_grid(self.dosegrid)
-        assert_array_almost_equal(other.dose_grid, self.dosegrid.dose_grid)
-
-    def test_interp_by_block(self):
-        # Interp Sum by block
-        other = dose.DoseGrid(self.rtdose_dcm)
-        other.interp_by_block(self.dosegrid)
         assert_array_almost_equal(other.dose_grid, self.dosegrid.dose_grid)
 
 
