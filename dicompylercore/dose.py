@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # dose.py
-"""Class for summing DICOM-RT Dose grid data."""
+"""Routines to access and modify DICOM RT Dose."""
 # Copyright (c) 2009-2016 Aditya Panchal
 # Copyright (c) 2019-2020 Dan Cutright
 # This file is part of dicompyler-core, released under a BSD license.
@@ -25,7 +25,7 @@ from pydicom.dataset import Dataset
 
 class DoseGrid:
     """
-    Class to easily access commonly used attributes of a DICOM dose grid and perform summations
+    Class to easily access commonly used attributes of a DICOM dose grid and perform make modifications
 
     Example: Add two dose grids
         grid_1 = DoseGrid(dose_file_1)
@@ -104,10 +104,19 @@ class DoseGrid:
     # Tools
     ####################################################
     def __add__(self, other):
-        """Addition in this fashion will not alter either DoseGrid, but it is more expensive with memory"""
+        """Add other dose grid"""
         new = deepcopy(self)
         new.add(other)
         return new
+
+    def __mul__(self, factor):
+        """Multiply this dose grid by a factor"""
+        new = deepcopy(self)
+        new.scale_by_factor(factor)
+        return new
+
+    def __rmul__(self, factor):
+        return self.__mul__(factor)
 
     def is_coincident(self, other):
         """Check dose grid coincidence, if True a direct summation is appropriate"""
@@ -117,9 +126,7 @@ class DoseGrid:
                self.ds.GridFrameOffsetVector == other.ds.GridFrameOffsetVector
 
     def set_pixel_data(self):
-        """
-        Update the PixelData in the pydicom.FileDataset with the current self.dose_grid
-        """
+        """Update the PixelData in the pydicom.FileDataset with the current self.dose_grid"""
         self.ds.BitsAllocated = 32
         self.ds.BitsStored = 32
         self.ds.HighBit = 31
@@ -142,19 +149,29 @@ class DoseGrid:
         j, i, k = np.meshgrid(ijk_axes[1], ijk_axes[0], ijk_axes[2])
         return np.vstack((i.ravel(), j.ravel(), k.ravel()))
 
+    def scale_by_factor(self, factor):
+        """
+        Scale the dose grid
+        :param factor: scale the dose grid by this factor
+        :type factor: int or float
+        """
+        self.dose_grid *= factor
+        self.summation_post_processing()
+
     ####################################################
     # Dose Summation
     ####################################################
-    def add(self, other):
+    def add(self, other, other_factor=1):
         """
         Add another 3D dose grid to this 3D dose grid, with interpolation if needed
         :param other: another DoseGrid
         :type other: DoseGrid
+        :param other_factor
         """
         if self.is_coincident(other):
-            self.direct_sum(other)
+            self.direct_sum(other, other_factor)
         else:
-            self.interp_sum(other)
+            self.interp_sum(other, other_factor)
 
     def direct_sum(self, other, other_factor=1):
         """Directly sum two dose grids (only works if both are coincident)"""
@@ -163,11 +180,12 @@ class DoseGrid:
 
         self.summation_post_processing(other)
 
-    def interp_sum(self, other):
+    def interp_sum(self, other, other_factor=1):
         """
         Interpolate the other dose grid to this dose grid's axes, then directly sum
         :param other: another DoseGrid
         :type other: DoseGrid
+        :param other_factor:
         """
         other_grid = None
         if self.try_full_interp:
@@ -178,15 +196,16 @@ class DoseGrid:
         if other_grid is None:
             other_grid = self.interp_by_block(other)
 
-        self.dose_grid += other_grid
+        self.dose_grid += other_grid * other_factor
         self.summation_type = "INTERPOLATED"
 
         self.summation_post_processing(other)
 
-    def summation_post_processing(self, other):
+    def summation_post_processing(self, other=None):
         self.set_pixel_data()
-        self.other_sop_class_uid = other.sop_class_uid
-        self.other_sop_instance_uid = other.sop_instance_uid
+        if other is not None:
+            self.other_sop_class_uid = other.sop_class_uid
+            self.other_sop_instance_uid = other.sop_instance_uid
         self.update_dicom_tags()
 
     def interp_entire_grid(self, other):
@@ -226,9 +245,10 @@ class DoseGrid:
                     'ReferencedSOPInstanceUID': self.sop_instance_uid}
         add_dicom_sequence(self.ds, 'ReferencedInstanceSequence', seq_data)
 
-        seq_data = {'ReferencedSOPClassUID': self.other_sop_class_uid,
-                    'ReferencedSOPInstanceUID': self.other_sop_instance_uid}
-        add_dicom_sequence(self.ds, 'ReferencedInstanceSequence', seq_data)
+        if self.other_sop_class_uid is not None:
+            seq_data = {'ReferencedSOPClassUID': self.other_sop_class_uid,
+                        'ReferencedSOPInstanceUID': self.other_sop_instance_uid}
+            add_dicom_sequence(self.ds, 'ReferencedInstanceSequence', seq_data)
 
         # Create a new SOPInstanceUID
         set_dicom_tag_value(self.ds, 'SOPInstanceUID', generate_uid(prefix=dicompyler_uid_prefix_rtdose))
