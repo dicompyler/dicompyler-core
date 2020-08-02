@@ -9,23 +9,26 @@
 #    available at https://github.com/dicompyler/dicompyler-core/
 #
 # This code was adapted from dicom_dose_sum.py from DVH Analytics:
-#    https://github.com/cutright/DVH-Analytics/blob/master/dvha/tools/dicom_dose_sum.py
+#    https://github.com/cutright/DVH-Analytics/
 
 from copy import deepcopy
 import numpy as np
-from scipy.ndimage import map_coordinates
 from dicompylercore import dicomparser
 from pydicom.uid import generate_uid
 from pydicom.datadict import dictionary_VR, keyword_dict
-from dicompylercore.config import dicompyler_uid_prefix_rtdose
+from dicompylercore.config import dicompyler_uid_prefix_rtdose, scipy_available
 from datetime import datetime
 from pydicom.sequence import Sequence
 from pydicom.dataset import Dataset
 
+if scipy_available:
+    from scipy.ndimage import map_coordinates
+
 
 class DoseGrid:
     """
-    Class to easily access commonly used attributes of a DICOM dose grid and perform make modifications
+    Class to easily access commonly used attributes of a DICOM dose grid and
+    make modifications
 
     Example: Add two dose grids
         grid_1 = DoseGrid(dose_file_1)
@@ -34,16 +37,25 @@ class DoseGrid:
         grid_sum.save_dcm(some_file_path)
 
     """
-    def __init__(self, rt_dose, order=1, try_full_interp=True, interp_block_size=50000):
-        """
-        :param rt_dose: pydicom Dose Dataset or filename to a DICOM RT-Dose
-        :param order: The order of the spline interpolation. The order has to be in the range 0-5.
-                      0: the nearest grid point, 1: trilinear, 2 to 5: spline
-        :param try_full_interp: If true, will attempt to interpolate the entire grid at once before calculating one
-                                block at a time (block size defined in self.interp_by_block)
-        :type try_full_interp: bool
-        :param interp_block_size: calculate this many points at a time if not try_full_interp or MemoryError
-        :type interp_block_size: int
+
+    def __init__(
+        self, rt_dose, order=1, try_full_interp=True, interp_block_size=50000
+    ):
+        """ Initialization of a DoseGrid from a DICOM-RT Dose file or dataset.
+
+        Parameters
+        ----------
+        rt_dose : pydicom Dataset or filename
+            DICOM RT Dose used to determine the structure dose grid data.
+        order : int, optional
+            The order of the spline interpolation.
+            0: the nearest grid point, 1: trilinear, 2 to 5: spline
+        try_full_interp : bool, optional
+            Attempt to interpolate the entire grid at once before calculating
+            one block at a time (block size defined in self.interp_by_block)
+        interp_block_size : int, optional
+            calculate this many points at a time if not try_full_interp or
+            MemoryError
         """
 
         self.ds = dicomparser.DicomParser(rt_dose).ds
@@ -57,16 +69,24 @@ class DoseGrid:
         self.other_sop_class_uid = None
         self.other_sop_instance_uid = None
 
-        if self.ds:
-            self.__set_axes()
+        # TODO: Raise error if not rtdose?
+        if self.ds.Modality == "RTDOSE":
+            self.x_axis = (
+                np.arange(self.ds.Columns) * self.ds.PixelSpacing[0]
+                + self.ds.ImagePositionPatient[0]
+            )
+            self.y_axis = (
+                np.arange(self.ds.Rows) * self.ds.PixelSpacing[1]
+                + self.ds.ImagePositionPatient[1]
+            )
+            self.z_axis = (
+                np.array(self.ds.GridFrameOffsetVector)
+                + self.ds.ImagePositionPatient[2]
+            )
 
-    def __set_axes(self):
-        self.x_axis = np.arange(self.ds.Columns) * self.ds.PixelSpacing[0] + self.ds.ImagePositionPatient[0]
-        self.y_axis = np.arange(self.ds.Rows) * self.ds.PixelSpacing[1] + self.ds.ImagePositionPatient[1]
-        self.z_axis = np.array(self.ds.GridFrameOffsetVector) + self.ds.ImagePositionPatient[2]
-
-        # x and z are swapped in the pixel_array
-        self.dose_grid = np.swapaxes(self.ds.pixel_array * self.ds.DoseGridScaling, 0, 2)
+            # x and z are swapped in the pixel_array
+            pixel_array = self.ds.pixel_array * self.ds.DoseGridScaling
+            self.dose_grid = np.swapaxes(pixel_array, 0, 2)
 
     ####################################################
     # Basic properties
@@ -74,7 +94,9 @@ class DoseGrid:
     @property
     def shape(self):
         """Get the x, y, z dimensions of the dose grid"""
-        return tuple([self.ds.Columns, self.ds.Rows, len(self.ds.GridFrameOffsetVector)])
+        return tuple(
+            [self.ds.Columns, self.ds.Rows, len(self.ds.GridFrameOffsetVector)]
+        )
 
     @property
     def axes(self):
@@ -84,14 +106,19 @@ class DoseGrid:
     @property
     def scale(self):
         """Get the dose grid resolution (xyz)"""
-        return np.array([self.ds.PixelSpacing[0],
-                         self.ds.PixelSpacing[1],
-                         self.ds.GridFrameOffsetVector[1] - self.ds.GridFrameOffsetVector[0]])
+        return np.array(
+            [
+                self.ds.PixelSpacing[0],
+                self.ds.PixelSpacing[1],
+                self.ds.GridFrameOffsetVector[1]
+                - self.ds.GridFrameOffsetVector[0],
+            ]
+        )
 
     @property
     def offset(self):
         """Get the coordinates of the dose grid origin (mm)"""
-        return np.array(self.ds.ImagePositionPatient, dtype='float')
+        return np.array(self.ds.ImagePositionPatient, dtype="float")
 
     @property
     def points(self):
@@ -104,34 +131,58 @@ class DoseGrid:
     # Tools
     ####################################################
     def __add__(self, other):
-        """Add other dose grid"""
+        """Overload + operator to sum this dose grid with the other dose grid
+
+        Parameters
+        ----------
+        other : DoseGrid
+            Another DoseGrid object.
+        """
         new = deepcopy(self)
         new.add(other)
         return new
 
     def __mul__(self, factor):
-        """Multiply this dose grid by a factor"""
+        """Overload * operator to scale this dose grid by the provided factor
+
+        Parameters
+        ----------
+        factor : int, float
+            Scale the dose grid by this value.
+        """
         new = deepcopy(self)
-        new.scale_by_factor(factor)
+        new.multiply(factor)
         return new
 
     def __rmul__(self, factor):
         return self.__mul__(factor)
 
     def is_coincident(self, other):
-        """Check dose grid coincidence, if True a direct summation is appropriate"""
-        return self.ds.ImagePositionPatient == other.ds.ImagePositionPatient and \
-               self.ds.pixel_array.shape == other.ds.pixel_array.shape and \
-               self.ds.PixelSpacing == other.ds.PixelSpacing and \
-               self.ds.GridFrameOffsetVector == other.ds.GridFrameOffsetVector
+        """Check dose grid spatial coincidence.
+
+        Parameters
+        ----------
+        other : DoseGrid
+            Another DoseGrid object.
+        """
+        return (
+            self.ds.PixelSpacing == other.ds.PixelSpacing
+            and self.ds.ImagePositionPatient == other.ds.ImagePositionPatient
+            and self.ds.pixel_array.shape == other.ds.pixel_array.shape
+            and self.ds.GridFrameOffsetVector == other.ds.GridFrameOffsetVector
+        )
 
     def set_pixel_data(self):
-        """Update the PixelData in the pydicom.FileDataset with the current self.dose_grid"""
+        """Update the PixelData with the current dose_grid"""
         self.ds.BitsAllocated = 32
         self.ds.BitsStored = 32
         self.ds.HighBit = 31
-        self.ds.DoseGridScaling = np.max(self.dose_grid) / np.iinfo(np.uint32).max
-        pixel_data = np.swapaxes(self.dose_grid, 0, 2) / self.ds.DoseGridScaling
+        self.ds.DoseGridScaling = (
+            np.max(self.dose_grid) / np.iinfo(np.uint32).max
+        )
+        pixel_data = (
+            np.swapaxes(self.dose_grid, 0, 2) / self.ds.DoseGridScaling
+        )
         self.ds.PixelData = np.uint32(pixel_data).tostring()
 
     def save_dcm(self, file_path):
@@ -139,21 +190,33 @@ class DoseGrid:
         self.ds.save_as(file_path)
 
     def get_ijk_points(self, other_axes):
+        """Convert axes from another DoseGrid into ijk of this DoseGrid.
+
+        Parameters
+        ----------
+        other_axes : list
+            The x, y, and z axis arrays.
+
+        Returns
+        -------
+        np.vstack
+            Array of other_axes in this ijk space.
         """
-        Convert axes from another DoseGrid into ijk of this DoseGrid
-        :param other_axes: the x, y, and z axis arrays
-        :type other_axes: list
-        :return: np.vstack of other_axes in this ijk space
-        """
-        ijk_axes = [(np.array(axis) - self.offset[a]) / self.scale[a] for a, axis in enumerate(other_axes)]
+        ijk_axes = [
+            (np.array(axis) - self.offset[a]) / self.scale[a]
+            for a, axis in enumerate(other_axes)
+        ]
         j, i, k = np.meshgrid(ijk_axes[1], ijk_axes[0], ijk_axes[2])
         return np.vstack((i.ravel(), j.ravel(), k.ravel()))
 
-    def scale_by_factor(self, factor):
+    def multiply(self, factor):
         """
-        Scale the dose grid
-        :param factor: scale the dose grid by this factor
-        :type factor: int or float
+        Scale the dose grid.
+
+        Parameters
+        ----------
+        factor: int, float
+            Multiply the dose grid by this factor.
         """
         self.dose_grid *= factor
         self.summation_post_processing()
@@ -161,31 +224,47 @@ class DoseGrid:
     ####################################################
     # Dose Summation
     ####################################################
-    def add(self, other, other_factor=1):
+    def add(self, other):
         """
-        Add another 3D dose grid to this 3D dose grid, with interpolation if needed
-        :param other: another DoseGrid
-        :type other: DoseGrid
-        :param other_factor
-        """
-        if self.is_coincident(other):
-            self.direct_sum(other, other_factor)
-        else:
-            self.interp_sum(other, other_factor)
+        Add another dose grid to this dose grid, with interpolation if needed
 
-    def direct_sum(self, other, other_factor=1):
-        """Directly sum two dose grids (only works if both are coincident)"""
-        self.dose_grid += other.dose_grid * other_factor
+        Parameters
+        ----------
+        other: DoseGrid
+            Another DoseGrid object.
+        """
+
+        if self.is_coincident(other):
+            self.direct_sum(other)
+        else:
+            if not scipy_available:
+                raise ImportError(
+                    "scipy must be installed to perform interpolated dose sum."
+                )
+            self.interp_sum(other)
+
+    def direct_sum(self, other):
+        """Directly sum two coincident dose grids
+
+        Parameters
+        ----------
+        other: DoseGrid
+            Another DoseGrid object.
+        """
+        self.dose_grid += other.dose_grid
         self.summation_type = "DIRECT"
 
         self.summation_post_processing(other)
 
-    def interp_sum(self, other, other_factor=1):
+    def interp_sum(self, other):
         """
-        Interpolate the other dose grid to this dose grid's axes, then directly sum
-        :param other: another DoseGrid
-        :type other: DoseGrid
-        :param other_factor:
+        Interpolate the other dose grid to this dose grid's axes,
+        then perform direct summation
+
+        Parameters
+        ----------
+        other: DoseGrid
+            Another DoseGrid object.
         """
         other_grid = None
         if self.try_full_interp:
@@ -196,12 +275,13 @@ class DoseGrid:
         if other_grid is None:
             other_grid = self.interp_by_block(other)
 
-        self.dose_grid += other_grid * other_factor
+        self.dose_grid += other_grid
         self.summation_type = "INTERPOLATED"
 
         self.summation_post_processing(other)
 
     def summation_post_processing(self, other=None):
+        """Set the pixel data and update DICOM tags"""
         self.set_pixel_data()
         if other is not None:
             self.other_sop_class_uid = other.sop_class_uid
@@ -210,66 +290,111 @@ class DoseGrid:
 
     def interp_entire_grid(self, other):
         """
-        Interpolate the other dose grid to this dose grid's axes
-        :param other: another DoseGrid
-        :type other: DoseGrid
+        Interpolate the other dose grid to this dose grid's axes in one
+        operation
+
+        Parameters
+        ----------
+        other: DoseGrid
+            Another DoseGrid object.
+
+        Returns
+        -------
+        np.array
+            The other dose grid interpolated to this dose grid's axes
         """
         points = other.get_ijk_points(self.axes)
-        return map_coordinates(input=other.dose_grid, coordinates=points, order=self.order).reshape(self.shape)
+        return map_coordinates(
+            input=other.dose_grid, coordinates=points, order=self.order
+        ).reshape(self.shape)
 
-    def interp_by_block(self, other):
-        """
-        Interpolate the other dose grid to this dose grid's axes, calculating one block at a time
-        The block is defined at the init of this class, default is 50,000 points at a time
-        :param other: another DoseGrid
-        :type other: DoseGrid
+    def interp_by_block(self, other, interp_block_size=None):
+        """Interpolate another dose grid to this one, by one block at a time.
+
+        Parameters
+        ----------
+        other : DoseGrid
+            Other DoseGrid object to interpolate from.
+        interp_block_size : int, optional
+            calculate this many points at a time
+            If not provided, the value provide at the time of DoseGrid init
+            will be used
+
+        Returns
+        -------
+        np.array
+            The other dose grid interpolated to this dose grid's axes
         """
         points = other.get_ijk_points(self.axes)
         point_count = np.product(self.shape)
         other_grid = np.zeros(point_count)
 
-        block_count = int(np.floor(point_count / self.interp_block_size))
+        interp_block_size = (
+            self.interp_block_size
+            if interp_block_size is None
+            else interp_block_size
+        )
+
+        block_count = int(np.floor(point_count / interp_block_size))
 
         for i in range(block_count):
-            start = i * self.interp_block_size
-            end = (i+1) * self.interp_block_size if i + 1 < block_count else -1
-            other_grid[start:end] = map_coordinates(input=other.dose_grid, coordinates=points[start:end],
-                                                    order=self.order)
+            start = i * interp_block_size
+            end = (i + 1) * interp_block_size if i + 1 < block_count else -1
+            other_grid[start:end] = map_coordinates(
+                input=other.dose_grid,
+                coordinates=points[start:end],
+                order=self.order,
+            )
 
         return other_grid.reshape(self.shape)
 
     def update_dicom_tags(self):
+        """Update DICOM UIDs, Content Date/Time, and Dose Comment"""
 
         # Store the source SOPClassUID and SOPInstanceUID
-        seq_data = {'ReferencedSOPClassUID': self.sop_class_uid,
-                    'ReferencedSOPInstanceUID': self.sop_instance_uid}
-        add_dicom_sequence(self.ds, 'ReferencedInstanceSequence', seq_data)
+        seq_data = {
+            "ReferencedSOPClassUID": self.sop_class_uid,
+            "ReferencedSOPInstanceUID": self.sop_instance_uid,
+        }
+        add_dicom_sequence(self.ds, "ReferencedInstanceSequence", seq_data)
 
         if self.other_sop_class_uid is not None:
-            seq_data = {'ReferencedSOPClassUID': self.other_sop_class_uid,
-                        'ReferencedSOPInstanceUID': self.other_sop_instance_uid}
-            add_dicom_sequence(self.ds, 'ReferencedInstanceSequence', seq_data)
+            seq_data = {
+                "ReferencedSOPClassUID": self.other_sop_class_uid,
+                "ReferencedSOPInstanceUID": self.other_sop_instance_uid,
+            }
+            add_dicom_sequence(self.ds, "ReferencedInstanceSequence", seq_data)
 
         # Create a new SOPInstanceUID
-        set_dicom_tag_value(self.ds, 'SOPInstanceUID', generate_uid(prefix=dicompyler_uid_prefix_rtdose))
+        set_dicom_tag_value(
+            self.ds,
+            "SOPInstanceUID",
+            generate_uid(prefix=dicompyler_uid_prefix_rtdose),
+        )
 
         # Store the dose summation type in the DoseComment tag
         if self.summation_type:
-            set_dicom_tag_value(self.ds, 'DoseComment', "%s SUMMATION" % self.summation_type)
+            set_dicom_tag_value(
+                self.ds, "DoseComment", "%s SUMMATION" % self.summation_type
+            )
 
         # Update the Date and Time tags
         now = datetime.now()
-        set_dicom_tag_value(self.ds, 'ContentDate', now.strftime("%Y%m%d"))
-        set_dicom_tag_value(self.ds, 'ContentTime', now.strftime("%H%M%S"))
+        set_dicom_tag_value(self.ds, "ContentDate", now.strftime("%Y%m%d"))
+        set_dicom_tag_value(self.ds, "ContentTime", now.strftime("%H%M%S"))
 
 
 def set_dicom_tag_value(ds, tag, value):
-    """
-    Edit a DICOM tag value, create a new element if it does not exist in the pydicom dataset
-    :param ds: pydicom dataset
-    :param tag: DICOM tag or keyword
-    :type tag: int, tuple, or str
-    :param value: new value for the tag's element
+    """Set or update a DICOM tag value in the pydicom dataset.
+
+    Parameters
+    ----------
+    ds : pydicom Dataset
+        The pydicom dataset for the tag to be added/updated to.
+    tag : str, int or tuple
+        DICOM tag or keyword to be added.
+    value : any
+        New value for the tag's element.
     """
     try:
         ds[tag].value = value
@@ -283,13 +408,17 @@ def set_dicom_tag_value(ds, tag, value):
 
 
 def add_dicom_sequence(ds, seq_keyword, data_set_dict):
-    """
-    Add a sequence to a data set
-    :param ds: pydicom dataset
-    :param seq_keyword: the DICOM keyword for the sequence
-    :param data_set_dict: dictionary of tags and values for the sequence element
-    """
+    """Add a sequence to a data set.
 
+    Parameters
+    ----------
+    ds : pydicom Dataset
+        The pydicom dataset for the sequence to be added to.
+    seq_keyword : str
+        The DICOM keyword for the sequence.
+    data_set_dict : dict
+        Dictionary of tags and values for the sequence element.
+    """
     seq_ds = Dataset()
     for tag, value in data_set_dict.items():
         set_dicom_tag_value(seq_ds, tag, value)
@@ -298,6 +427,3 @@ def add_dicom_sequence(ds, seq_keyword, data_set_dict):
         getattr(ds, seq_keyword).append(seq_ds)
     else:
         setattr(ds, seq_keyword, Sequence([seq_ds]))
-
-
-
