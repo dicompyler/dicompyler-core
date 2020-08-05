@@ -20,6 +20,7 @@ from dicompylercore.config import dicompyler_uid_prefix_rtdose, scipy_available
 from datetime import datetime
 from pydicom.sequence import Sequence
 from pydicom.dataset import Dataset
+from warnings import warn
 
 if scipy_available:
     from scipy.ndimage import map_coordinates
@@ -405,7 +406,7 @@ def add_dicom_sequence(ds, seq_keyword, data_set_dict):
 
 def validate_attr_equality(obj_1, obj_2, attr):
     """Assess the equality of the provided attr between two objects.
-    Raise UserWarning if unequal.
+    Send warning if unequal.
 
     Parameters
     ----------
@@ -419,8 +420,6 @@ def validate_attr_equality(obj_1, obj_2, attr):
     val_1 = getattr(obj_1, attr)
     val_2 = getattr(obj_2, attr)
     if val_1 != val_2:
-        UserWarning(
-            "Different %s values detected:\n%s\n%s" % (attr, val_1, val_2)
-        )
+        warn("Different %s values detected:\n%s\n%s" % (attr, val_1, val_2))
         return False
     return True
