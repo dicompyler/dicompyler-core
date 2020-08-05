@@ -59,7 +59,6 @@ class DoseGrid:
         self.other_sop_class_uid = None
         self.other_sop_instance_uid = None
 
-        # TODO: Raise error if not rtdose?
         if self.ds.Modality == "RTDOSE":
             self.x_axis = (
                 np.arange(self.ds.Columns) * self.ds.PixelSpacing[0]
@@ -77,6 +76,11 @@ class DoseGrid:
             # x and z are swapped in the pixel_array
             pixel_array = self.ds.pixel_array * self.ds.DoseGridScaling
             self.dose_grid = np.swapaxes(pixel_array, 0, 2)
+        else:
+            raise AttributeError(
+                "The DoseGrid class requires an RTDOSE file or dataset. "
+                "%s was detected" % self.ds.Modality
+            )
 
     ####################################################
     # Basic properties
@@ -84,8 +88,10 @@ class DoseGrid:
     @property
     def shape(self):
         """Get the x, y, z dimensions of the dose grid"""
-        return tuple(
-            [self.ds.Columns, self.ds.Rows, len(self.ds.GridFrameOffsetVector)]
+        return (
+            self.ds.Columns,
+            self.ds.Rows,
+            len(self.ds.GridFrameOffsetVector),
         )
 
     @property
@@ -96,6 +102,11 @@ class DoseGrid:
     @property
     def scale(self):
         """Get the dose grid resolution (xyz)"""
+        if np.any(np.diff(np.diff(self.ds.GridFrameOffsetVector))):
+            raise NotImplementedError(
+                "Non-uniform GridFrameOffsetVector detected. Interpolated "
+                "summation of non-uniform dose-grid scales is not supported."
+            )
         return np.array(
             [
                 self.ds.PixelSpacing[0],
@@ -206,7 +217,7 @@ class DoseGrid:
 
         Parameters
         ----------
-        factor: int, float
+        factor : int, float
             Multiply the dose grid by this factor.
         """
         self.dose_grid *= factor
@@ -215,15 +226,38 @@ class DoseGrid:
     ####################################################
     # Dose Summation
     ####################################################
-    def add(self, other):
+    def add(self, other, force=False):
         """
         Add another dose grid to this dose grid, with interpolation if needed
 
         Parameters
         ----------
-        other: DoseGrid
+        other : DoseGrid
             Another DoseGrid object.
+        force : bool
+            Set to True to ignore differences in DoseSummationType, DoseType,
+            DoseUnits, ImageOrientationPatient
         """
+
+        attrs = [
+            "DoseSummationType",
+            "DoseType",
+            "DoseUnits",
+            "ImageOrientationPatient",
+        ]
+        attr_check = [
+            validate_attr_equality(self.ds, other.ds, attr) for attr in attrs
+        ]
+        if not force and not all(attr_check):
+            mismatches = [
+                attr for i, attr in enumerate(attrs) if attr_check[i]
+            ]
+            raise NotImplementedError(
+                "Dose summation of dose grids with these mismatched "
+                "attributes is not recommended: %s. Use "
+                "DoseGrid.add(other, force=True) to ignore"
+                % ",".join(mismatches)
+            )
 
         if self.is_coincident(other):
             self.direct_sum(other)
@@ -344,10 +378,7 @@ def set_dicom_tag_value(ds, tag, value):
     except KeyError:
         if tag in keyword_dict:  # Keyword provided rather than int or tuple
             tag = keyword_dict[tag]
-        try:
-            ds.add_new(tag, dictionary_VR(tag), value)
-        except Exception as e:
-            print("Invalid DICOM tag/keyword: %s\n%s" % (tag, e))
+        ds.add_new(tag, dictionary_VR(tag), value)
 
 
 def add_dicom_sequence(ds, seq_keyword, data_set_dict):
@@ -370,3 +401,26 @@ def add_dicom_sequence(ds, seq_keyword, data_set_dict):
         getattr(ds, seq_keyword).append(seq_ds)
     else:
         setattr(ds, seq_keyword, Sequence([seq_ds]))
+
+
+def validate_attr_equality(obj_1, obj_2, attr):
+    """Assess the equality of the provided attr between two objects.
+    Raise UserWarning if unequal.
+
+    Parameters
+    ----------
+    obj_1 : object
+        Any object with an `attr` attribute that is comparable by !=
+    obj_2 : object
+        Any object with an `attr` attribute that is comparable by !=
+    attr : str
+        The attribute to be compared between obj_1 and obj_2
+    """
+    val_1 = getattr(obj_1, attr)
+    val_2 = getattr(obj_2, attr)
+    if val_1 != val_2:
+        UserWarning(
+            "Different %s values detected:\n%s\n%s" % (attr, val_1, val_2)
+        )
+        return False
+    return True
