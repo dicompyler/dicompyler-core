@@ -10,6 +10,7 @@ from __future__ import division
 import unittest
 import os
 from dicompylercore import dicomparser, dose
+
 try:
     from pydicom.dataset import Dataset
     from pydicom.sequence import Sequence
@@ -154,14 +155,72 @@ class TestDose(unittest.TestCase):
         assert_array_not_almost_equal(interp_grid_2, self.dosegrid.dose_grid)
 
     def test_add_attr_mismatch(self):
+        # catch failed add with attr mismatch
         other = dose.DoseGrid(self.rtdose_dcm)
-        other.ds.DoseSummationType = ""
+        other.ds.DoseSummationType = "%s1" % other.ds.DoseSummationType
         failure_detected = False
         try:
             other.add(self.dosegrid)
         except NotImplementedError:
             failure_detected = True
         self.assertEqual(failure_detected, True)
+
+    def test_set_dicom_tag_value(self):
+        # Edit existing tag by keyword
+        ds = dose.DoseGrid(self.rtdose_dcm).ds
+        self.assertNotEqual(str(ds.PatientID), "DoseTestByKeyword")
+        dose.set_dicom_tag_value(ds, "PatientID", "DoseTestByKeyword")
+        self.assertEqual(str(ds.PatientID), "DoseTestByKeyword")
+
+        # Edit existing tag by tag
+        self.assertNotEqual(str(ds.PatientID), "DoseTestByTag")
+        dose.set_dicom_tag_value(ds, 0x00100020, "DoseTestByTag")
+        self.assertEqual(str(ds.PatientID), "DoseTestByTag")
+
+        # Create a new Tag
+        self.assertEqual(hasattr(ds, "PatientComments"), False)
+        dose.set_dicom_tag_value(ds, "PatientComments", "CommentsTest")
+        self.assertEqual(str(ds.PatientComments), "CommentsTest")
+
+    def test_add_dicom_sequence(self):
+        # Add new sequence
+        ds = dose.DoseGrid(self.rtdose_dcm).ds
+        self.assertEqual(hasattr(ds, "ReferencedInstanceSequence"), False)
+        seq_data = {"ReferencedSOPClassUID": "TestUID1"}
+        dose.add_dicom_sequence(ds, "ReferencedInstanceSequence", seq_data)
+        self.assertEqual(
+            str(ds.ReferencedInstanceSequence[0].ReferencedSOPClassUID),
+            "TestUID1",
+        )
+
+        # Append to existing sequence
+        seq_data = {"ReferencedSOPClassUID": "TestUID2"}
+        dose.add_dicom_sequence(ds, "ReferencedInstanceSequence", seq_data)
+        self.assertEqual(
+            str(ds.ReferencedInstanceSequence[1].ReferencedSOPClassUID),
+            "TestUID2",
+        )
+
+    def test_validate_attr_equality(self):
+        # Check equivalence of test attr of two TestObj objects
+        obj_1 = TestObj("test value")
+        obj_2 = TestObj("test value")
+        self.assertEqual(
+            dose.validate_attr_equality(obj_1, obj_2, "test"), True
+        )
+
+        # Check test attr of two TestObj objects are not equal
+        obj_2.test = "test fail"
+        self.assertEqual(
+            dose.validate_attr_equality(obj_1, obj_2, "test"), False
+        )
+
+
+class TestObj(object):
+    """Simple test class for test_validate_attr_equality"""
+
+    def __init__(self, init_value):
+        self.test = init_value
 
 
 if __name__ == "__main__":
