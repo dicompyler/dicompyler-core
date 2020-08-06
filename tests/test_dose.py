@@ -43,14 +43,23 @@ class TestDose(unittest.TestCase):
 
     def setUp(self):
         """Setup files for common case testing."""
-        rtss_dcm = os.path.join(example_data, "rtss.dcm")
         self.rtdose_dcm = os.path.join(example_data, "rtdose.dcm")
-        self.rtss = dicomparser.DicomParser(rtss_dcm)
         self.rtdose = dicomparser.DicomParser(self.rtdose_dcm)
 
         self.dvhs = self.rtdose.GetDVHs()
 
         self.dosegrid = dose.DoseGrid(self.rtdose_dcm)
+
+    def test_modality_check(self):
+        """Test non-RTDOSE raises AttributeError"""
+        ds = dicomparser.DicomParser(self.rtdose_dcm).ds
+        ds.Modality = "RTPLAN"
+        err_raised = False
+        try:
+            dose.DoseGrid(ds)
+        except AttributeError:
+            err_raised = True
+        self.assertEqual(err_raised, True)
 
     def test_shape(self):
         """Test dose grid shape extraction from the DICOM data."""
@@ -86,6 +95,8 @@ class TestDose(unittest.TestCase):
         self.assertEqual(offset[2], -122.4407)
 
     def test_is_coincident(self):
+        """Test spatial coincidence of two dose grids"""
+
         # Self coincidence
         other = dose.DoseGrid(self.rtdose_dcm)
         self.assertEqual(self.dosegrid.is_coincident(other), True)
@@ -108,39 +119,40 @@ class TestDose(unittest.TestCase):
         self.assertEqual(self.dosegrid.is_coincident(other), False)
 
     def test_add_overload(self):
-        # Overloaded __add__ operator
+        """Test the overloaded __add__ operator"""
         other = dose.DoseGrid(self.rtdose_dcm)
         dose_sum = self.dosegrid + other
         assert_array_equal(self.dosegrid.dose_grid, other.dose_grid)
         assert_array_equal(dose_sum.dose_grid, self.dosegrid.dose_grid * 2)
 
     def test_multiply_overload(self):
-        # Overloaded __mul__ operator
+        """Test the overloaded __mul__ operator"""
         scaled_dosegrid = self.dosegrid * 2
         assert_array_equal(
             scaled_dosegrid.dose_grid, self.dosegrid.dose_grid * 2
         )
 
     def test_right_multiply_overload(self):
-        # Overloaded __rmul__ operator
+        """Test the overloaded __rmul__ operator"""
         scaled_dosegrid = 2 * self.dosegrid
         assert_array_equal(
             scaled_dosegrid.dose_grid, self.dosegrid.dose_grid * 2
         )
 
     def test_dose_direct_sum(self):
-        # Direct Sum with a factor
+        """Test the direct summation of two coincident dose grids"""
         other = dose.DoseGrid(self.rtdose_dcm)
         other.direct_sum(self.dosegrid)
         assert_array_equal(other.dose_grid, self.dosegrid.dose_grid * 2)
 
     def test_dose_interp_sum(self):
-        # Interp Sum with a factor
+        """Test the interpolated summation of two coincident dose grids"""
         other = dose.DoseGrid(self.rtdose_dcm)
         other.interp_sum(self.dosegrid)
         assert_array_almost_equal(other.dose_grid, self.dosegrid.dose_grid * 2)
 
     def test_interp_entire_grid(self):
+        """Test interp_entire_grid of two non-coincident dose grids"""
         # Interp Sum equality, entire grid in one operation
         other = dose.DoseGrid(self.rtdose_dcm)
         other.x_axis += 0.0000005  # perturb to ensure interpolation is used
@@ -155,17 +167,18 @@ class TestDose(unittest.TestCase):
         assert_array_not_almost_equal(interp_grid_2, self.dosegrid.dose_grid)
 
     def test_add_attr_mismatch(self):
-        # catch failed add with attr mismatch
+        """Test add fails with mismatched DoseSummationType"""
         other = dose.DoseGrid(self.rtdose_dcm)
         other.ds.DoseSummationType = "%s1" % other.ds.DoseSummationType
-        failure_detected = False
+        err_raised = False
         try:
             other.add(self.dosegrid)
         except NotImplementedError:
-            failure_detected = True
-        self.assertEqual(failure_detected, True)
+            err_raised = True
+        self.assertEqual(err_raised, True)
 
     def test_set_dicom_tag_value(self):
+        """Test set_dicom_tag_value by tag and keyword"""
         # Edit existing tag by keyword
         ds = dose.DoseGrid(self.rtdose_dcm).ds
         self.assertNotEqual(str(ds.PatientID), "DoseTestByKeyword")
@@ -183,6 +196,8 @@ class TestDose(unittest.TestCase):
         self.assertEqual(str(ds.PatientComments), "CommentsTest")
 
     def test_add_dicom_sequence(self):
+        """Test add_dicom_sequence by appending or creating a new sequence"""
+
         # Add new sequence
         ds = dose.DoseGrid(self.rtdose_dcm).ds
         self.assertEqual(hasattr(ds, "ReferencedInstanceSequence"), False)
@@ -202,6 +217,8 @@ class TestDose(unittest.TestCase):
         )
 
     def test_validate_attr_equality(self):
+        """Test validate_attr_equality"""
+
         # Check equivalence of test attr of two TestObj objects
         obj_1 = TestObj("test value")
         obj_2 = TestObj("test value")
@@ -214,6 +231,22 @@ class TestDose(unittest.TestCase):
         self.assertEqual(
             dose.validate_attr_equality(obj_1, obj_2, "test"), False
         )
+
+    def test_save_dcm(self):
+        """Test save DoseGrid to DICOM"""
+
+        dosegrid = dose.DoseGrid(self.rtdose_dcm)
+        self.assertEqual(hasattr(dosegrid.ds, "ContentDate"), False)
+        self.assertEqual(hasattr(dosegrid.ds, "ContentTime"), False)
+
+        filepath = os.path.join(example_data, "dose_write_test.dcm")
+        dosegrid.save_dcm(filepath)
+
+        dosegrid_new = dose.DoseGrid(filepath)
+        self.assertEqual(hasattr(dosegrid_new.ds, "ContentDate"), True)
+        self.assertEqual(hasattr(dosegrid_new.ds, "ContentTime"), True)
+
+        os.remove(filepath)
 
 
 class TestObj(object):
