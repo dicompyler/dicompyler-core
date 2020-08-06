@@ -84,3 +84,25 @@ Structure and dose data for independently calculated DVHs can also be interpolat
    :align: center
    :alt: Comparison of interpolated DVH vs un-interpolated DVH
 
+Dose grids can be summed and scaled using the :mod:`dicompylercore.dose` module:
+
+.. code-block:: python
+
+    from dicompylercore import dose
+
+    # Dose grid summation with (tri-linear) interpolation if dose grids are not spatially coincident
+    grid_1 = dose.DoseGrid(dose_file_1)
+    grid_2 = dose.DoseGrid(dose_file_2)
+    grid_sum = grid_1 + grid_2
+    grid_sum.save_dcm("grid_sum.dcm")  # save to file
+
+    # Dose grid scaling
+    grid_scaled = grid_1 * 2  # Scale grid_1 by a factor of 2
+    grid_scaled.save_dcm("grid_scaled.dcm")  # save to file
+
+    # Dose grid subtraction may be performed, however, negative doses are not currently
+    # DICOM compliant (i.e., the pixel_array of RTDOSE datasets are unsigned integer arrays).
+    # dicompylercore users must work with the DoseGrid's numpy array directly (DoseGrid.dose_grid)
+    dose_diff_direct = grid_1.dose_grid - grid_2.dose_grid
+    dose_diff_interp = grid_1.dose_grid - grid_1.interp_entire_grid(grid_2)
+
