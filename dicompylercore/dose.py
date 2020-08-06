@@ -122,13 +122,6 @@ class DoseGrid:
         """Get the coordinates of the dose grid origin (mm)"""
         return np.array(self.ds.ImagePositionPatient, dtype="float")
 
-    @property
-    def points(self):
-        """Get all of the points in the dose grid"""
-        y, x, z = np.meshgrid(self.y_axis, self.x_axis, self.z_axis)
-        points = np.vstack((x.ravel(), y.ravel(), z.ravel()))
-        return points.transpose()
-
     ####################################################
     # Tools
     ####################################################
@@ -221,6 +214,10 @@ class DoseGrid:
         factor : int, float
             Multiply the dose grid by this factor.
         """
+
+        if factor < 0:
+            raise NotImplementedError("Negative doses are not supported.")
+
         self.dose_grid *= factor
         self.summation_post_processing()
 
