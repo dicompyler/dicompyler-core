@@ -152,6 +152,29 @@ class DoseGrid:
     def __rmul__(self, factor):
         return self.__mul__(factor)
 
+    def multiply(self, factor):
+        """
+        Scale the dose grid.
+
+        Parameters
+        ----------
+        factor : int, float
+            Multiply the dose grid by this factor.
+        """
+
+        if factor < 0:
+            raise NotImplementedError("Negative doses are not supported.")
+
+        self.dose_grid *= factor
+        self.dose_grid_post_processing()
+
+    def dose_grid_post_processing(self, other=None):
+        """Set the pixel data and store UIDs from other DoseGrid"""
+        self.set_pixel_data()
+        if other is not None:
+            self.other_sop_class_uid = other.sop_class_uid
+            self.other_sop_instance_uid = other.sop_instance_uid
+
     def is_coincident(self, other):
         """Check dose grid spatial coincidence.
 
@@ -204,22 +227,6 @@ class DoseGrid:
         ]
         j, i, k = np.meshgrid(ijk_axes[1], ijk_axes[0], ijk_axes[2])
         return np.vstack((i.ravel(), j.ravel(), k.ravel()))
-
-    def multiply(self, factor):
-        """
-        Scale the dose grid.
-
-        Parameters
-        ----------
-        factor : int, float
-            Multiply the dose grid by this factor.
-        """
-
-        if factor < 0:
-            raise NotImplementedError("Negative doses are not supported.")
-
-        self.dose_grid *= factor
-        self.summation_post_processing()
 
     ####################################################
     # Dose Summation
@@ -277,7 +284,7 @@ class DoseGrid:
         self.dose_grid += other.dose_grid
         self.summation_type = "DIRECT"
 
-        self.summation_post_processing(other)
+        self.dose_grid_post_processing(other)
 
     def interp_sum(self, other):
         """
@@ -293,14 +300,7 @@ class DoseGrid:
         self.dose_grid += self.interp_entire_grid(other)
         self.summation_type = "INTERPOLATED"
 
-        self.summation_post_processing(other)
-
-    def summation_post_processing(self, other=None):
-        """Set the pixel data and update DICOM tags"""
-        self.set_pixel_data()
-        if other is not None:
-            self.other_sop_class_uid = other.sop_class_uid
-            self.other_sop_instance_uid = other.sop_instance_uid
+        self.dose_grid_post_processing(other)
 
     def interp_entire_grid(self, other):
         """
