@@ -27,17 +27,7 @@ if scipy_available:
 
 
 class DoseGrid:
-    """
-    Class to easily access commonly used attributes of a DICOM dose grid and
-    make modifications
-
-    Example: Add two dose grids
-        grid_1 = DoseGrid(dose_file_1)
-        grid_2 = DoseGrid(dose_file_2)
-        grid_sum = grid_1 + grid_2
-        grid_sum.save_dcm(some_file_path)
-
-    """
+    """Class that stores DICOM-RT dose grids, performs addition/scaling."""
 
     def __init__(self, rt_dose, order=1):
         """ Initialization of a DoseGrid from a DICOM-RT Dose file or dataset.
