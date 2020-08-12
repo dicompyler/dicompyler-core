@@ -48,9 +48,6 @@ class TestDose(unittest.TestCase):
         """Setup files for common case testing."""
         self.rtdose_dcm = os.path.join(example_data, "rtdose.dcm")
         self.rtdose = dicomparser.DicomParser(self.rtdose_dcm)
-
-        self.dvhs = self.rtdose.GetDVHs()
-
         self.dosegrid = dose.DoseGrid(self.rtdose_dcm)
 
     def test_modality_check(self):
@@ -62,60 +59,41 @@ class TestDose(unittest.TestCase):
 
     def test_shape(self):
         """Test dose grid shape extraction from the DICOM data."""
-        shape = self.dosegrid.shape
-
-        # x-dimension
-        self.assertEqual(shape[0], 194)
-        # y-dimension
-        self.assertEqual(shape[1], 129)
-        # z-dimension
-        self.assertEqual(shape[2], 98)
+        self.assertEqual(self.dosegrid.shape, (194, 129, 98))
 
     def test_scale(self):
         """Test dose grid resolution extraction from the DICOM data."""
-        scale = self.dosegrid.scale
-
-        # x-dimension
-        self.assertEqual(scale[0], 2.5)
-        # y-dimension
-        self.assertEqual(scale[1], 2.5)
-        # z-dimension
-        self.assertEqual(scale[2], 3.0)
+        assert_array_equal(self.dosegrid.scale, [2.5, 2.5, 3.0])
 
     def test_offset(self):
         """Test dose grid resolution extraction from the DICOM data."""
-        offset = self.dosegrid.offset
-
-        # x-dimension
-        self.assertEqual(offset[0], -228.6541915)
-        # y-dimension
-        self.assertEqual(offset[1], -419.2444776)
-        # z-dimension
-        self.assertEqual(offset[2], -122.4407)
+        assert_array_equal(
+            self.dosegrid.offset, [-228.6541915, -419.2444776, -122.4407]
+        )
 
     def test_is_coincident(self):
         """Test spatial coincidence of two dose grids"""
 
         # Self coincidence
         other = dose.DoseGrid(self.rtdose_dcm)
-        self.assertEqual(self.dosegrid.is_coincident(other), True)
+        self.assertTrue(self.dosegrid.is_coincident(other))
 
         # ImagePositionPatient (offset)
         other = dose.DoseGrid(self.rtdose_dcm)
         other.ds.ImagePositionPatient[0] += 1
-        self.assertEqual(self.dosegrid.is_coincident(other), False)
+        self.assertFalse(self.dosegrid.is_coincident(other))
 
         # PixelSpacing
         other = dose.DoseGrid(self.rtdose_dcm)
         other.ds.PixelSpacing[0] += 1
-        self.assertEqual(self.dosegrid.is_coincident(other), False)
+        self.assertFalse(self.dosegrid.is_coincident(other))
 
         # GridFrameOffsetVector
         check = arange(0, 98) * 3
         assert_array_equal(self.dosegrid.ds.GridFrameOffsetVector, check)
         other = dose.DoseGrid(self.rtdose_dcm)
         other.ds.GridFrameOffsetVector[0] += 1
-        self.assertEqual(self.dosegrid.is_coincident(other), False)
+        self.assertFalse(self.dosegrid.is_coincident(other))
 
     def test_add_overload(self):
         """Test the overloaded __add__ operator"""
@@ -226,7 +204,7 @@ class TestDose(unittest.TestCase):
         self.assertEqual(str(ds.PatientID), "DoseTestByTag")
 
         # Create a new Tag
-        self.assertEqual(hasattr(ds, "PatientComments"), False)
+        self.assertFalse(hasattr(ds, "PatientComments"))
         dose.set_dicom_tag_value(ds, "PatientComments", "CommentsTest")
         self.assertEqual(str(ds.PatientComments), "CommentsTest")
 
@@ -235,7 +213,7 @@ class TestDose(unittest.TestCase):
 
         # Add new sequence
         ds = dose.DoseGrid(self.rtdose_dcm).ds
-        self.assertEqual(hasattr(ds, "ReferencedInstanceSequence"), False)
+        self.assertFalse(hasattr(ds, "ReferencedInstanceSequence"))
         seq_data = {"ReferencedSOPClassUID": "TestUID1"}
         dose.add_dicom_sequence(ds, "ReferencedInstanceSequence", seq_data)
         self.assertEqual(
@@ -257,24 +235,20 @@ class TestDose(unittest.TestCase):
         # Check equivalence of test attr of two TestObj objects
         obj_1 = TestObj("test value")
         obj_2 = TestObj("test value")
-        self.assertEqual(
-            dose.validate_attr_equality(obj_1, obj_2, "test"), True
-        )
+        self.assertTrue(dose.validate_attr_equality(obj_1, obj_2, "test"))
 
         # Check test attr of two TestObj objects are not equal
         obj_2.test = "test fail"
         warnings.filterwarnings("ignore")
-        self.assertEqual(
-            dose.validate_attr_equality(obj_1, obj_2, "test"), False
-        )
+        self.assertFalse(dose.validate_attr_equality(obj_1, obj_2, "test"))
         warnings.filterwarnings("default")
 
     def test_save_dcm(self):
         """Test save DoseGrid to DICOM"""
 
         dosegrid = dose.DoseGrid(self.rtdose_dcm)
-        self.assertEqual(hasattr(dosegrid.ds, "ContentDate"), False)
-        self.assertEqual(hasattr(dosegrid.ds, "ContentTime"), False)
+        self.assertFalse(hasattr(dosegrid.ds, "ContentDate"))
+        self.assertFalse(hasattr(dosegrid.ds, "ContentTime"))
 
         dosegrid2 = dose.DoseGrid(self.rtdose_dcm)
         dosegrid.add(dosegrid2)  # ensure other_sop_class_uid is set
@@ -283,8 +257,8 @@ class TestDose(unittest.TestCase):
         dosegrid.save_dcm(filepath)
 
         dosegrid_new = dose.DoseGrid(filepath)  # load new dosegrid from file
-        self.assertEqual(hasattr(dosegrid_new.ds, "ContentDate"), True)
-        self.assertEqual(hasattr(dosegrid_new.ds, "ContentTime"), True)
+        self.assertTrue(hasattr(dosegrid_new.ds, "ContentDate"))
+        self.assertTrue(hasattr(dosegrid_new.ds, "ContentTime"))
 
         os.remove(filepath)
 
@@ -296,10 +270,10 @@ class TestDose(unittest.TestCase):
         )
 
         warnings.filterwarnings("ignore")
-        self.assertEqual(self.dosegrid._validate_boundary_dose(0.001), False)
+        self.assertFalse(self.dosegrid._validate_boundary_dose(0.001))
         warnings.filterwarnings("default")
 
-        self.assertEqual(self.dosegrid._validate_boundary_dose(0.01), True)
+        self.assertTrue(self.dosegrid._validate_boundary_dose(0.01))
 
     def test_non_uniform_dose_grid_scale(self):
         """Check that a non-uniform dose grid is detected"""
