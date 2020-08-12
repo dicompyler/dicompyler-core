@@ -157,13 +157,7 @@ class DoseGrid:
     @property
     def max_boundary_dose(self):
         """Get the max boundary dose"""
-        return np.max(
-            [
-                np.max([np.max(self.dose_grid[i, :, :]) for i in [0, -1]]),
-                np.max([np.max(self.dose_grid[:, j, :]) for j in [0, -1]]),
-                np.max([np.max(self.dose_grid[:, :, k]) for k in [0, -1]]),
-            ]
-        )
+        return max_boundary_value(self.dose_grid)
 
     @property
     def max_boundary_relative_dose(self):
@@ -467,3 +461,25 @@ def validate_attr_equality(obj_1, obj_2, attr):
         warn("Different %s values detected:\n%s\n%s" % (attr, val_1, val_2))
         return False
     return True
+
+
+def max_boundary_value(arr):
+    """Get the greatest value on the boundary of a 3D numpy array
+
+    Parameters
+    ----------
+    arr : numpy.array
+        Any 3-dimensional array-like object
+
+    Returns
+    -------
+    float
+        Maximum value along any side of the input array
+    """
+    return np.max(
+        [
+            np.max([np.max(arr[i, :, :]) for i in [0, -1]]),
+            np.max([np.max(arr[:, j, :]) for j in [0, -1]]),
+            np.max([np.max(arr[:, :, k]) for k in [0, -1]]),
+        ]
+    )

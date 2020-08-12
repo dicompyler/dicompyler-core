@@ -19,7 +19,7 @@ except ImportError:
     from dicom.dataset import Dataset
     from dicom.sequence import Sequence
     from dicom import read_file as read_dicom
-from numpy import arange
+from numpy import arange, zeros
 from numpy.testing import (
     assert_array_almost_equal,
     assert_array_equal,
@@ -141,6 +141,20 @@ class TestDose(unittest.TestCase):
         assert_array_equal(
             scaled_dosegrid.dose_grid, self.dosegrid.dose_grid * 2
         )
+
+    def test_multiply(self):
+        """Directly test the multiply function"""
+        dosegrid = dose.DoseGrid(self.rtdose_dcm)
+        dosegrid.multiply(2)
+        assert_array_equal(dosegrid.dose_grid, self.dosegrid.dose_grid * 2)
+
+        # Check that a negative factor raises NotImplementedError
+        err_raised = False
+        try:
+            dosegrid.multiply(-1)
+        except NotImplementedError:
+            err_raised = True
+        self.assertEqual(err_raised, True)
 
     def test_dose_direct_sum(self):
         """Test the direct summation of two coincident dose grids"""
@@ -273,16 +287,20 @@ class TestDose(unittest.TestCase):
         self.assertEqual(hasattr(dosegrid.ds, "ContentDate"), False)
         self.assertEqual(hasattr(dosegrid.ds, "ContentTime"), False)
 
+        dosegrid2 = dose.DoseGrid(self.rtdose_dcm)
+        dosegrid.add(dosegrid2)  # ensure other_sop_class_uid is set
+
         filepath = os.path.join(example_data, "dose_write_test.dcm")
         dosegrid.save_dcm(filepath)
 
-        dosegrid_new = dose.DoseGrid(filepath)
+        dosegrid_new = dose.DoseGrid(filepath)  # load new dosegrid from file
         self.assertEqual(hasattr(dosegrid_new.ds, "ContentDate"), True)
         self.assertEqual(hasattr(dosegrid_new.ds, "ContentTime"), True)
 
         os.remove(filepath)
 
     def test_boundary_dose(self):
+        """Check boundary dose calculations"""
         self.assertEqual(self.dosegrid.max_boundary_dose, 0.138544)
         self.assertAlmostEqual(
             self.dosegrid.max_boundary_relative_dose, 0.009437111038635319
@@ -293,6 +311,39 @@ class TestDose(unittest.TestCase):
         warnings.filterwarnings("default")
 
         self.assertEqual(self.dosegrid._validate_boundary_dose(0.01), True)
+
+    def test_non_uniform_dose_grid_scale(self):
+        """Check that a non-uniform dose grid is detected"""
+        ds = dose.DoseGrid(self.rtdose_dcm).ds
+        ds.GridFrameOffsetVector[0] += 1
+        dosegrid = dose.DoseGrid(ds)
+
+        err_raised = False
+        try:
+            dosegrid.scale
+        except NotImplementedError:
+            err_raised = True
+        self.assertEqual(err_raised, True)
+
+    def test_max_boundary_value(self):
+        """Test the max_boundary_value function"""
+        arr = zeros([3, 3, 3])
+        arr[1, 1, 1] = 10
+
+        arr[0, 1, 1] = 1
+        self.assertEqual(dose.max_boundary_value(arr), 1)
+        arr[-1, 1, 1] = 2
+        self.assertEqual(dose.max_boundary_value(arr), 2)
+
+        arr[1, 1, 0] = 3
+        self.assertEqual(dose.max_boundary_value(arr), 3)
+        arr[1, 1, -1] = 4
+        self.assertEqual(dose.max_boundary_value(arr), 4)
+
+        arr[1, 0, 1] = 5
+        self.assertEqual(dose.max_boundary_value(arr), 5)
+        arr[1, -1, 1] = 6
+        self.assertEqual(dose.max_boundary_value(arr), 6)
 
 
 class TestObj(object):
