@@ -29,7 +29,14 @@ if scipy_available:
 class DoseGrid:
     """Class that stores DICOM-RT dose grids, performs addition/scaling."""
 
-    def __init__(self, rt_dose, order=1, mode="constant", cval=0.0):
+    def __init__(
+        self,
+        rt_dose,
+        order=1,
+        mode="constant",
+        cval=0.0,
+        boundary_dose_threshold=0.01,
+    ):
         """ Initialization of a DoseGrid from a DICOM-RT Dose file or dataset.
 
         Parameters
@@ -56,6 +63,9 @@ class DoseGrid:
         cval : scalar, optional
             Value to fill past edges of input if mode is ‘constant’.
             Default is 0.0.
+        boundary_dose_threshold : float, optional
+            Raise a warning if any dose on the boundary of the dose grid
+            (normalized to its global max dose) is greater than this value
         """
 
         self.ds = dicomparser.DicomParser(rt_dose).ds
@@ -85,11 +95,25 @@ class DoseGrid:
             # x and z are swapped in the pixel_array
             pixel_array = self.ds.pixel_array * self.ds.DoseGridScaling
             self.dose_grid = np.swapaxes(pixel_array, 0, 2)
+
+            self._validate_boundary_dose(boundary_dose_threshold)
         else:
             raise AttributeError(
                 "The DoseGrid class requires an RTDOSE file or dataset. "
                 "%s was detected" % self.ds.Modality
             )
+
+    def _validate_boundary_dose(self, threshold):
+        """Raise a warning if any dose on the boundary of the dose grid
+        (normalized to its global max dose) is greater than threshold"""
+        if self.max_boundary_relative_dose > threshold:
+            msg = (
+                "A boundary dose greater than %s%% of the maximum dose "
+                "was detected." % (threshold * 100)
+            )
+            warn(msg)
+            return False
+        return True
 
     ####################################################
     # Basic properties
@@ -129,6 +153,21 @@ class DoseGrid:
     def offset(self):
         """Get the coordinates of the dose grid origin (mm)"""
         return np.array(self.ds.ImagePositionPatient, dtype="float")
+
+    @property
+    def max_boundary_dose(self):
+        """Get the max boundary dose"""
+        return np.max(
+            [
+                np.max([np.max(self.dose_grid[i, :, :]) for i in [0, -1]]),
+                np.max([np.max(self.dose_grid[:, j, :]) for j in [0, -1]]),
+                np.max([np.max(self.dose_grid[:, :, k]) for k in [0, -1]]),
+            ]
+        )
+
+    @property
+    def max_boundary_relative_dose(self):
+        return self.max_boundary_dose / np.max(self.dose_grid)
 
     ####################################################
     # Tools

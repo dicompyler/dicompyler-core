@@ -193,8 +193,8 @@ class TestDose(unittest.TestCase):
             dosegrid.dose_grid, self.dosegrid.dose_grid * 2
         )
 
-        self.assertEqual(dosegrid.interp_param['order'], 2)
-        self.assertEqual(dosegrid.interp_param['mode'], 'nearest')
+        self.assertEqual(dosegrid.interp_param["order"], 2)
+        self.assertEqual(dosegrid.interp_param["mode"], "nearest")
 
     def test_add_attr_mismatch(self):
         """Test add fails with mismatched DoseSummationType"""
@@ -281,6 +281,18 @@ class TestDose(unittest.TestCase):
         self.assertEqual(hasattr(dosegrid_new.ds, "ContentTime"), True)
 
         os.remove(filepath)
+
+    def test_boundary_dose(self):
+        self.assertEqual(self.dosegrid.max_boundary_dose, 0.138544)
+        self.assertAlmostEqual(
+            self.dosegrid.max_boundary_relative_dose, 0.009437111038635319
+        )
+
+        warnings.filterwarnings("ignore")
+        self.assertEqual(self.dosegrid._validate_boundary_dose(0.001), False)
+        warnings.filterwarnings("default")
+
+        self.assertEqual(self.dosegrid._validate_boundary_dose(0.01), True)
 
 
 class TestObj(object):
