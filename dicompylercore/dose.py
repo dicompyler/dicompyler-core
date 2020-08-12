@@ -29,7 +29,7 @@ if scipy_available:
 class DoseGrid:
     """Class that stores DICOM-RT dose grids, performs addition/scaling."""
 
-    def __init__(self, rt_dose, order=1):
+    def __init__(self, rt_dose, order=1, mode="constant", cval=0.0):
         """ Initialization of a DoseGrid from a DICOM-RT Dose file or dataset.
 
         Parameters
@@ -37,12 +37,30 @@ class DoseGrid:
         rt_dose : pydicom Dataset or filename
             DICOM RT Dose used to determine the structure dose grid data.
         order : int, optional
-            The order of the spline interpolation.
+            The order of the spline interpolation (if needed), default is 1.
+            The order has to be in the range 0-5.
             0: the nearest grid point, 1: trilinear, 2 to 5: spline
+            See scipy.ndimage.map_coordinates documentation for more details
+        mode : {‘constant’, ‘nearest’}, optional
+            The mode parameter determines how the other dose grid is extended
+            beyond its boundaries. Default is ‘constant’. Behavior for
+            these values is as follows:
+            ‘constant’ (k k k k | a b c d | k k k k)
+                The other dose grid is extended by filling all values beyond
+                the edge with the same constant value, defined by the cval
+                parameter.
+            ‘nearest’ (a a a a | a b c d | d d d d)
+                The input is extended by replicating the last pixel.
+            Additional modes are available, see scipy.ndimage.map_coordinates
+            documentation for more details.
+        cval : scalar, optional
+            Value to fill past edges of input if mode is ‘constant’.
+            Default is 0.0.
         """
 
         self.ds = dicomparser.DicomParser(rt_dose).ds
-        self.order = order
+
+        self.interp_param = {"order": order, "mode": mode, "cval": cval}
 
         self.summation_type = None
         self.sop_class_uid = self.ds.SOPClassUID
@@ -255,15 +273,15 @@ class DoseGrid:
             )
 
         if self.is_coincident(other):
-            self.direct_sum(other)
+            self._direct_sum(other)
         else:
             if not scipy_available:
                 raise ImportError(
                     "scipy must be installed to perform interpolated dose sum."
                 )
-            self.interp_sum(other)
+            self._interp_sum(other)
 
-    def direct_sum(self, other):
+    def _direct_sum(self, other):
         """Directly sum two coincident dose grids
 
         Parameters
@@ -276,7 +294,7 @@ class DoseGrid:
 
         self.dose_grid_post_processing(other)
 
-    def interp_sum(self, other):
+    def _interp_sum(self, other):
         """
         Interpolate the other dose grid to this dose grid's axes,
         then perform direct summation
@@ -310,7 +328,7 @@ class DoseGrid:
         return map_coordinates(
             input=other.dose_grid,
             coordinates=other.get_ijk_points(self.axes),
-            order=self.order,
+            **self.interp_param,
         ).reshape(self.shape)
 
     def update_dicom_tags(self):

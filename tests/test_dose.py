@@ -142,13 +142,13 @@ class TestDose(unittest.TestCase):
     def test_dose_direct_sum(self):
         """Test the direct summation of two coincident dose grids"""
         other = dose.DoseGrid(self.rtdose_dcm)
-        other.direct_sum(self.dosegrid)
+        other._direct_sum(self.dosegrid)
         assert_array_equal(other.dose_grid, self.dosegrid.dose_grid * 2)
 
     def test_dose_interp_sum(self):
         """Test the interpolated summation of two coincident dose grids"""
         other = dose.DoseGrid(self.rtdose_dcm)
-        other.interp_sum(self.dosegrid)
+        other._interp_sum(self.dosegrid)
         assert_array_almost_equal(other.dose_grid, self.dosegrid.dose_grid * 2)
 
     def test_interp_entire_grid(self):
