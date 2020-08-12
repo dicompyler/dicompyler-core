@@ -57,12 +57,8 @@ class TestDose(unittest.TestCase):
         """Test non-RTDOSE raises AttributeError"""
         ds = dicomparser.DicomParser(self.rtdose_dcm).ds
         ds.Modality = "RTPLAN"
-        err_raised = False
-        try:
+        with self.assertRaises(AttributeError):
             dose.DoseGrid(ds)
-        except AttributeError:
-            err_raised = True
-        self.assertEqual(err_raised, True)
 
     def test_shape(self):
         """Test dose grid shape extraction from the DICOM data."""
@@ -149,12 +145,8 @@ class TestDose(unittest.TestCase):
         assert_array_equal(dosegrid.dose_grid, self.dosegrid.dose_grid * 2)
 
         # Check that a negative factor raises NotImplementedError
-        err_raised = False
-        try:
+        with self.assertRaises(NotImplementedError):
             dosegrid.multiply(-1)
-        except NotImplementedError:
-            err_raised = True
-        self.assertEqual(err_raised, True)
 
     def test_dose_direct_sum(self):
         """Test the direct summation of two coincident dose grids"""
@@ -215,12 +207,9 @@ class TestDose(unittest.TestCase):
         warnings.filterwarnings("ignore")
         other = dose.DoseGrid(self.rtdose_dcm)
         other.ds.DoseSummationType = "%s1" % other.ds.DoseSummationType
-        err_raised = False
-        try:
+
+        with self.assertRaises(NotImplementedError):
             other.add(self.dosegrid)
-        except NotImplementedError:
-            err_raised = True
-        self.assertEqual(err_raised, True)
         warnings.filterwarnings("default")
 
     def test_set_dicom_tag_value(self):
@@ -318,12 +307,8 @@ class TestDose(unittest.TestCase):
         ds.GridFrameOffsetVector[0] += 1
         dosegrid = dose.DoseGrid(ds)
 
-        err_raised = False
-        try:
+        with self.assertRaises(NotImplementedError):
             dosegrid.scale
-        except NotImplementedError:
-            err_raised = True
-        self.assertEqual(err_raised, True)
 
     def test_max_boundary_value(self):
         """Test the max_boundary_value function"""
