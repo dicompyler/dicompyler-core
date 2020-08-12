@@ -9,6 +9,7 @@ package includes:
 -  ``dicomparser``: parse DICOM objects in an easy-to-use manner
 -  ``dvh``: Pythonic access to dose volume histogram (DVH) data
 -  ``dvhcalc``: Independent DVH calculation using DICOM RT Dose & RT Structure Set
+-  ``dose``: Pythonic access to RT Dose data including dose summation
 
 Other information
 -----------------
@@ -29,6 +30,7 @@ Dependencies
    -  `Pillow <https://pillow.readthedocs.io>`__ (for image display)
    -  `Shapely <https://github.com/Toblerity/Shapely>`__ (for structure volume calculation)
    -  `scikit-image <http://scikit-image.org/>`__ (for DVH interpolation)
+   -  `scipy <https://scipy.org/>`__ (for dose grid summation using interpolation)
 
 Basic Usage
 ------------

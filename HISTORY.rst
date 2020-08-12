@@ -2,6 +2,19 @@
 History
 =======
 
+0.5.6 (unreleased)
+------------------
+
+* Added ``dose`` module with ``DVH`` class for Pythonic access to RT Dose `(#164) <https://github.com/dicompyler/dicompyler-core/pull/164>`__ `[Dan Cutright] <https://github.com/cutright>`__
+
+dose
+~~~~~~~
+* Added RT Dose grid summmation with interpolation (from DVHA) `(#164) <https://github.com/dicompyler/dicompyler-core/pull/164>`__ `[Dan Cutright] <https://github.com/cutright>`__
+
+dicomparser
+~~~~~~~~~~~
+* Initial implementation of memory mapped access to pixel data. `(#131) <https://github.com/dicompyler/dicompyler-core/pull/131>`__
+
 0.5.5 (2019-05-31)
 ------------------
 

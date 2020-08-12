@@ -40,7 +40,8 @@ setup(
     extras_require={
         'image': ["pillow>=1.0"],
         'dvhinterpolation': ["scikit-image"],
-        'volume': ["shapely>=1.6"]
+        'volume': ["shapely>=1.6"],
+        'doseinterpolation': ["scipy"]
     },
     license="BSD License",
     zip_safe=False,

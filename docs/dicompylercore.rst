@@ -21,3 +21,11 @@ dvhcalc module
     :members:
     :undoc-members:
     :show-inheritance:
+
+dose module
+-----------------------------
+
+.. automodule:: dicompylercore.dose
+    :members:
+    :undoc-members:
+    :show-inheritance:

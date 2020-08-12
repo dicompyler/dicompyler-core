@@ -102,7 +102,7 @@ Dose grids can be summed and scaled using the :mod:`dicompylercore.dose` module:
 
     # Dose grid subtraction may be performed, however, negative doses are not currently
     # DICOM compliant (i.e., the pixel_array of RTDOSE datasets are unsigned integer arrays).
-    # dicompylercore users must work with the DoseGrid's numpy array directly (DoseGrid.dose_grid)
+    # dicompyler-core users must work with the DoseGrid's numpy array directly (DoseGrid.dose_grid)
     dose_diff_direct = grid_1.dose_grid - grid_2.dose_grid
     dose_diff_interp = grid_1.dose_grid - grid_1.interp_entire_grid(grid_2)
 
