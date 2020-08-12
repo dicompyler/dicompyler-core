@@ -328,7 +328,7 @@ class DoseGrid:
         return map_coordinates(
             input=other.dose_grid,
             coordinates=other.get_ijk_points(self.axes),
-            **self.interp_param,
+            **self.interp_param
         ).reshape(self.shape)
 
     def update_dicom_tags(self):
