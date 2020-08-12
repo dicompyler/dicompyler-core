@@ -14,15 +14,18 @@ from dicompylercore import dicomparser, dose
 try:
     from pydicom.dataset import Dataset
     from pydicom.sequence import Sequence
+    from pydicom import read_file as read_dicom
 except ImportError:
     from dicom.dataset import Dataset
     from dicom.sequence import Sequence
+    from dicom import read_file as read_dicom
 from numpy import arange
 from numpy.testing import (
     assert_array_almost_equal,
     assert_array_equal,
     assert_raises,
 )
+import warnings
 
 basedata_dir = "tests/testdata"
 example_data = os.path.join(basedata_dir, "example_data")
@@ -166,8 +169,36 @@ class TestDose(unittest.TestCase):
         assert_array_not_equal(interp_grid_2, self.dosegrid.dose_grid)
         assert_array_not_almost_equal(interp_grid_2, self.dosegrid.dose_grid)
 
+    def test_interp_param(self):
+        """Test interp summation of two non-coincident dose grids with
+        non-default interp parameters"""
+        # Interp Sum equality, entire grid in one operation
+        other_ds = read_dicom(self.rtdose_dcm)
+        other_ds.ImagePositionPatient[0] += 0.0000005
+        other = dose.DoseGrid(other_ds)
+        dosegrid = dose.DoseGrid(self.rtdose_dcm, order=2, mode="nearest")
+        dosegrid.add(other)
+        assert_array_not_equal(dosegrid.dose_grid, self.dosegrid.dose_grid * 2)
+        assert_array_almost_equal(
+            dosegrid.dose_grid, self.dosegrid.dose_grid * 2
+        )
+
+        # Interp Sum inequality, entire grid in one operation
+        other_ds.ImagePositionPatient[0] += 0.0000005
+        other = dose.DoseGrid(other_ds)
+        dosegrid = dose.DoseGrid(self.rtdose_dcm, order=2, mode="nearest")
+        dosegrid.add(other)
+        assert_array_not_equal(dosegrid.dose_grid, self.dosegrid.dose_grid * 2)
+        assert_array_not_almost_equal(
+            dosegrid.dose_grid, self.dosegrid.dose_grid * 2
+        )
+
+        self.assertEqual(dosegrid.interp_param['order'], 2)
+        self.assertEqual(dosegrid.interp_param['mode'], 'nearest')
+
     def test_add_attr_mismatch(self):
         """Test add fails with mismatched DoseSummationType"""
+        warnings.filterwarnings("ignore")
         other = dose.DoseGrid(self.rtdose_dcm)
         other.ds.DoseSummationType = "%s1" % other.ds.DoseSummationType
         err_raised = False
@@ -176,6 +207,7 @@ class TestDose(unittest.TestCase):
         except NotImplementedError:
             err_raised = True
         self.assertEqual(err_raised, True)
+        warnings.filterwarnings("default")
 
     def test_set_dicom_tag_value(self):
         """Test set_dicom_tag_value by tag and keyword"""
@@ -228,9 +260,11 @@ class TestDose(unittest.TestCase):
 
         # Check test attr of two TestObj objects are not equal
         obj_2.test = "test fail"
+        warnings.filterwarnings("ignore")
         self.assertEqual(
             dose.validate_attr_equality(obj_1, obj_2, "test"), False
         )
+        warnings.filterwarnings("default")
 
     def test_save_dcm(self):
         """Test save DoseGrid to DICOM"""
