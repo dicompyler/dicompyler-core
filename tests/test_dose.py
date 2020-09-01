@@ -275,6 +275,14 @@ class TestDose(unittest.TestCase):
 
         self.assertTrue(self.dosegrid._validate_boundary_dose(0.01))
 
+    def test_zero_grid_relative_dose(self):
+        # Change pixel data to zeros
+        ds = self.rtdose.ds
+        pix = ds.pixel_array
+        ds.PixelData = zeros(pix.shape).tobytes()
+        grid = dose.DoseGrid(ds)
+        self.assertTrue(grid.max_boundary_relative_dose == 0)
+
     def test_non_uniform_dose_grid_scale(self):
         """Check that a non-uniform dose grid is detected"""
         ds = dose.DoseGrid(self.rtdose_dcm).ds
