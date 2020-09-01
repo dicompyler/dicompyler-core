@@ -161,7 +161,11 @@ class DoseGrid:
 
     @property
     def max_boundary_relative_dose(self):
-        return self.max_boundary_dose / np.max(self.dose_grid)
+        grid_max = np.max(self.dose_grid)
+        if grid_max:
+            return self.max_boundary_dose / grid_max
+        else:
+            return 0
 
     ####################################################
     # Tools
