@@ -269,12 +269,6 @@ class TestDose(unittest.TestCase):
             self.dosegrid.max_boundary_relative_dose, 0.009437111038635319
         )
 
-        warnings.filterwarnings("ignore")
-        self.assertFalse(self.dosegrid._validate_boundary_dose(0.001))
-        warnings.filterwarnings("default")
-
-        self.assertTrue(self.dosegrid._validate_boundary_dose(0.01))
-
     def test_non_uniform_dose_grid_scale(self):
         """Check that a non-uniform dose grid is detected"""
         ds = dose.DoseGrid(self.rtdose_dcm).ds

@@ -95,25 +95,11 @@ class DoseGrid:
             # x and z are swapped in the pixel_array
             pixel_array = self.ds.pixel_array * self.ds.DoseGridScaling
             self.dose_grid = np.swapaxes(pixel_array, 0, 2)
-
-            self._validate_boundary_dose(boundary_dose_threshold)
         else:
             raise AttributeError(
                 "The DoseGrid class requires an RTDOSE file or dataset. "
                 "%s was detected" % self.ds.Modality
             )
-
-    def _validate_boundary_dose(self, threshold):
-        """Raise a warning if any dose on the boundary of the dose grid
-        (normalized to its global max dose) is greater than threshold"""
-        if self.max_boundary_relative_dose > threshold:
-            msg = (
-                "A boundary dose greater than %s%% of the maximum dose "
-                "was detected." % (threshold * 100)
-            )
-            warn(msg)
-            return False
-        return True
 
     ####################################################
     # Basic properties
@@ -135,7 +121,8 @@ class DoseGrid:
     @property
     def scale(self):
         """Get the dose grid resolution (xyz)"""
-        if np.any(np.diff(np.diff(self.ds.GridFrameOffsetVector))):
+        diffs = np.diff(self.ds.GridFrameOffsetVector)
+        if not np.all(np.isclose(diffs, [diffs[0]]*len(diffs))):
             raise NotImplementedError(
                 "Non-uniform GridFrameOffsetVector detected. Interpolated "
                 "summation of non-uniform dose-grid scales is not supported."
