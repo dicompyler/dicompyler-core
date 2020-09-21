@@ -35,7 +35,6 @@ class DoseGrid:
         order=1,
         mode="constant",
         cval=0.0,
-        boundary_dose_threshold=0.01,
     ):
         """ Initialization of a DoseGrid from a DICOM-RT Dose file or dataset.
 
@@ -63,9 +62,6 @@ class DoseGrid:
         cval : scalar, optional
             Value to fill past edges of input if mode is ‘constant’.
             Default is 0.0.
-        boundary_dose_threshold : float, optional
-            Raise a warning if any dose on the boundary of the dose grid
-            (normalized to its global max dose) is greater than this value
         """
 
         self.ds = dicomparser.DicomParser(rt_dose).ds
@@ -199,6 +195,8 @@ class DoseGrid:
     def dose_grid_post_processing(self, other=None):
         """Set the pixel data and store UIDs from other DoseGrid"""
         self.set_pixel_data()
+        if hasattr(self.ds, "DVHSequence"):
+            del self.ds.DVHSequence
         if other is not None:
             self.other_sop_class_uid = other.sop_class_uid
             self.other_sop_instance_uid = other.sop_instance_uid
