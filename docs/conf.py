@@ -278,3 +278,6 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
+
+# Set autoclass_content to show both class and init docstring
+autoclass_content = "both"
