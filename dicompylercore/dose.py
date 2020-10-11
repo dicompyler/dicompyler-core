@@ -47,16 +47,18 @@ class DoseGrid:
             The order has to be in the range 0-5.
             0: the nearest grid point, 1: trilinear, 2 to 5: spline
             See scipy.ndimage.map_coordinates documentation for more details
-        mode : {‘constant’, ‘nearest’}, optional
+        mode : 'constant' or 'nearest', optional
             The mode parameter determines how the other dose grid is extended
-            beyond its boundaries. Default is ‘constant’. Behavior for
+            beyond its boundaries. Default is ``'constant'``. Behavior for
             these values is as follows:
-            ‘constant’ (k k k k | a b c d | k k k k)
+
+            ``'constant'`` (k k k k | a b c d | k k k k)
                 The other dose grid is extended by filling all values beyond
                 the edge with the same constant value, defined by the cval
                 parameter.
-            ‘nearest’ (a a a a | a b c d | d d d d)
+            ``'nearest'`` (a a a a | a b c d | d d d d)
                 The input is extended by replicating the last pixel.
+
             Additional modes are available, see scipy.ndimage.map_coordinates
             documentation for more details.
         cval : scalar, optional
