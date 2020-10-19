@@ -26,6 +26,7 @@ from numpy.testing import (
     assert_raises,
 )
 import warnings
+from dicompylercore.config import mpl_available
 
 basedata_dir = "tests/testdata"
 example_data = os.path.join(basedata_dir, "example_data")
@@ -189,6 +190,14 @@ class TestDose(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             other.add(self.dosegrid)
         warnings.filterwarnings("default")
+
+    @unittest.skipUnless(mpl_available, "Matplotlib not installed")
+    def test_show(self):
+        """Test if the dose grid can be shown."""
+        import matplotlib.pyplot as plt
+
+        plt.ion()
+        self.assertEqual(self.dosegrid.show().ds, self.dosegrid.ds)
 
     def test_set_dicom_tag_value(self):
         """Test set_dicom_tag_value by tag and keyword"""

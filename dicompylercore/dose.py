@@ -16,7 +16,11 @@ import numpy as np
 from dicompylercore import dicomparser
 from pydicom.uid import generate_uid
 from pydicom.datadict import dictionary_VR, keyword_dict
-from dicompylercore.config import dicompyler_uid_prefix_rtdose, scipy_available
+from dicompylercore.config import (
+    dicompyler_uid_prefix_rtdose,
+    mpl_available,
+    scipy_available,
+)
 from datetime import datetime
 from pydicom.sequence import Sequence
 from pydicom.dataset import Dataset
@@ -394,48 +398,45 @@ class DoseGrid:
         z : float, optional
             slice position to display initially, by default None
         """
-        try:
-            import matplotlib.pyplot as plt
-            from matplotlib.widgets import Slider
-        except (ImportError, RuntimeError):
-            print("Matplotlib could not be loaded. Install and try again.")
-        else:
-            # Extract the list of planes (z) from the dose grid
-            planes = (
-                np.array(self.ds.GridFrameOffsetVector)
-                * self.ds.ImageOrientationPatient[0]
-            ) + self.ds.ImagePositionPatient[2]
+        import matplotlib.pyplot as plt
+        from matplotlib.widgets import Slider
 
-            # Set up the plot
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            rtdose = dicomparser.DicomParser(self.ds)
+        # Extract the list of planes (z) from the dose grid
+        planes = (
+            np.array(self.ds.GridFrameOffsetVector) * self.ds.ImageOrientationPatient[0]
+        ) + self.ds.ImagePositionPatient[2]
 
-            # Get the middle slice if the z is not provided
-            z = planes[planes.size // 2] if z is None else z
-            zplane = rtdose.GetDoseGrid(z) * self.ds.DoseGridScaling
-            # Flag to invert slider min/max if GFOV is decreasing (i.e. FFS)
-            reverse = planes[0] > planes[-1]
-            im = ax.imshow(zplane, cmap="jet",)
+        # Set up the plot
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        rtdose = dicomparser.DicomParser(self.ds)
 
-            # Create a slider to change the (z)
-            axslice = fig.add_axes([0.34, 0.01, 0.50, 0.02])
-            slider = Slider(
-                ax=axslice,
-                label="Slice Position (mm):",
-                valmin=planes[-1] if reverse else planes[0],
-                valmax=planes[0] if reverse else planes[-1],
-                valinit=z,
-                valstep=np.diff(planes)[0],
-            )
+        # Get the middle slice if the z is not provided
+        z = planes[planes.size // 2] if z is None else z
+        zplane = rtdose.GetDoseGrid(z) * self.ds.DoseGridScaling
+        # Flag to invert slider min/max if GFOV is decreasing (i.e. FFS)
+        reverse = planes[0] > planes[-1]
+        im = ax.imshow(zplane, cmap="jet",)
 
-            def updateslice(z):
-                """Update the data to show on the plot."""
-                im.set_data(rtdose.GetDoseGrid(z) * self.ds.DoseGridScaling)
-                plt.draw()
+        # Create a slider to change the (z)
+        axslice = fig.add_axes([0.34, 0.01, 0.50, 0.02])
+        slider = Slider(
+            ax=axslice,
+            label="Slice Position (mm):",
+            valmin=planes[-1] if reverse else planes[0],
+            valmax=planes[0] if reverse else planes[-1],
+            valinit=z,
+            valstep=np.diff(planes)[0],
+        )
 
-            slider.on_changed(updateslice)
-            plt.show()
+        def updateslice(z):
+            """Update the data to show on the plot."""
+            im.set_data(rtdose.GetDoseGrid(z) * self.ds.DoseGridScaling)
+            plt.draw()
+
+        slider.on_changed(updateslice)
+        plt.show()
+        return self
 
 
 def set_dicom_tag_value(ds, tag, value):

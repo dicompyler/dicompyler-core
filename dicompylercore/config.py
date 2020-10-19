@@ -9,6 +9,7 @@
 
 from six import PY2
 
+mpl_available = True
 pil_available = True
 shapely_available = True
 skimage_available = True
@@ -16,6 +17,11 @@ scipy_available = True
 
 if PY2:
     import imp
+    try:
+        imp.find_module('matplotlib')
+    except ImportError:
+        pil_available = False
+
     try:
         imp.find_module('PIL')
     except ImportError:
@@ -37,6 +43,7 @@ if PY2:
         scipy_available = False
 else:
     import importlib
+    mpl_available = importlib.util.find_spec("matplotlib") is not None
     pil_available = importlib.util.find_spec('PIL') is not None
     shapely_available = importlib.util.find_spec('shapely') is not None
     skimage_available = importlib.util.find_spec('skimage') is not None
