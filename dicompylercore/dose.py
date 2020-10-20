@@ -399,12 +399,17 @@ class DoseGrid:
             slice position to display initially, by default None
 
         """
+        if not mpl_available:
+            raise ImportError(
+                "Matplotlib could not be loaded. Install and try again.")
+            return self
         import matplotlib.pyplot as plt
         from matplotlib.widgets import Slider
 
         # Extract the list of planes (z) from the dose grid
         planes = (
-            np.array(self.ds.GridFrameOffsetVector) * self.ds.ImageOrientationPatient[0]
+            np.array(self.ds.GridFrameOffsetVector) *
+            self.ds.ImageOrientationPatient[0]
         ) + self.ds.ImagePositionPatient[2]
 
         # Set up the plot
