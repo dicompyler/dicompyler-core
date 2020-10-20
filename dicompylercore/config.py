@@ -20,7 +20,7 @@ if PY2:
     try:
         imp.find_module('matplotlib')
     except ImportError:
-        pil_available = False
+        mpl_available = False
 
     try:
         imp.find_module('PIL')

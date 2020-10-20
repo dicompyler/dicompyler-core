@@ -397,6 +397,7 @@ class DoseGrid:
         ----------
         z : float, optional
             slice position to display initially, by default None
+
         """
         import matplotlib.pyplot as plt
         from matplotlib.widgets import Slider
