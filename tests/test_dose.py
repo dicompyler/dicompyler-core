@@ -26,7 +26,7 @@ from numpy.testing import (
     assert_raises,
 )
 import warnings
-from dicompylercore.config import mpl_available
+from dicompylercore.config import mpl_available, scipy_available
 
 basedata_dir = "tests/testdata"
 example_data = os.path.join(basedata_dir, "example_data")
@@ -133,12 +133,14 @@ class TestDose(unittest.TestCase):
         other._direct_sum(self.dosegrid)
         assert_array_equal(other.dose_grid, self.dosegrid.dose_grid * 2)
 
+    @unittest.skipUnless(scipy_available, "scipy not installed")
     def test_dose_interp_sum(self):
         """Test the interpolated summation of two coincident dose grids"""
         other = dose.DoseGrid(self.rtdose_dcm)
         other._interp_sum(self.dosegrid)
         assert_array_almost_equal(other.dose_grid, self.dosegrid.dose_grid * 2)
 
+    @unittest.skipUnless(scipy_available, "scipy not installed")
     def test_interp_entire_grid(self):
         """Test interp_entire_grid of two non-coincident dose grids"""
         # Interp Sum equality, entire grid in one operation
@@ -154,6 +156,7 @@ class TestDose(unittest.TestCase):
         assert_array_not_equal(interp_grid_2, self.dosegrid.dose_grid)
         assert_array_not_almost_equal(interp_grid_2, self.dosegrid.dose_grid)
 
+    @unittest.skipUnless(scipy_available, "scipy not installed")
     def test_interp_param(self):
         """Test interp summation of two non-coincident dose grids with
         non-default interp parameters"""
