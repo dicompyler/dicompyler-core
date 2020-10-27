@@ -706,14 +706,21 @@ class DicomParser:
         return self.dvhs
 
     def GetDoseGrid(self, z=0, threshold=0.5):
-        """
-        Return the 2d dose grid for the given slice position (mm).
+        """Return the 2d dose grid for the given slice position (mm).
 
-        :param z:           Slice position in mm.
-        :param threshold:   Threshold in mm to determine the max difference
-                            from z to the closest dose slice without
-                            using interpolation.
-        :return:            An numpy 2d array of dose points.
+        Parameters
+        ----------
+        z : int, optional
+            Slice position in mm, by default 0
+        threshold : float, optional
+            Threshold in mm to determine the max difference from z
+            to the closest dose slice without using interpolation,
+            by default 0.5
+
+        Returns
+        -------
+        np.array
+            An numpy 2d array of dose points
         """
 
         # If this is a multi-frame dose pixel array,
@@ -723,7 +730,9 @@ class DicomParser:
             z = float(z)
             # Get the initial dose grid position (z) in patient coordinates
             imagepatpos = self.ds.ImagePositionPatient[2]
-            orientation = self.ds.ImageOrientationPatient[0]
+            orientation = (
+                self.ds.ImageOrientationPatient[0] * self.ds.ImageOrientationPatient[4]
+            )
             # Add the position to the offset vector to determine the
             # z coordinate of each dose plane
             planes = orientation * np.array(self.ds.GridFrameOffsetVector) + \
