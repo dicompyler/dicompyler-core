@@ -70,13 +70,15 @@ class DicomParser:
     def GetSOPClassUID(self):
         """Determine the SOP Class UID of the current file."""
 
-        if (self.ds.SOPClassUID == '1.2.840.10008.5.1.4.1.1.481.2'):
+        uid = getattr(self.ds, 'SOPClassUID', None)
+
+        if (uid == '1.2.840.10008.5.1.4.1.1.481.2'):
             return 'rtdose'
-        elif (self.ds.SOPClassUID == '1.2.840.10008.5.1.4.1.1.481.3'):
+        elif (uid == '1.2.840.10008.5.1.4.1.1.481.3'):
             return 'rtss'
-        elif (self.ds.SOPClassUID == '1.2.840.10008.5.1.4.1.1.481.5'):
+        elif (uid == '1.2.840.10008.5.1.4.1.1.481.5'):
             return 'rtplan'
-        elif (self.ds.SOPClassUID == '1.2.840.10008.5.1.4.1.1.2'):
+        elif (uid == '1.2.840.10008.5.1.4.1.1.2'):
             return 'ct'
         else:
             return None
@@ -84,77 +86,43 @@ class DicomParser:
     def GetSOPInstanceUID(self):
         """Determine the SOP Class UID of the current file."""
 
-        return self.ds.SOPInstanceUID
+        return getattr(self.ds, 'SOPInstanceUID', None)
 
     def GetStudyInfo(self):
         """Return the study information of the current file."""
 
-        study = {}
-        if 'StudyDescription' in self.ds:
-            desc = self.ds.StudyDescription
-        else:
-            desc = 'No description'
-        study['description'] = desc
-        if 'StudyDate' in self.ds:
-            date = self.ds.StudyDate
-        else:
-            date = None
-        study['date'] = date
-        if 'StudyTime' in self.ds:
-            time = self.ds.StudyTime
-        else:
-            time = None
-        study['time'] = time
-        # Don't assume that every dataset includes a study UID
-        if 'StudyInstanceUID' in self.ds:
-            study['id'] = self.ds.StudyInstanceUID
-        else:
-            study['id'] = str(random.randint(0, 65535))
-
-        return study
+        return {'description': getattr(self.ds, 'StudyDescription',
+                                       'No description'),
+                'date': getattr(self.ds, 'StudyDate', None),
+                'time': getattr(self.ds, 'StudyTime', None),
+                'id': getattr(self.ds, 'StudyInstanceUID',
+                              str(random.randint(0, 65535)))}
 
     def GetSeriesDateTime(self):
         """Return the series date/time information."""
-        dt = {}
-        if 'SeriesDate' in self.ds:
-            date = self.ds.SeriesDate
-        elif 'InstanceCreationDate' in self.ds:
-            date = self.ds.InstanceCreationDate
-        else:
-            date = None
-        dt['date'] = date
-        if 'SeriesTime' in self.ds:
-            time = self.ds.SeriesTime
-        elif 'InstanceCreationTime' in self.ds:
-            time = self.ds.InstanceCreationTime
-        else:
-            time = None
-        dt['time'] = time
+        dt = {'date': getattr(self.ds, 'SeriesDate', None),
+              'time': getattr(self.ds, 'SeriesTime', None)}
+
+        if dt['date'] is None:
+            dt['date'] = getattr(self.ds, 'InstanceCreationDate', None)
+        if dt['time'] is None:
+            dt['time'] = getattr(self.ds, 'InstanceCreationTime', None)
 
         return dt
 
     def GetSeriesInfo(self):
         """Return the series information of the current file."""
 
-        series = {}
-        if 'SeriesDescription' in self.ds:
-            desc = self.ds.SeriesDescription
-        else:
-            desc = 'No description'
-        series['description'] = desc
-        series['id'] = self.ds.SeriesInstanceUID
-        # Don't assume that every dataset includes a study UID
-        series['study'] = self.ds.SeriesInstanceUID
+        series = {'description': getattr(self.ds, 'SeriesDescription',
+                                         'No description'),
+                  'id': getattr(self.ds, 'SeriesInstanceUID', None),
+                  'study': getattr(self.ds, 'SeriesInstanceUID', None),
+                  'referenceframe': getattr(self.ds, 'FrameOfReferenceUID',
+                                            str(random.randint(0, 65535))),
+                  'modality': getattr(self.ds, 'Modality', 'OT')}
         series.update(self.GetSeriesDateTime())
-        if 'StudyInstanceUID' in self.ds:
-            series['study'] = self.ds.StudyInstanceUID
-        series['referenceframe'] = self.ds.FrameOfReferenceUID \
-            if 'FrameOfReferenceUID' in self.ds \
-            else str(random.randint(0, 65535))
-        if 'Modality' in self.ds:
-            series['modality'] = self.ds.Modality
-        else:
-            series['modality'] = 'OT'
+
+        series['study'] = getattr(self.ds, 'StudyInstanceUID', series['study'])
 
         return series
 
@@ -494,9 +462,9 @@ class DicomParser:
         """Return the patient demographics from a DICOM file."""
 
         structure = {}
-        structure['label'] = self.ds.StructureSetLabel
-        structure['date'] = self.ds.StructureSetDate
-        structure['time'] = self.ds.StructureSetTime
+        structure['label'] = getattr(self.ds, 'StructureSetLabel', '')
+        structure['date'] = getattr(self.ds, 'StructureSetDate', '')
+        structure['time'] = getattr(self.ds, 'StructureSetTime', '')
         structure['numcontours'] = len(self.ds.ROIContourSequence)
 
         return structure
@@ -801,12 +769,11 @@ class DicomParser:
         """Return the dose data from a DICOM RT Dose file."""
 
         data = self.GetImageData()
-        data['doseunits'] = self.ds.DoseUnits
-        data['dosetype'] = self.ds.DoseType
-        data['dosecomment'] = self.ds.DoseComment \
-            if 'DoseComment' in self.ds else ''
-        data['dosesummationtype'] = self.ds.DoseSummationType
-        data['dosegridscaling'] = self.ds.DoseGridScaling
+        data['doseunits'] = getattr(self.ds, 'DoseUnits', '')
+        data['dosetype'] = getattr(self.ds, 'DoseType', '')
+        data['dosecomment'] = getattr(self.ds, 'DoseComment', '')
+        data['dosesummationtype'] = getattr(self.ds, 'DoseSummationType', '')
+        data['dosegridscaling'] = getattr(self.ds, 'DoseGridScaling', '')
         dosemax = 0
         for x in range(data["frames"]):
             pixel_array = self.GetPixelArray()
@@ -847,9 +814,9 @@ class DicomParser:
 
         self.plan = {}
 
-        self.plan['label'] = self.ds.RTPlanLabel
-        self.plan['date'] = self.ds.RTPlanDate
-        self.plan['time'] = self.ds.RTPlanTime
+        self.plan['label'] = getattr(self.ds, 'RTPlanLabel', '')
+        self.plan['date'] = getattr(self.ds, 'RTPlanDate', '')
+        self.plan['time'] = getattr(self.ds, 'RTPlanTime', '')
         self.plan['name'] = ''
         self.plan['rxdose'] = 0
         if "DoseReferenceSequence" in self.ds:
