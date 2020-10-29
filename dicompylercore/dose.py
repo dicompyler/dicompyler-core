@@ -75,8 +75,8 @@ class DoseGrid:
         self.interp_param = {"order": order, "mode": mode, "cval": cval}
 
         self.summation_type = None
-        self.sop_class_uid = self.ds.SOPClassUID
-        self.sop_instance_uid = self.ds.SOPInstanceUID
+        self.sop_class_uid = getattr(self.ds, 'SOPClassUID', '')
+        self.sop_instance_uid = getattr(self.ds, 'SOPInstanceUID', '')
         self.other_sop_class_uid = None
         self.other_sop_instance_uid = None
 
