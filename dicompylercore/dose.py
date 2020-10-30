@@ -408,8 +408,9 @@ class DoseGrid:
 
         # Extract the list of planes (z) from the dose grid
         planes = (
-            np.array(self.ds.GridFrameOffsetVector) *
-            self.ds.ImageOrientationPatient[0]
+            np.array(self.ds.GridFrameOffsetVector)
+            * self.ds.ImageOrientationPatient[0]
+            * self.ds.ImageOrientationPatient[4]
         ) + self.ds.ImagePositionPatient[2]
 
         # Set up the plot
