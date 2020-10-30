@@ -286,8 +286,8 @@ def calculate_contour_dvh(mask, doseplane, maxdose, dd, id, structure):
                                range=(0, maxdose))
 
     # Calculate the volume for the contour for the given dose plane
-    vol = sum(hist) * ((np.mean(np.diff(dd['lut'][0]))) *
-                       (np.mean(np.diff(dd['lut'][1]))) *
+    vol = sum(hist) * (abs(np.mean(np.diff(dd['lut'][0]))) *
+                       abs(np.mean(np.diff(dd['lut'][1]))) *
                        (structure['thickness']))
     return hist, vol
 
