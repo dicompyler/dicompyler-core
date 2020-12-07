@@ -121,6 +121,10 @@ def calculate_dvh(structure,
         Number of segments to interpolate between structure slices.
     callback : function, optional
         A function that will be called at every iteration of the calculation.
+
+    Notes
+    -----
+    This is an internal function called by get_dvh.
     """
     planes = collections.OrderedDict(sorted(iteritems(structure['planes'])))
     calcdvh = collections.namedtuple('DVH', ['notes', 'histogram'])
