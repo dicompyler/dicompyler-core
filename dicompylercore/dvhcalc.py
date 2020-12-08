@@ -68,6 +68,12 @@ def get_dvh(structure,
         This reduces memory usage at the expense of increased calculation time.
     callback : function, optional
         A function that will be called at every iteration of the calculation.
+
+    Returns
+    -------
+    dvh.DVH
+        An instance of dvh.DVH in cumulative dose. This can be converted to
+        different formats using the attributes and properties of the DVH class.
     """
     from dicompylercore import dicomparser
     rtss = dicomparser.DicomParser(structure)
@@ -78,10 +84,10 @@ def get_dvh(structure,
     s['thickness'] = thickness if thickness else rtss.CalculatePlaneThickness(
         s['planes'])
 
-    calcdvh = calculate_dvh(s, rtdose, limit, calculate_full_volume,
-                            use_structure_extents, interpolation_resolution,
-                            interpolation_segments_between_planes,
-                            callback)
+    calcdvh = _calculate_dvh(s, rtdose, limit, calculate_full_volume,
+                             use_structure_extents, interpolation_resolution,
+                             interpolation_segments_between_planes,
+                             callback)
     return dvh.DVH(counts=calcdvh.histogram,
                    bins=(np.arange(0, 2) if (calcdvh.histogram.size == 1) else
                          np.arange(0, calcdvh.histogram.size + 1) / 100),
@@ -91,20 +97,21 @@ def get_dvh(structure,
                    name=s['name']).cumulative
 
 
-def calculate_dvh(structure,
-                  dose,
-                  limit=None,
-                  calculate_full_volume=True,
-                  use_structure_extents=False,
-                  interpolation_resolution=None,
-                  interpolation_segments_between_planes=0,
-                  callback=None):
-    """Calculate the differential DVH for the given structure and dose grid.
+def _calculate_dvh(structure,
+                   dose,
+                   limit=None,
+                   calculate_full_volume=True,
+                   use_structure_extents=False,
+                   interpolation_resolution=None,
+                   interpolation_segments_between_planes=0,
+                   callback=None):
+    """Calculate a differential DVH for the given structure and dose grid.
 
     Parameters
     ----------
     structure : dict
-        A structure (ROI) from an RT Structure Set parsed using DicomParser
+        A structure (ROI) from an RT Structure Set parsed using DicomParser.
+        The dictionary must include a `thickness` key with a thickness `float`.
     dose : DicomParser
         A DicomParser instance of an RT Dose
     limit : int, optional
@@ -121,6 +128,16 @@ def calculate_dvh(structure,
         Number of segments to interpolate between structure slices.
     callback : function, optional
         A function that will be called at every iteration of the calculation.
+
+    Returns
+    -------
+    calcdvh: collections.namedtuple
+        A named tuple of notes and and histogram data.
+
+    Notes
+    -----
+    This is an internal function called by `get_dvh` and
+    should not be called directly.
     """
     planes = collections.OrderedDict(sorted(iteritems(structure['planes'])))
     calcdvh = collections.namedtuple('DVH', ['notes', 'histogram'])
