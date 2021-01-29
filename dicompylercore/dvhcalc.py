@@ -461,8 +461,14 @@ def get_resampled_lut(index_extents,
     ])
     xsamples = sampling_rate[0] * min_pixel_spacing[1] / new_pixel_spacing[1]
     ysamples = sampling_rate[1] * min_pixel_spacing[0] / new_pixel_spacing[0]
-    x = np.linspace(extents[0], extents[2], int(xsamples), dtype=np.float)
-    y = np.linspace(extents[1], extents[3], int(ysamples), dtype=np.float)
+    x = (
+            np.linspace(extents[0], extents[2], int(xsamples), dtype=np.float)
+            + new_pixel_spacing[1] / 2.0
+    )
+    y = (
+            np.linspace(extents[1], extents[3], int(ysamples), dtype=np.float)
+            + new_pixel_spacing[0] / 2.0
+    )
     return x, y
 
 
