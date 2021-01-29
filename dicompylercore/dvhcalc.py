@@ -162,8 +162,8 @@ def _calculate_dvh(structure,
             # Determine LUT from extents
             if use_structure_extents:
                 dd['lut'] = \
-                    (dd['lut'][0][dgindexextents[0]:dgindexextents[2]],
-                     dd['lut'][1][dgindexextents[1]:dgindexextents[3]])
+                    (dd['lut'][0][dgindexextents[0]:dgindexextents[2]+1],
+                     dd['lut'][1][dgindexextents[1]:dgindexextents[3]+1])
             # If interpolation is enabled, generate new LUT from extents
             if interpolation_resolution:
                 dd['lut'] = get_resampled_lut(
@@ -455,20 +455,14 @@ def get_resampled_lut(index_extents,
             % min_pixel_spacing[1] +
             " where n is an integer. Value provided was %s."
             % new_pixel_spacing[1])
-    sampling_rate = np.array([
+    sampling_rate = 1 + np.array([
         abs(index_extents[0] - index_extents[2]),
         abs(index_extents[1] - index_extents[3])
     ])
     xsamples = sampling_rate[0] * min_pixel_spacing[1] / new_pixel_spacing[1]
     ysamples = sampling_rate[1] * min_pixel_spacing[0] / new_pixel_spacing[0]
-    x = (
-            np.linspace(extents[0], extents[2], int(xsamples), dtype=np.float)
-            + new_pixel_spacing[1] / 2.0
-    )
-    y = (
-            np.linspace(extents[1], extents[3], int(ysamples), dtype=np.float)
-            + new_pixel_spacing[0] / 2.0
-    )
+    x = np.linspace(extents[0], extents[2], int(xsamples), dtype=np.float)
+    y = np.linspace(extents[1], extents[3], int(ysamples), dtype=np.float)
     return x, y
 
 
@@ -494,8 +488,8 @@ def get_interpolated_dose(dose, z, resolution, extents):
     """
     # Return the dose bounded by extents if interpolation is not required
     d = dose.GetDoseGrid(z)
-    extent_dose = d[extents[1]:extents[3],
-                    extents[0]:extents[2]] if len(extents) else d
+    extent_dose = d[extents[1]:extents[3]+1,
+                    extents[0]:extents[2]+1] if len(extents) else d
     if not resolution:
         return extent_dose
     if not skimage_available:
