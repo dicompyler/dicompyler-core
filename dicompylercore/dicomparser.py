@@ -58,6 +58,8 @@ class DicomParser:
                     raise AttributeError
         else:
             raise AttributeError
+        if "PixelData" in self.ds and self.ds.PixelData is None:
+            delattr(self.ds, 'PixelData')
         if memmap_pixel_array:
             self.filename = dataset
             self.pixel_array = self.get_pixel_array
