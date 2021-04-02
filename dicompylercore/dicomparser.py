@@ -58,6 +58,11 @@ class DicomParser:
                     raise AttributeError
         else:
             raise AttributeError
+        # Remove the PixelData attribute if it is not set.
+        # i.e. RTStruct does not contain PixelData and its presence can confuse
+        # the parser
+        if "PixelData" in self.ds and self.ds.PixelData is None:
+            delattr(self.ds, 'PixelData')
         if memmap_pixel_array:
             self.filename = dataset
             self.pixel_array = self.get_pixel_array
