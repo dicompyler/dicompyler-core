@@ -5,4 +5,4 @@ tox==3.24.4
 coverage==5.5
 Sphinx==4.2.0
 sphinx-rtd-theme==1.0.0
-cryptography==3.4.1
+cryptography==3.4.8
