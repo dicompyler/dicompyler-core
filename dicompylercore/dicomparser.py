@@ -32,9 +32,27 @@ if shapely_available:
 
 logger = logging.getLogger('dicompylercore.dicomparser')
 
+
 class DicomParser:
-    """Parses DICOM / DICOM RT files."""
+    """Class to parses DICOM / DICOM RT files."""
+
     def __init__(self, dataset, memmap_pixel_array=False):
+        """Initialize DicomParser from a pydicom Dataset or DICOM file.
+
+        Parameters
+        ----------
+        dataset : pydicom Dataset or filename
+            pydicom dataset object or DICOM file location
+        memmap_pixel_array : bool, optional
+            Enable pixel array access via memory mapping, by default False
+
+        Raises
+        ------
+        AttributeError
+            Raised if SOPClassUID is not present in the pydicom Dataset
+        AttributeError
+            Raised if the DICOM file or pydicom Dataset cannot be read
+        """
         self.memmap_pixel_array = memmap_pixel_array
         if isinstance(dataset, Dataset):
             self.ds = dataset
@@ -45,7 +63,7 @@ class DicomParser:
                                         stop_before_pixels=memmap_pixel_array)
                     if memmap_pixel_array:
                         self.offset = fp.tell() + 8
-            except:
+            except Exception:
                 # Raise the error for the calling method to handle
                 raise
             else:
@@ -54,7 +72,7 @@ class DicomParser:
                 # to declare what type of file it is.
                 # If the file doesn't have a SOPClassUID,
                 # then it probably isn't DICOM.
-                if not "SOPClassUID" in self.ds:
+                if "SOPClassUID" not in self.ds:
                     raise AttributeError
         else:
             raise AttributeError
@@ -74,7 +92,6 @@ class DicomParser:
 
     def GetSOPClassUID(self):
         """Determine the SOP Class UID of the current file."""
-
         uid = getattr(self.ds, 'SOPClassUID', None)
 
         if (uid == '1.2.840.10008.5.1.4.1.1.481.2'):
@@ -90,12 +107,10 @@ class DicomParser:
 
     def GetSOPInstanceUID(self):
         """Determine the SOP Class UID of the current file."""
-
         return getattr(self.ds, 'SOPInstanceUID', None)
 
     def GetStudyInfo(self):
         """Return the study information of the current file."""
-
         return {'description': getattr(self.ds, 'StudyDescription',
                                        'No description'),
                 'date': getattr(self.ds, 'StudyDate', None),
@@ -117,7 +132,6 @@ class DicomParser:
 
     def GetSeriesInfo(self):
         """Return the series information of the current file."""
-
         series = {'description': getattr(self.ds, 'SeriesDescription',
                                          'No description'),
                   'id': getattr(self.ds, 'SeriesInstanceUID', None),
@@ -133,7 +147,6 @@ class DicomParser:
 
     def GetReferencedSeries(self):
         """Return the SOP Class UID of the referenced series."""
-
         if "ReferencedFrameOfReferenceSequence" in self.ds:
             frame = self.ds.ReferencedFrameOfReferenceSequence
             if "RTReferencedStudySequence" in frame[0]:
@@ -148,7 +161,6 @@ class DicomParser:
 
     def GetFrameOfReferenceUID(self):
         """Determine the Frame of Reference UID of the current file."""
-
         if 'FrameOfReferenceUID' in self.ds:
             # Some Files contain a Ref FoR but do not contain an FoR themselves
             if not self.ds.FrameOfReferenceUID == '':
@@ -160,7 +172,6 @@ class DicomParser:
 
     def GetReferencedStructureSet(self):
         """Return the SOP Class UID of the referenced structure set."""
-
         if "ReferencedStructureSetSequence" in self.ds:
             return self.ds.ReferencedStructureSetSequence[0].ReferencedSOPInstanceUID
         else:
@@ -168,7 +179,6 @@ class DicomParser:
 
     def GetReferencedRTPlan(self):
         """Return the SOP Class UID of the referenced RT plan."""
-
         if "ReferencedRTPlanSequence" in self.ds:
             return self.ds.ReferencedRTPlanSequence[0].ReferencedSOPInstanceUID
         else:
@@ -176,7 +186,6 @@ class DicomParser:
 
     def GetDemographics(self):
         """Return the patient demographics from a DICOM file."""
-
         # Set up some sensible defaults for demographics
         patient = {'name': 'None',
                    'id': 'None',
@@ -208,9 +217,9 @@ class DicomParser:
 
 ############################### Image Methods #################################
 
+
     def GetImageData(self):
         """Return the image data from a DICOM file."""
-
         data = {}
 
         if 'ImagePositionPatient' in self.ds:
@@ -262,7 +271,6 @@ class DicomParser:
 
     def GetImageLocation(self):
         """Calculate the location of the current image slice."""
-
         ipp = self.ds.ImagePositionPatient
         iop = self.ds.ImageOrientationPatient
 
@@ -284,7 +292,6 @@ class DicomParser:
 
     def GetImageOrientationType(self):
         """Get the orientation of the current image slice."""
-
         if 'ImageOrientationPatient' in self.ds:
             iop = np.array(self.ds.ImageOrientationPatient)
 
@@ -305,7 +312,6 @@ class DicomParser:
 
     def GetNumberOfFrames(self):
         """Return the number of frames in a DICOM image file."""
-
         frames = 1
         if 'NumberOfFrames' in self.ds:
             frames = self.ds.NumberOfFrames.real
@@ -321,7 +327,6 @@ class DicomParser:
 
     def GetRescaleInterceptSlope(self):
         """Return the rescale intercept and slope if present."""
-
         intercept, slope = 0, 1
         if ('RescaleIntercept' in self.ds and 'RescaleSlope' in self.ds):
             intercept = self.ds.RescaleIntercept if \
@@ -333,17 +338,35 @@ class DicomParser:
 
     def GetImage(self, window=0, level=0, size=None, background=False,
                  frames=0):
-        """Return the image from a DICOM image storage file."""
+        """Return the image from a DICOM image storage file.
 
+        Parameters
+        ----------
+        window : int, optional
+            Image window, by default 0
+        level : int, optional
+            Image level or width, by default 0
+        size : tuple, optional
+            Image size tuple in pixels, by default None
+        background : bool, optional
+            Enable a black image background, by default False
+        frames : int, optional
+            If multi-frame, use requested frame to generate image, by default 0
+
+        Returns
+        -------
+        Pillow Image
+            A Pillow Image object
+        """
         if not pil_available:
-            print("Python imaging library not available." + \
-                " Cannot generate images.")
+            print("Python imaging library not available." +
+                  " Cannot generate images.")
             return
 
         # Return a black image if the Numpy pixel array cannot be accessed
         try:
             self.pixel_array
-        except:
+        except BaseException:
             return Image.new('L', size)
 
         # Samples per pixel are > 1 & RGB format
@@ -384,14 +407,13 @@ class DicomParser:
         if background:
             bg = Image.new('RGBA', size, (0, 0, 0, 255))
             bg.paste(im, ((size[0] - im.size[0]) // 2,
-                     (size[1] - im.size[1]) // 2))
+                          (size[1] - im.size[1]) // 2))
             return bg
 
         return im
 
     def GetDefaultImageWindowLevel(self):
         """Determine the default window/level for the DICOM image."""
-
         window, level = 0, 0
         if ('WindowWidth' in self.ds) and ('WindowCenter' in self.ds):
             if isinstance(self.ds.WindowWidth, float):
@@ -423,22 +445,37 @@ class DicomParser:
         return window, level
 
     def GetLUTValue(self, data, window, level):
-        """Apply the RGB Look-Up Table for the data and window/level value."""
+        """Apply the RGB Look-Up Table for the data and window/level value.
 
+        Parameters
+        ----------
+        data : numpy array
+            Pixel data array from pydicom dataset
+        window : float
+            Image window value
+        level : float
+            Image window level or width
+
+        Returns
+        -------
+        numpy array
+            Modified numpy array with RGB LUT applied
+        """
         lutvalue = util.piecewise(data,
-                                [data <= (level - 0.5 - (window - 1) / 2),
-                                 data > (level - 0.5 + (window - 1) / 2)],
-                                [0, 255, lambda data:
-                                 ((data - (level - 0.5)) / (window-1) + 0.5) *
-                                 (255 - 0)])
+                                  [data <= (level - 0.5 - (window - 1) / 2),
+                                   data > (level - 0.5 + (window - 1) / 2)],
+                                  [0, 255, lambda data:
+                                      ((data - (level - 0.5)) / (window-1) + 0.5) *
+                                      (255 - 0)])
         # Convert the resultant array to an unsigned 8-bit array to create
         # an 8-bit grayscale LUT since the range is only from 0 to 255
         return np.array(lutvalue, dtype=np.uint8)
 
     def GetPatientToPixelLUT(self):
-        """Get the image transformation matrix from the DICOM standard Part 3
-            Section C.7.6.2.1.1"""
+        """Get image transformation matrix from the DICOM standard.
 
+        Referenced matrix can be found in Part 3 Section C.7.6.2.1.1
+        """
         di = self.ds.PixelSpacing[0]
         dj = self.ds.PixelSpacing[1]
         orientation = self.ds.ImageOrientationPatient
@@ -446,9 +483,9 @@ class DicomParser:
 
         m = np.matrix(
             [[orientation[0]*di, orientation[3]*dj, 0, position[0]],
-            [orientation[1]*di, orientation[4]*dj, 0, position[1]],
-            [orientation[2]*di, orientation[5]*dj, 0, position[2]],
-            [0, 0, 0, 1]])
+             [orientation[1]*di, orientation[4]*dj, 0, position[1]],
+             [orientation[2]*di, orientation[5]*dj, 0, position[2]],
+             [0, 0, 0, 1]])
 
         x = []
         y = []
@@ -465,7 +502,6 @@ class DicomParser:
 
     def GetStructureInfo(self):
         """Return the patient demographics from a DICOM file."""
-
         structure = {}
         structure['label'] = getattr(self.ds, 'StructureSetLabel', '')
         structure['date'] = getattr(self.ds, 'StructureSetDate', '')
@@ -475,8 +511,7 @@ class DicomParser:
         return structure
 
     def GetStructures(self):
-        """Returns a dictionary of structures (ROIs)."""
-
+        """Return a dictionary of structures (ROIs)."""
         structures = {}
 
         # Determine whether this is RT Structure Set file
@@ -524,7 +559,7 @@ class DicomParser:
                         structures[number]['color'] = \
                             np.array(color, dtype=int)
                     # Otherwise fail and fallback on the random color
-                    except:
+                    except Exception:
                         logger.debug(
                             "Unable to decode display color for ROI #%s",
                             str(number))
@@ -538,8 +573,18 @@ class DicomParser:
         return structures
 
     def GetStructureCoordinates(self, roi_number):
-        """Get the list of coordinates for each plane of the structure."""
+        """Get the list of coordinates for each plane of the structure.
 
+        Parameters
+        ----------
+        roi_number : integer
+            ROI number used to index structure from RT Struct
+
+        Returns
+        -------
+        dict
+            Dict of structure coordinates sorted by slice position (z)
+        """
         planes = {}
         # The coordinate data of each ROI is stored within ROIContourSequence
         if 'ROIContourSequence' in self.ds:
@@ -554,6 +599,10 @@ class DicomParser:
                             # Determine all the plane properties
                             plane['type'] = c.ContourGeometricType
                             plane['num_points'] = int(c.NumberOfContourPoints)
+                            # Since DICOM RT Structure Set (C.8.8.6) specifies
+                            # that a ContourData is stored as an flattened list
+                            # of xyz triples, convert it to a unflattened list
+                            # for easier parsing
                             plane['data'] = \
                                 self.GetContourPoints(c.ContourData)
 
@@ -567,14 +616,34 @@ class DicomParser:
         return planes
 
     def GetContourPoints(self, array):
-        """Parses an array of xyz points & returns a array of point dicts."""
+        """Unflatten a flattened list of xyz point triples.
 
+        Parameters
+        ----------
+        array : list
+            Flattened list of xyz point triples
+
+        Returns
+        -------
+        list
+            Unflattened list of xyz point triples
+        """
         n = 3
         return [array[i:i+n] for i in range(0, len(array), n)]
 
     def CalculatePlaneThickness(self, planesDict):
-        """Calculates the plane thickness for each structure."""
+        """Calculate the plane thickness for each structure.
 
+        Parameters
+        ----------
+        planesDict : dict
+            Output from GetStructureCoordinates
+
+        Returns
+        -------
+        float
+            Thickness of the structure in mm
+        """
         planes = []
 
         # Iterate over each plane in the structure
@@ -597,16 +666,20 @@ class DicomParser:
         return thickness
 
     def CalculateStructureVolume(self, coords, thickness):
-        """Calculates the volume of the given structure.
+        """Calculate the volume of the given structure.
 
         Parameters
         ----------
         coords : dict
             Coordinates of each plane of the structure
         thickness : float
-            Thickness of the structure
-        """
+            Thickness of the structure in mm
 
+        Returns
+        -------
+        float
+            Volume of structure in cm3
+        """
         if not shapely_available:
             print("Shapely library not available." +
                   " Please install to calculate.")
@@ -655,22 +728,20 @@ class DicomParser:
 ############################## RT Dose Methods ###############################
 
     def HasDVHs(self):
-        """Returns whether dose-volume histograms (DVHs) exist."""
-
-        if not "DVHSequence" in self.ds:
+        """Return whether dose-volume histograms (DVHs) exist."""
+        if "DVHSequence" not in self.ds:
             return False
         else:
             return True
 
     def GetDVHs(self):
-        """Returns cumulative dose-volume histograms (DVHs)."""
-
+        """Return cumulative dose-volume histograms (DVHs)."""
         self.dvhs = {}
 
         if self.HasDVHs():
             for item in self.ds.DVHSequence:
                 # Make sure that the DVH has a referenced structure / ROI
-                if not 'DVHReferencedROISequence' in item:
+                if 'DVHReferencedROISequence' not in item:
                     continue
                 number = item.DVHReferencedROISequence[0].ReferencedROINumber
                 logger.debug("Found DVH for ROI #%s", str(number))
@@ -695,7 +766,6 @@ class DicomParser:
         np.array
             An numpy 2d array of dose points
         """
-
         # If this is a multi-frame dose pixel array,
         # determine the offset for each frame
         if 'GridFrameOffsetVector' in self.ds:
@@ -736,43 +806,56 @@ class DicomParser:
             return np.array([])
 
     def InterpolateDosePlanes(self, uplane, lplane, fz):
-        """Interpolates a dose plane between two bounding planes at the given
-           relative location.
+        """Interpolate a dose plane between two bounding planes.
 
-        :param uplane:      Upper dose plane boundary.
-        :param uplane:      Lower dose plane boundary.
-        :param fz:          Fractional distance from the bottom to the top,
-                            where the new plane is located.
-                            E.g. if fz = 1, the plane is at the upper plane,
-                            fz = 0, it is at the lower plane.
-        :return:            An numpy 2d array of the interpolated dose plane.
+        Parameters
+        ----------
+        uplane : float
+            Upper dose plane boundary in mm
+        lplane : float
+            Lower dose plane boundary in mm
+        fz : float
+            Fractional distance from the bottom to the top,
+            where the new plane is located.
+            E.g. if fz = 1, the plane is at the upper plane,
+            fz = 0, it is at the lower plane.
+
+        Returns
+        -------
+        numpy array
+            An numpy 2d array of the interpolated dose plane
         """
-
         # A simple linear interpolation
         doseplane = fz*uplane + (1.0 - fz)*lplane
 
         return doseplane
 
     def GetIsodosePoints(self, z=0, level=100, threshold=0.5):
-        """Return points for the given isodose level and slice position
-           from the dose grid.
+        """Return dose grid points from an isodose level & slice position.
 
-        :param z:           Slice position in mm.
-        :param threshold:   Threshold in mm to determine the max difference
-                            from z to the closest dose slice without
-                            using interpolation.
-        :param level:       Isodose level in scaled form
-                            (multiplied by self.ds.DoseGridScaling)
-        :return:            An array of tuples representing isodose points.
+        Parameters
+        ----------
+        z : int, optional
+            Slice position in mm., by default 0
+        level : int, optional
+            Threshold in mm to determine the max difference
+            from z to the closest dose slice without
+            using interpolation, by default 100
+        threshold : float, optional
+            Isodose level in scaled form
+            (multiplied by self.ds.DoseGridScaling), by default 0.5
+
+        Returns
+        -------
+        list
+            An list of tuples representing isodose points
         """
-
         plane = self.GetDoseGrid(z, threshold)
         isodose = (plane >= level).nonzero()
         return list(zip(isodose[1].tolist(), isodose[0].tolist()))
 
     def GetDoseData(self):
         """Return the dose data from a DICOM RT Dose file."""
-
         data = self.GetImageData()
         data['doseunits'] = getattr(self.ds, 'DoseUnits', '')
         data['dosetype'] = getattr(self.ds, 'DoseType', '')
@@ -793,13 +876,12 @@ class DicomParser:
             plan = self.ds.ReferencedRTPlanSequence[0]
             if "ReferencedFractionGroupSequence" in plan:
                 data['fraction'] = \
-                plan.ReferencedFractionGroupSequence[0].ReferencedFractionGroupNumber
+                    plan.ReferencedFractionGroupSequence[0].ReferencedFractionGroupNumber
 
         return data
 
     def GetReferencedBeamNumber(self):
         """Return the referenced beam number (if it exists) from RT Dose."""
-
         beam = None
         if "ReferencedRTPlanSequence" in self.ds:
             rp = self.ds.ReferencedRTPlanSequence[0]
@@ -815,8 +897,7 @@ class DicomParser:
 ############################## RT Plan Methods ###############################
 
     def GetPlan(self):
-        """Returns the plan information."""
-
+        """Return the plan information."""
         self.plan = {}
 
         self.plan['label'] = getattr(self.ds, 'RTPlanLabel', '')
@@ -854,8 +935,18 @@ class DicomParser:
         return self.plan
 
     def GetReferencedBeamsInFraction(self, fx=0):
-        """Return the referenced beams from the specified fraction."""
+        """Return the referenced beams from the specified fraction.
 
+        Parameters
+        ----------
+        fx : int, optional
+            FractionGroupSequence number, by default 0
+
+        Returns
+        -------
+        dict
+            Dictionary of referenced beam data
+        """
         beams = {}
         if ("BeamSequence" in self.ds):
             bdict = self.ds.BeamSequence
