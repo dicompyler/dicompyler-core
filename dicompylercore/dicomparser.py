@@ -34,7 +34,7 @@ logger = logging.getLogger('dicompylercore.dicomparser')
 
 
 class DicomParser:
-    """Class to parses DICOM / DICOM RT files."""
+    """Class to parse DICOM / DICOM RT files."""
 
     def __init__(self, dataset, memmap_pixel_array=False):
         """Initialize DicomParser from a pydicom Dataset or DICOM file.
@@ -88,7 +88,7 @@ class DicomParser:
             if "PixelData" in self.ds:
                 self.pixel_array = self.ds.pixel_array
 
-######################## SOP Class and Instance Methods #######################
+# ====================== SOP Class and Instance Methods ======================
 
     def GetSOPClassUID(self):
         """Determine the SOP Class UID of the current file."""
@@ -166,14 +166,16 @@ class DicomParser:
             if not self.ds.FrameOfReferenceUID == '':
                 return self.ds.FrameOfReferenceUID
         if 'ReferencedFrameOfReferenceSequence' in self.ds:
-            return self.ds.ReferencedFrameOfReferenceSequence[0].FrameOfReferenceUID
+            return self.ds.ReferencedFrameOfReferenceSequence[
+                0].FrameOfReferenceUID
         else:
             return ''
 
     def GetReferencedStructureSet(self):
         """Return the SOP Class UID of the referenced structure set."""
         if "ReferencedStructureSetSequence" in self.ds:
-            return self.ds.ReferencedStructureSetSequence[0].ReferencedSOPInstanceUID
+            return self.ds.ReferencedStructureSetSequence[
+                0].ReferencedSOPInstanceUID
         else:
             return ''
 
@@ -214,9 +216,7 @@ class DicomParser:
 
         return patient
 
-
-############################### Image Methods #################################
-
+# =============================== Image Methods ===============================
 
     def GetImageData(self):
         """Return the image data from a DICOM file."""
@@ -305,9 +305,10 @@ class DicomParser:
             ]
 
             for o in orientations:
-                if (not np.any(np.array(np.round(iop - o[1]), dtype=np.int32))):
+                if (not np.any(np.array(np.round(iop - o[1]),
+                                        dtype=np.int32))):
                     return o[0]
-        # Return N/A if the orientation was not found or could not be determined
+        # Return N/A if orientation was not found or could not be determined
         return "NA"
 
     def GetNumberOfFrames(self):
@@ -461,12 +462,13 @@ class DicomParser:
         numpy array
             Modified numpy array with RGB LUT applied
         """
-        lutvalue = util.piecewise(data,
-                                  [data <= (level - 0.5 - (window - 1) / 2),
-                                   data > (level - 0.5 + (window - 1) / 2)],
-                                  [0, 255, lambda data:
-                                      ((data - (level - 0.5)) / (window-1) + 0.5) *
-                                      (255 - 0)])
+        lutvalue = util.piecewise(
+            data,
+            [data <= (level - 0.5 - (window - 1) / 2),
+             data > (level - 0.5 + (window - 1) / 2)],
+            [0, 255, lambda data:
+             ((data - (level - 0.5)) / (window-1) + 0.5) *
+             (255 - 0)])
         # Convert the resultant array to an unsigned 8-bit array to create
         # an 8-bit grayscale LUT since the range is only from 0 to 255
         return np.array(lutvalue, dtype=np.uint8)
@@ -498,7 +500,7 @@ class DicomParser:
 
         return (np.array(x), np.array(y))
 
-########################## RT Structure Set Methods ###########################
+# ========================= RT Structure Set Methods =========================
 
     def GetStructureInfo(self):
         """Return the patient demographics from a DICOM file."""
@@ -725,7 +727,7 @@ class DicomParser:
         vol = s * thickness / 1000
         return vol
 
-############################## RT Dose Methods ###############################
+# ============================== RT Dose Methods ==============================
 
     def HasDVHs(self):
         """Return whether dose-volume histograms (DVHs) exist."""
@@ -876,7 +878,8 @@ class DicomParser:
             plan = self.ds.ReferencedRTPlanSequence[0]
             if "ReferencedFractionGroupSequence" in plan:
                 data['fraction'] = \
-                    plan.ReferencedFractionGroupSequence[0].ReferencedFractionGroupNumber
+                    plan.ReferencedFractionGroupSequence[
+                        0].ReferencedFractionGroupNumber
 
         return data
 
@@ -894,7 +897,7 @@ class DicomParser:
 
         return beam
 
-############################## RT Plan Methods ###############################
+# ============================== RT Plan Methods ==============================
 
     def GetPlan(self):
         """Return the plan information."""
@@ -918,7 +921,8 @@ class DicomParser:
                 elif item.DoseReferenceStructureType == 'VOLUME':
                     if 'TargetPrescriptionDose' in item:
                         self.plan['rxdose'] = item.TargetPrescriptionDose * 100
-        if (("FractionGroupSequence" in self.ds) and (self.plan['rxdose'] == 0)):
+        if (("FractionGroupSequence" in self.ds) and
+                (self.plan['rxdose'] == 0)):
             fg = self.ds.FractionGroupSequence[0]
             if ("ReferencedBeamSequence" in fg) and \
                ("NumberOfFractionsPlanned" in fg):
