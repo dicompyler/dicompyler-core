@@ -90,8 +90,8 @@ This package was created with
    :target: https://travis-ci.org/dicompyler/dicompyler-core
 .. |coveralls| image:: https://coveralls.io/repos/github/dicompyler/dicompyler-core/badge.svg?branch=master
    :target: https://coveralls.io/github/dicompyler/dicompyler-core?branch=master
-.. |Codacy| image:: https://api.codacy.com/project/badge/Grade/39060fc468844402a4030715fe01bb15
-   :target: https://www.codacy.com/app/bastula/dicompyler-core?utm_campaign=Badge_Coverage
+.. |Codacy| image:: https://api.codacy.com/project/badge/Grade/27ebb3802baf4d96b0783a2ae5904264
+   :target: https://app.codacy.com/gh/dicompyler/dicompyler-core/dashboard
 .. |Codecov| image:: https://codecov.io/gh/dicompyler/dicompyler-core/branch/master/graph/badge.svg
    :target: https://codecov.io/gh/dicompyler/dicompyler-core
 .. |Documentation Status| image:: https://readthedocs.org/projects/dicompyler-core/badge/?version=latest
