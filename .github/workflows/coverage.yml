@@ -13,7 +13,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                python-version: [3.6, 3.7, 3.8, 3.9, 3.10]
+                python-version: [3.6, 3.7, 3.8, 3.9, "3.10"]
 
         steps:
             - uses: actions/checkout@v2
@@ -38,6 +38,22 @@ jobs:
             - name: The job has succeeded
               if: ${{ success() }}
               run: |
-                  coveralls
+                  coveralls --service=github
                   codecov
                   python-codacy-coverage
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
+                  COVERALLS_PARALLEL: true
+    coveralls:
+        name: Indicate completion to coveralls.io
+        needs: test
+        runs-on: ubuntu-latest
+        container: python:3-slim
+        steps:
+            - name: Finished
+              run: |
+                  pip3 install --upgrade coveralls
+                  coveralls --service=github --finish
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
