@@ -1,6 +1,10 @@
 dicompyler-core
 ===============
 
+.. image:: https://api.codacy.com/project/badge/Grade/27ebb3802baf4d96b0783a2ae5904264
+   :alt: Codacy Badge
+   :target: https://app.codacy.com/gh/dicompyler/dicompyler-core?utm_source=github.com&utm_medium=referral&utm_content=dicompyler/dicompyler-core&utm_campaign=Badge_Grade_Settings
+
 |Binder| |pypi| |travis-ci| |coveralls| |Codacy| |Codecov| |Documentation Status| |Zenodo|
 
 A library of core radiation therapy modules for DICOM / DICOM RT used by `dicompyler <http://www.dicompyler.com>`__. This
