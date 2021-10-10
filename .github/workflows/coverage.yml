@@ -13,7 +13,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                python-version: [3.6, 3.7, 3.8, 3.9, "3.10"]
+                python-version: [3.6, 3.7, 3.8, 3.9]
 
         steps:
             - uses: actions/checkout@v2
@@ -45,6 +45,12 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
                   COVERALLS_PARALLEL: true
+            - uses: actions/checkout@v2
+            - name: Run codacy-coverage-reporter
+              uses: codacy/codacy-coverage-reporter-action@v1
+              with:
+                  project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+                  coverage-reports: coverage.xml
     coveralls:
         name: Indicate completion to coveralls.io
         needs: build
