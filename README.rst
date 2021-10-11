@@ -1,7 +1,7 @@
 dicompyler-core
 ===============
 
-|Binder| |pypi| |travis-ci| |coveralls| |Codacy| |Codecov| |Documentation Status| |Zenodo|
+|Binder| |pypi| |Python Version| |GH Actions| |Documentation Status| |coveralls| |Codacy| |Codecov| |LGTM| |Total Lines| |Code Size| |Zenodo|
 
 A library of core radiation therapy modules for DICOM / DICOM RT used by `dicompyler <http://www.dicompyler.com>`__. This
 package includes:
@@ -16,7 +16,7 @@ Other information
 
 -  Free software: `BSD license <https://github.com/dicompyler/dicompyler-core/blob/master/LICENSE>`__
 -  Documentation: `Read the docs <https://dicompyler-core.readthedocs.io>`__
--  Tested on Python 2.7, 3.6, 3.7, 3.8
+-  Tested on Python 3.6+
 
 Dependencies
 ------------
@@ -86,15 +86,23 @@ This package was created with
    :target: http://mybinder.org/repo/bastula/dicom-notebooks
 .. |pypi| image:: https://img.shields.io/pypi/v/dicompyler-core.svg
    :target: https://pypi.python.org/pypi/dicompyler-core
-.. |travis-ci| image:: https://img.shields.io/travis/dicompyler/dicompyler-core.svg
-   :target: https://travis-ci.org/dicompyler/dicompyler-core
+.. |Python Version| image:: https://img.shields.io/badge/python-3.6+-blue.svg
+   :target: https://pypi.python.org/pypi/dicompyler-core
+.. |GH Actions| image:: https://github.com/dicompyler/dicompyler-core/actions/workflows/build.yml/badge.svg
+   :target: https://github.com/dicompyler/dicompyler-core/actions
+.. |Documentation Status| image:: https://readthedocs.org/projects/dicompyler-core/badge/?version=latest
+   :target: https://dicompyler-core.readthedocs.io/en/latest/
 .. |coveralls| image:: https://coveralls.io/repos/github/dicompyler/dicompyler-core/badge.svg?branch=master
    :target: https://coveralls.io/github/dicompyler/dicompyler-core?branch=master
 .. |Codacy| image:: https://api.codacy.com/project/badge/Grade/27ebb3802baf4d96b0783a2ae5904264
    :target: https://app.codacy.com/gh/dicompyler/dicompyler-core/dashboard
 .. |Codecov| image:: https://codecov.io/gh/dicompyler/dicompyler-core/branch/master/graph/badge.svg
    :target: https://codecov.io/gh/dicompyler/dicompyler-core
-.. |Documentation Status| image:: https://readthedocs.org/projects/dicompyler-core/badge/?version=latest
-   :target: https://dicompyler-core.readthedocs.io/en/latest/
+.. |LGTM| image:: https://img.shields.io/lgtm/alerts/g/dicompyler/dicompyler-core.svg?logo=lgtm&logoWidth=18
+   :target: https://lgtm.com/projects/g/dicompyler/dicompyler-core/alerts/
+.. |Total Lines| image:: https://img.shields.io/tokei/lines/github/dicompyler/dicompyler-core
+   :target: https://img.shields.io/tokei/lines/github/dicompyler/dicompyler-core
+.. |Code Size| image:: https://img.shields.io/github/languages/code-size/dicompyler/dicompyler-core
+   :target: https://img.shields.io/github/languages/code-size/dicompyler/dicompyler-core
 .. |Zenodo| image:: https://zenodo.org/badge/51550203.svg
    :target: https://zenodo.org/badge/latestdoi/51550203
