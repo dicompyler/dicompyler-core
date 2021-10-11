@@ -31,7 +31,6 @@ jobs:
                   pip install coverage
                   pip install coveralls
                   pip install codecov
-                  pip install codacy-coverage
             - name: Run tests via coverage
               run: |
                   coverage run --source=dicompylercore setup.py test
@@ -40,7 +39,6 @@ jobs:
               run: |
                   coveralls --service=github
                   codecov
-                  python-codacy-coverage
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
