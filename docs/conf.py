@@ -46,6 +46,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode',
 autodoc_mock_imports = [
     'numpy', 'dicom', 'pydicom', 'pydicom', 'dicom',
     'PIL', 'numpy', 'matplotlib', 'skimage', 'scipy']
+autodoc_member_order = 'bysource'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -278,3 +279,6 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
+
+# Set autoclass_content to show both class and init docstring
+autoclass_content = "both"

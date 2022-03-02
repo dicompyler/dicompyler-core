@@ -16,7 +16,11 @@ import numpy as np
 from dicompylercore import dicomparser
 from pydicom.uid import generate_uid
 from pydicom.datadict import dictionary_VR, keyword_dict
-from dicompylercore.config import dicompyler_uid_prefix_rtdose, scipy_available
+from dicompylercore.config import (
+    dicompyler_uid_prefix_rtdose,
+    mpl_available,
+    scipy_available,
+)
 from datetime import datetime
 from pydicom.sequence import Sequence
 from pydicom.dataset import Dataset
@@ -35,7 +39,6 @@ class DoseGrid:
         order=1,
         mode="constant",
         cval=0.0,
-        boundary_dose_threshold=0.01,
     ):
         """ Initialization of a DoseGrid from a DICOM-RT Dose file or dataset.
 
@@ -48,24 +51,23 @@ class DoseGrid:
             The order has to be in the range 0-5.
             0: the nearest grid point, 1: trilinear, 2 to 5: spline
             See scipy.ndimage.map_coordinates documentation for more details
-        mode : {‘constant’, ‘nearest’}, optional
+        mode : 'constant' or 'nearest', optional
             The mode parameter determines how the other dose grid is extended
-            beyond its boundaries. Default is ‘constant’. Behavior for
+            beyond its boundaries. Default is ``'constant'``. Behavior for
             these values is as follows:
-            ‘constant’ (k k k k | a b c d | k k k k)
+
+            ``'constant'`` (k k k k | a b c d | k k k k)
                 The other dose grid is extended by filling all values beyond
                 the edge with the same constant value, defined by the cval
                 parameter.
-            ‘nearest’ (a a a a | a b c d | d d d d)
+            ``'nearest'`` (a a a a | a b c d | d d d d)
                 The input is extended by replicating the last pixel.
+
             Additional modes are available, see scipy.ndimage.map_coordinates
             documentation for more details.
         cval : scalar, optional
             Value to fill past edges of input if mode is ‘constant’.
             Default is 0.0.
-        boundary_dose_threshold : float, optional
-            Raise a warning if any dose on the boundary of the dose grid
-            (normalized to its global max dose) is greater than this value
         """
 
         self.ds = dicomparser.DicomParser(rt_dose).ds
@@ -73,8 +75,8 @@ class DoseGrid:
         self.interp_param = {"order": order, "mode": mode, "cval": cval}
 
         self.summation_type = None
-        self.sop_class_uid = self.ds.SOPClassUID
-        self.sop_instance_uid = self.ds.SOPInstanceUID
+        self.sop_class_uid = getattr(self.ds, 'SOPClassUID', '')
+        self.sop_instance_uid = getattr(self.ds, 'SOPInstanceUID', '')
         self.other_sop_class_uid = None
         self.other_sop_instance_uid = None
 
@@ -199,6 +201,8 @@ class DoseGrid:
     def dose_grid_post_processing(self, other=None):
         """Set the pixel data and store UIDs from other DoseGrid"""
         self.set_pixel_data()
+        if hasattr(self.ds, "DVHSequence"):
+            del self.ds.DVHSequence
         if other is not None:
             self.other_sop_class_uid = other.sop_class_uid
             self.other_sop_instance_uid = other.sop_instance_uid
@@ -385,6 +389,61 @@ class DoseGrid:
         now = datetime.now()
         set_dicom_tag_value(self.ds, "ContentDate", now.strftime("%Y%m%d"))
         set_dicom_tag_value(self.ds, "ContentTime", now.strftime("%H%M%S"))
+
+    def show(self, z=None):
+        """Show the dose grid using Matplotlib if present.
+
+        Parameters
+        ----------
+        z : float, optional
+            slice position to display initially, by default None
+
+        """
+        if not mpl_available:
+            raise ImportError(
+                "Matplotlib could not be loaded. Install and try again.")
+            return self
+        import matplotlib.pyplot as plt
+        from matplotlib.widgets import Slider
+
+        # Extract the list of planes (z) from the dose grid
+        planes = (
+            np.array(self.ds.GridFrameOffsetVector)
+            * self.ds.ImageOrientationPatient[0]
+            * self.ds.ImageOrientationPatient[4]
+        ) + self.ds.ImagePositionPatient[2]
+
+        # Set up the plot
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        rtdose = dicomparser.DicomParser(self.ds)
+
+        # Get the middle slice if the z is not provided
+        z = planes[planes.size // 2] if z is None else z
+        zplane = rtdose.GetDoseGrid(z) * self.ds.DoseGridScaling
+        # Flag to invert slider min/max if GFOV is decreasing (i.e. FFS)
+        reverse = planes[0] > planes[-1]
+        im = ax.imshow(zplane, cmap="jet",)
+
+        # Create a slider to change the (z)
+        axslice = fig.add_axes([0.34, 0.01, 0.50, 0.02])
+        slider = Slider(
+            ax=axslice,
+            label="Slice Position (mm):",
+            valmin=planes[-1] if reverse else planes[0],
+            valmax=planes[0] if reverse else planes[-1],
+            valinit=z,
+            valstep=np.diff(planes)[0],
+        )
+
+        def updateslice(z):
+            """Update the data to show on the plot."""
+            im.set_data(rtdose.GetDoseGrid(z) * self.ds.DoseGridScaling)
+            plt.draw()
+
+        slider.on_changed(updateslice)
+        plt.show()
+        return self
 
 
 def set_dicom_tag_value(ds, tag, value):

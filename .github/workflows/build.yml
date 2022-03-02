@@ -1,0 +1,66 @@
+name: build
+
+on:
+    push:
+        branches: [master]
+    pull_request:
+        branches: [master]
+        types: [opened, synchronize, reopened, edited, ready_for_review]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                python-version: [3.6, 3.7, 3.8, 3.9]
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v2
+
+            - name: Set up Python ${{ matrix.python-version }}
+              uses: actions/setup-python@v2
+              with:
+                  python-version: ${{ matrix.python-version }}
+
+            - name: Cache Python dependencies
+              uses: actions/cache@v2
+              with:
+                  path: ~/.cache/pip
+                  key: ${{ hashFiles('setup.py') }}
+
+            - name: Install Python dependencies
+              run: |
+                  python -m pip install --upgrade pip
+                  pip install --upgrade --upgrade-strategy eager -e '.[image, dvhinterpolation, volume, doseinterpolation]'
+                  pip install coverage
+                  pip install coveralls
+                  pip install codecov
+
+            - name: Run tests via coverage
+              run: |
+                  coverage run --source=dicompylercore setup.py test
+                  coverage xml
+
+            - name: Upload coverage if the job has succeeded
+              if: ${{ success() }}
+              run: |
+                  coveralls --service=github
+                  codecov
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
+                  COVERALLS_PARALLEL: true
+    coveralls:
+        name: Indicate completion to coveralls.io
+        needs: build
+        runs-on: ubuntu-latest
+        container: python:3-slim
+        steps:
+            - name: Finished
+              run: |
+                  pip3 install --upgrade coveralls
+                  coveralls --service=github --finish
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
