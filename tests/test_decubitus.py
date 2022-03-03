@@ -255,7 +255,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
     def test_decub(self):
         """Test that DVH is calculated correctly for decubitus orientation"""
         dvh = get_dvh(self.ss, self.dose, 1)
-        self.assertTrue(dvh.counts != 0)
+        self.assertTrue('Empty DVH' not in dvh.notes)
         # XXX add specific DVH results in
 
     def test_empty_dose_grid(self):
