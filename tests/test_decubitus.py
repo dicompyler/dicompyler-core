@@ -248,21 +248,26 @@ def fake_ss():
 
 class TestDVHCalcDecubitus(unittest.TestCase):
     """Unit tests for DVH calculation in decubitus orientations."""
-
+    def setUp(self):
+        self.ss = fake_ss()
+        self.dose = fake_rtdose()
 
     def test_decub(self):
         """Test that DVH is calculated correctly for decubitus orientation"""
-        ss = fake_ss()
-        dose = fake_rtdose()
-        dvh = get_dvh(ss, dose, 1)
+        dvh = get_dvh(self.ss, self.dose, 1)
         self.assertTrue(dvh.counts != 0)
         # XXX add specific DVH results in
 
-    def test_empty_dose_grid():
+    def test_empty_dose_grid(self):
         # See #274, prior to fixes this raised IndexError from
         #  get_interpolated_dose() getting empty array from GetDoseGrid()
-        dvh = get_dvh(ss, dose, 1, use_structure_extents=True)  # 1 = roi number
+        dvh = get_dvh(self.ss, self.dose, 1, use_structure_extents=True)  # 1 = roi number
 
+    def test_not_implemented_orientations(self):
+        """Test unhandled orientations raise NotImplementedError"""
+        self.dose.ImageOrientationPatient = [0.7071, 0.7071, 0, 1, 0, 0]
+        with self.assertRaises(NotImplementedError):
+            dvh = get_dvh(self.ss, self.dose, 1)
 
 
 
