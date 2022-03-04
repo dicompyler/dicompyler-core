@@ -261,7 +261,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
     def test_empty_dose_grid(self):
         # See #274, prior to fixes this raised IndexError from
         #  get_interpolated_dose() getting empty array from GetDoseGrid()
-        self.dose.ImagePositionPatient[3] -= 1000 # force no dose at struct z
+        self.dose.ImagePositionPatient[2] -= 1000 # force no dose at struct z
         dvh = get_dvh(self.ss, self.dose, 1, use_structure_extents=True)  # 1 = roi number
         self.assertTrue('Empty DVH' in dvh.notes)
 

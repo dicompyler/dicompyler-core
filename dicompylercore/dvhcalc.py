@@ -488,6 +488,8 @@ def get_interpolated_dose(dose, z, resolution, extents):
     """
     # Return the dose bounded by extents if interpolation is not required
     d = dose.GetDoseGrid(z)
+    if not d.size:
+        return d  # cannot take 2d index below if empty
     extent_dose = d[extents[1]:extents[3],
                     extents[0]:extents[2]] if len(extents) else d
     if not resolution:
