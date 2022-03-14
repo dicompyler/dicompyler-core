@@ -768,6 +768,7 @@ class DicomParser:
         np.array
             An numpy 2d array of dose points
         """
+
         # If this is a multi-frame dose pixel array,
         # determine the offset for each frame
         if 'GridFrameOffsetVector' in self.ds:
@@ -779,7 +780,31 @@ class DicomParser:
             gfov = self.ds.GridFrameOffsetVector
             # Add the position to the offset vector to determine the
             # z coordinate of each dose plane
-            planes = (iop[0] * iop[4] * np.array(gfov)) + ipp[2]
+            # Standard orientations:
+            # Feet First Decubitus Left   [ 0,  1,  0,  1,  0,  0]
+            # Feet First Decubitus Right  [ 0, -1,  0, -1,  0,  0]
+            # Feet First Prone            [ 1,  0,  0,  0, -1,  0]
+            # Feet First Supine           [-1,  0,  0,  0,  1,  0]
+            # Head First Decubitus Left   [ 0, -1,  0,  1,  0,  0]
+            # Head First Decubitus Right  [ 0,  1,  0, -1,  0,  0]
+            # Head First Prone            [-1,  0,  0,  0, -1,  0]
+            # Head First Supine           [ 1,  0,  0,  0,  1,  0]
+
+            if iop in (  # head-first
+                [1, 0, 0, 0, 1, 0], [-1, 0, 0, 0, -1, 0],
+                [0, -1, 0, 1, 0, 0], [0, 1, 0, -1, 0, 0]
+            ):
+                z_sign = 1
+            elif iop in (  # feet-first
+                [1, 0, 0, 0, -1, 0], [-1, 0, 0, 0, 1, 0],
+                [0, 1, 0, 1, 0, 0], [0, -1, 0, -1, 0, 0]
+            ):
+                z_sign = -1
+            else:
+                raise NotImplementedError(
+                    "Cannot calculate planes for non-standard image orientation"
+                )
+            planes = (z_sign * np.array(gfov)) + ipp[2]
             frame = -1
             # Check to see if the requested plane exists in the array
             if (np.amin(np.fabs(planes - z)) < threshold):

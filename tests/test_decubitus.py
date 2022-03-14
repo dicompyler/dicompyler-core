@@ -2,10 +2,11 @@ import unittest
 import pydicom
 from pydicom.dataset import Dataset, FileMetaDataset
 from pydicom.sequence import Sequence
-from pydicom.uid import generate_uid, PYDICOM_ROOT_UID
+from pydicom.uid import generate_uid, PYDICOM_IMPLEMENTATION_UID
 import pydicom.uid
 import numpy
 from dicompylercore.dvhcalc import get_dvh
+
 
 """
 Set up dose grid like:
@@ -44,6 +45,10 @@ CT_iop = [0, -1, 0, 1, 0, 0]  # Feet-first decub left
 DOSE_ipp = CT_ipp
 DOSE_iop = CT_iop
 
+RTStructureSetStorage = "1.2.840.10008.5.1.4.1.1.481.3"
+CTImageStorage = "1.2.840.10008.5.1.4.1.1.2"
+RTDoseStorage = "1.2.840.10008.5.1.4.1.1.481.2"
+
 def basic_file_meta(class_UID):
     # File meta info data elements
     file_meta = FileMetaDataset()
@@ -51,15 +56,15 @@ def basic_file_meta(class_UID):
     file_meta.MediaStorageSOPClassUID = class_UID
     file_meta.MediaStorageSOPInstanceUID = generate_uid()
     file_meta.TransferSyntaxUID = '1.2.840.10008.1.2'
-    file_meta.ImplementationClassUID = PYDICOM_ROOT_UID
+    file_meta.ImplementationClassUID = PYDICOM_IMPLEMENTATION_UID
     return file_meta
 
 
 def fake_rtdose():
     # Main data elements
-    file_meta = basic_file_meta(pydicom.uid.RTDoseStorage)
+    file_meta = basic_file_meta(RTDoseStorage)
     ds = Dataset()
-    ds.SOPClassUID = pydicom.uid.RTDoseStorage
+    ds.SOPClassUID = RTDoseStorage
     ds.SOPInstanceUID = DOSE_iUID
     ds.StudyDate = '20220101'
     ds.Modality = 'RTDOSE'
@@ -111,9 +116,58 @@ def fake_rtdose():
     for slice in range(len(arr)):
         for row in range(len(arr[0])):
             for col in range(len(arr[0][0])):
-                arr[slice, row, col] = slice*10 + (row > 5)*row + (col > 5) * (col)
-    ds.PixelData = arr.tobytes()
+                arr[slice, row, col] = slice*10 + (row > 2)*row + (col > 2) * (col)
 
+    # Three middle slices after above math:
+    # # Shown with location of contours:
+    # (3, 17), (7, 17), (7, 23), (3, 23)    (2 voxels across x, 3 down y)
+    #     2 mm x 2 mm pixel, across (cols, X) center of pixels from 2 to 20
+    #                         down (rows, Y) centers from 12 to 30
+    # volume = 4 x 6 x 30 = 720 mm^3 = 0.72 cm^3
+
+    # [10, 10, 10, 13, 14, 15, 16, 17, 18, 19],
+    # [10, 10, 10, 13, 14, 15, 16, 17, 18, 19],
+    # [10, 10, 10, 13, 14, 15, 16, 17, 18, 19],
+    #     |-------|
+    # [13, 13, 13, 16, 17, 18, 19, 20, 21, 22],
+    # [14, 14, 14, 17, 18, 19, 20, 21, 22, 23],
+    # [15, 15, 15, 18, 19, 20, 21, 22, 23, 24],
+    #     |-------|
+    # [16, 16, 16, 19, 20, 21, 22, 23, 24, 25],
+    # [17, 17, 17, 20, 21, 22, 23, 24, 25, 26],
+    # [18, 18, 18, 21, 22, 23, 24, 25, 26, 27],
+    # [19, 19, 19, 22, 23, 24, 25, 26, 27, 28]],,
+
+
+    # [20, 20, 20, 23, 24, 25, 26, 27, 28, 29],
+    # [20, 20, 20, 23, 24, 25, 26, 27, 28, 29],
+    # [20, 20, 20, 23, 24, 25, 26, 27, 28, 29],
+    #     |-------|
+    # [23, 23, 23, 26, 27, 28, 29, 30, 31, 32],
+    # [24, 24, 24, 27, 28, 29, 30, 31, 32, 33],
+    # [25, 25, 25, 28, 29, 30, 31, 32, 33, 34],
+    #     |-------|
+    # [26, 26, 26, 29, 30, 31, 32, 33, 34, 35],
+    # [27, 27, 27, 30, 31, 32, 33, 34, 35, 36],
+    # [28, 28, 28, 31, 32, 33, 34, 35, 36, 37],
+    # [29, 29, 29, 32, 33, 34, 35, 36, 37, 38]],
+
+    # [30, 30, 30, 33, 34, 35, 36, 37, 38, 39],
+    # [30, 30, 30, 33, 34, 35, 36, 37, 38, 39],
+    # [30, 30, 30, 33, 34, 35, 36, 37, 38, 39],
+    #     |-------|
+    # [33, 33, 33, 36, 37, 38, 39, 40, 41, 42],
+    # [34, 34, 34, 37, 38, 39, 40, 41, 42, 43],
+    # [35, 35, 35, 38, 39, 40, 41, 42, 43, 44],
+    #     |-------|
+    # [36, 36, 36, 39, 40, 41, 42, 43, 44, 45],
+    # [37, 37, 37, 40, 41, 42, 43, 44, 45, 46],
+    # [38, 38, 38, 41, 42, 43, 44, 45, 46, 47],
+    # [39, 39, 39, 42, 43, 44, 45, 46, 47, 48]],
+
+
+    ds.PixelData = arr.tobytes()
+    ds.DoseGridScaling = 0.01
     ds.file_meta = file_meta
     ds.is_implicit_VR = True
     ds.is_little_endian = True
@@ -122,12 +176,12 @@ def fake_rtdose():
 
 
 def fake_ss():
-    file_meta = basic_file_meta(pydicom.uid.RTStructureSetStorage)
+    file_meta = basic_file_meta(RTStructureSetStorage)
     # Main data elements
     ds = Dataset()
     ds.SpecificCharacterSet = 'ISO_IR 192'
     ds.InstanceCreationDate = '20220101'
-    ds.SOPClassUID = pydicom.uid.RTStructureSetStorage
+    ds.SOPClassUID = RTStructureSetStorage
     ds.SOPInstanceUID = SS_iUID
     ds.StudyDate = '20220101'
     ds.Modality = 'RTSTRUCT'
@@ -174,7 +228,7 @@ def fake_ss():
 
     # Contour Image Sequence: Contour Image 1
     contour_image1 = Dataset()
-    contour_image1.ReferencedSOPClassUID = pydicom.uid.CTImageStorage
+    contour_image1.ReferencedSOPClassUID = CTImageStorage
     contour_image1.ReferencedSOPInstanceUID = CT_iUID
     contour_image_sequence.append(contour_image1)
 
@@ -252,11 +306,24 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         self.ss = fake_ss()
         self.dose = fake_rtdose()
 
+    def test_nondecub(self):
+        """Test that DVH is calculated correctly for standard orientation"""
+        self.dose.ImageOrientationPatient = [1, 0, 0, 0, 1, 0]
+        dvh = get_dvh(self.ss, self.dose, 1)
+        diffl = dvh.differential
+        got_counts = diffl.counts * 18 / 0.72  # 18=num entries inside struct; 0.72=volume
+        expected_counts = [0]*13 + [2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2]
+        assert numpy.all(numpy.isclose(got_counts, expected_counts))
+        # self.assertTrue('Empty DVH' not in dvh.notes)
+
     def test_decub(self):
         """Test that DVH is calculated correctly for decubitus orientation"""
         dvh = get_dvh(self.ss, self.dose, 1)
         self.assertTrue('Empty DVH' not in dvh.notes)
         # XXX add specific DVH results in
+
+
+
 
     def test_empty_dose_grid(self):
         # See #274, prior to fixes this raised IndexError from
