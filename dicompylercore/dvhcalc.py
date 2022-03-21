@@ -20,6 +20,7 @@ try:
 except ImportError:
     from collections import Sequence
 from six import iteritems
+import copy
 import logging
 logger = logging.getLogger('dicompylercore.dvhcalc')
 
@@ -76,6 +77,24 @@ def get_dvh(structure,
         different formats using the attributes and properties of the DVH class.
     """
     from dicompylercore import dicomparser
+
+    # If dose in decubitus orientation, rotate a copy of the pixels
+    #  and reset the orientation used
+    iop = dose.ImageOrientationPatient
+    if iop == [0, -1, 0, 1, 0, 0]: # Head-first decubitus left
+        dose = copy.copy(dose)  # shallow copy to not copy the pixels
+        dose.convert_pixel_data()
+        dose._pixel_array = np.rot90(dose._pixel_array, 1, (1, 2))
+        dose.ImageOrientationPatient = [1, 0, 0, 0, 1, 0]
+        dose.Rows, dose.Columns = dose.Columns, dose.Rows
+        dose.PixelSpacing = [dose.PixelSpacing[1], dose.PixelSpacing[0]]
+        # Calc new ImagePositionPatient
+        # Decub left was   X inc down, Y decreases across, top left was max y
+        # need min Y in new orientation
+        y0 = dose.ImagePositionPatient[1]
+        y0 -= (len(dose._pixel_array[0]) - 1) * dose.PixelSpacing[1]
+        dose.ImagePositionPatient[1] = y0
+
     rtss = dicomparser.DicomParser(structure)
     rtdose = dicomparser.DicomParser(dose, memmap_pixel_array=memmap_rtdose)
     structures = rtss.GetStructures()
