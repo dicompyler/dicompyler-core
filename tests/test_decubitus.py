@@ -8,23 +8,6 @@ import numpy
 from dicompylercore.dvhcalc import get_dvh
 
 
-"""
-Set up dose grid like:
-    2 mm x 2 mm pixels, 10x10 grid
-    In patient coords
-    across (cols, X) from 1 to 21, center of pixels from 2 to 20
-    down (rows, Y) from 11 to 31, centers from 12 to 30
-    slices -20, -10, 0, 10, 20
-
-    So ... ImagePositionPatient = (2, 12, -20),
-    then slice offsets (0, 10, 20, 30, 40)
-
-    Then make contour on the middle three slices, with rectangle coords:
-    (3, 17), (7, 17), (7, 23), (3, 23)    (2 voxels across x, 3 down y)
-
-
-"""
-
 SLICE_Z = [-20, -10, 0, 10, 20]
 NUM_SLICES = len(SLICE_Z)
 STUDY_iUID = generate_uid()
@@ -87,9 +70,9 @@ def fake_rtdose():
     ds.PhotometricInterpretation = 'MONOCHROME2'
     ds.NumberOfFrames = 5
     ds.FrameIncrementPointer = (0x3004, 0x000c)  # GridFrameOffsetVector
-    ds.Rows = 10
-    ds.Columns = 10
-    ds.PixelSpacing = [2.0, 2.0]
+    ds.Rows = 7
+    ds.Columns = 8
+    ds.PixelSpacing = [1.0, 2.0]  # (between rows, between cols)
     ds.BitsAllocated = 32
     ds.BitsStored = 32
     ds.HighBit = 31
@@ -98,7 +81,6 @@ def fake_rtdose():
     ds.DoseType = 'PHYSICAL'
     ds.DoseSummationType = 'PLAN'
     ds.GridFrameOffsetVector = [0.0, 10.0, 20.0, 30.0, 40.0]
-    ds.DoseGridScaling = '1.0'
 
     # Referenced RT Plan Sequence
     refd_rt_plan_sequence = Sequence()
@@ -120,51 +102,42 @@ def fake_rtdose():
 
     # Three middle slices after above math:
     # # Shown with location of contours:
-    # (3, 17), (7, 17), (7, 23), (3, 23)    (2 voxels across x, 3 down y)
-    #     2 mm x 2 mm pixel, across (cols, X) center of pixels from 2 to 20
-    #                         down (rows, Y) centers from 12 to 30
-    # volume = 4 x 6 x 30 = 720 mm^3 = 0.72 cm^3
-    #       X=2   4   6   8  10  12  14  16  18  20
-    # Y=12  [10, 10, 10, 13, 14, 15, 16, 17, 18, 19],
-    #       [10, 10, 10, 13, 14, 15, 16, 17, 18, 19],
-    #       [10, 10, 10, 13, 14, 15, 16, 17, 18, 19],
+    # (3, 14.5), (7, 14.5), (7, 17.5), (3, 17.5)   (2 voxels across x, 3 down y)
+    #     2 mm x 1 mm pixel, across (cols, X) center of pixels from 2 to 16
+    #                         down (rows, Y) centers from 12 to 18
+    # volume = (2*2) x (3*1) x (3*10) = 360 mm^3 = 0.36 cm^3
+    #       X=2   4   6   8  10  12  14  16
+    # Y=12  [10, 10, 10, 13, 14, 15, 16, 17]
+    #       [10, 10, 10, 13, 14, 15, 16, 17]
+    #       [10, 10, 10, 13, 14, 15, 16, 17]
     #           |-------|
-    #       [13, 13, 13, 16, 17, 18, 19, 20, 21, 22],
-    #       [14, 14, 14, 17, 18, 19, 20, 21, 22, 23],
-    #       [15, 15, 15, 18, 19, 20, 21, 22, 23, 24],
+    #   15  [13, 13, 13, 16, 17, 18, 19, 20]
+    #       [14, 14, 14, 17, 18, 19, 20, 21]
+    #       [15, 15, 15, 18, 19, 20, 21, 22]
     #           |-------|
-    #       [16, 16, 16, 19, 20, 21, 22, 23, 24, 25],
-    #       [17, 17, 17, 20, 21, 22, 23, 24, 25, 26],
-    #       [18, 18, 18, 21, 22, 23, 24, 25, 26, 27],
-    # Y=30  [19, 19, 19, 22, 23, 24, 25, 26, 27, 28]],,
+    # Y=18  [16, 16, 16, 19, 20, 21, 22, 23]
 
-    #       X=2   4   6   8  10  12  14  16  18  20
-    # Y=12  [20, 20, 20, 23, 24, 25, 26, 27, 28, 29],
-    #       [20, 20, 20, 23, 24, 25, 26, 27, 28, 29],
-    #       [20, 20, 20, 23, 24, 25, 26, 27, 28, 29],
+    #       X=2   4   6   8  10  12  14  16
+    # Y=12  [20, 20, 20, 23, 24, 25, 26, 27]
+    #       [20, 20, 20, 23, 24, 25, 26, 27]
+    #       [20, 20, 20, 23, 24, 25, 26, 27]
     #           |-------|
-    #       [23, 23, 23, 26, 27, 28, 29, 30, 31, 32],
-    #       [24, 24, 24, 27, 28, 29, 30, 31, 32, 33],
-    #       [25, 25, 25, 28, 29, 30, 31, 32, 33, 34],
+    #       [23, 23, 23, 26, 27, 28, 29, 30]
+    #       [24, 24, 24, 27, 28, 29, 30, 31]
+    #       [25, 25, 25, 28, 29, 30, 31, 32]
     #           |-------|
-    #       [26, 26, 26, 29, 30, 31, 32, 33, 34, 35],
-    #       [27, 27, 27, 30, 31, 32, 33, 34, 35, 36],
-    #       [28, 28, 28, 31, 32, 33, 34, 35, 36, 37],
-    #       [29, 29, 29, 32, 33, 34, 35, 36, 37, 38]],
+    # Y=18  [26, 26, 26, 29, 30, 31, 32, 33]
 
-    #       X=2   4   6   8  10  12  14  16  18  20
-    # Y=12  [30, 30, 30, 33, 34, 35, 36, 37, 38, 39],
-    #       [30, 30, 30, 33, 34, 35, 36, 37, 38, 39],
-    #       [30, 30, 30, 33, 34, 35, 36, 37, 38, 39],
+    #       X=2   4   6   8  10  12  14  16
+    # Y=12  [30, 30, 30, 33, 34, 35, 36, 37]
+    #       [30, 30, 30, 33, 34, 35, 36, 37]
+    #       [30, 30, 30, 33, 34, 35, 36, 37]
     #           |-------|
-    #       [33, 33, 33, 36, 37, 38, 39, 40, 41, 42],
-    #       [34, 34, 34, 37, 38, 39, 40, 41, 42, 43],
-    #       [35, 35, 35, 38, 39, 40, 41, 42, 43, 44],
+    #       [33, 33, 33, 36, 37, 38, 39, 40]
+    #       [34, 34, 34, 37, 38, 39, 40, 41]
+    #       [35, 35, 35, 38, 39, 40, 41, 42]
     #           |-------|
-    #       [36, 36, 36, 39, 40, 41, 42, 43, 44, 45],
-    #       [37, 37, 37, 40, 41, 42, 43, 44, 45, 46],
-    #       [38, 38, 38, 41, 42, 43, 44, 45, 46, 47],
-    #       [39, 39, 39, 42, 43, 44, 45, 46, 47, 48]],
+    # Y=18  [36, 36, 36, 39, 40, 41, 42, 43]
 
 
     ds.PixelData = arr.tobytes()
@@ -285,7 +258,7 @@ def fake_ss():
         contour.ContourGeometricType = 'CLOSED_PLANAR'
 
         z = SLICE_Z[i]
-        contour.ContourData = [3, 17, z,  7, 17, z,  7, 23, z,  3, 23, z]
+        contour.ContourData = [3, 14.5, z,  7, 14.5, z,  7, 17.5, z,  3, 17.5, z]
         contour.NumberOfContourPoints = len(contour.ContourData) / 3
         contour_sequence.append(contour)
 
@@ -314,67 +287,61 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         diffl = dvh.differential
         # Counts are normalized to total, and to volume,
         # So undo that here for test dose grid.
-        # 18=num dose voxels inside struct; 0.72=volume
-        got_counts = diffl.counts * 18 / 0.72
+        # 18=num dose voxels inside struct; 0.36=volume
+        got_counts = diffl.counts * 18 / 0.36
         expected_counts = [0]*13 + [2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2]
         assert numpy.all(numpy.isclose(got_counts, expected_counts))
 
     def test_decub(self):
         """Test that DVH is calculated correctly for decubitus orientation"""
-        # Keep same dose grid as std orientation
+        # Keep same dose grid as std orientation but pixel-spacing in X and Y same
         # For this case, use iop=[0, -1, 0, 1, 0, 0] # Head first decubitus left
         # Then X = r * dr + ipp[0]
         #  and Y = -c * dc + ipp[1]
-        # Change ipp y to previous max of 30, ipp = [2, 30, -20] to keep 12-30 range
-        # Then show contours box of (3, 17) - (7, 23)
-    #       Y=30 28  26  24  22  20  18  16  14  12
-    # X=2   [10, 10, 10, 13, 14, 15, 16, 17, 18, 19],
-    #                       |-----------|
-    #   4   [10, 10, 10, 13, 14, 15, 16, 17, 18, 19],
-    #   6   [10, 10, 10, 13, 14, 15, 16, 17, 18, 19],
-    #                       |-----------|
-    #   8   [13, 13, 13, 16, 17, 18, 19, 20, 21, 22],
-    #  10   [14, 14, 14, 17, 18, 19, 20, 21, 22, 23],
-    #  12   [15, 15, 15, 18, 19, 20, 21, 22, 23, 24],
-    #  14   [16, 16, 16, 19, 20, 21, 22, 23, 24, 25],
-    #  16   [17, 17, 17, 20, 21, 22, 23, 24, 25, 26],
-    #  18   [18, 18, 18, 21, 22, 23, 24, 25, 26, 27],
-    #  20   [19, 19, 19, 22, 23, 24, 25, 26, 27, 28]],
+        # (https://nipy.org/nibabel/dicom/dicom_orientation.html#dicom-affine-formula)
+        # Change ipp y of y to new max of 19 for similar y range
+        # Below show contours box of (3, 14.5) - (7, 17.5) on dose grid
+    #       Y=19 18  17                  12
+    # X=2   [10, 10, 10, 13, 14, 15, 16, 17],
+    #               |-----------|
+    #   4   [10, 10, 10, 13, 14, 15, 16, 17]
+    #   6   [10, 10, 10, 13, 14, 15, 16, 17]
+    #               |-----------|
+    #   8   [13, 13, 13, 16, 17, 18, 19, 20]
+    #  10   [14, 14, 14, 17, 18, 19, 20, 21]
+    #  12   [15, 15, 15, 18, 19, 20, 21, 22]
+    #  14   [16, 16, 16, 19, 20, 21, 22, 23]]
 
-    # X=2   [20, 20, 20, 23, 24, 25, 26, 27, 28, 29],
-    #                       |-----------|
-    #       [20, 20, 20, 23, 24, 25, 26, 27, 28, 29],
-    #       [20, 20, 20, 23, 24, 25, 26, 27, 28, 29],
-    #                       |-----------|
-    #       [23, 23, 23, 26, 27, 28, 29, 30, 31, 32],
-    #       [24, 24, 24, 27, 28, 29, 30, 31, 32, 33],
-    #       [25, 25, 25, 28, 29, 30, 31, 32, 33, 34],
-    #       [26, 26, 26, 29, 30, 31, 32, 33, 34, 35],
-    #       [27, 27, 27, 30, 31, 32, 33, 34, 35, 36],
-    #       [28, 28, 28, 31, 32, 33, 34, 35, 36, 37],
-    #       [29, 29, 29, 32, 33, 34, 35, 36, 37, 38]],
+    # X=2   [20, 20, 20, 23, 24, 25, 26, 27]
+    #               |-----------|
+    #       [20, 20, 20, 23, 24, 25, 26, 27]
+    #       [20, 20, 20, 23, 24, 25, 26, 27]
+    #               |-----------|
+    #       [23, 23, 23, 26, 27, 28, 29, 30]
+    #       [24, 24, 24, 27, 28, 29, 30, 31]
+    #       [25, 25, 25, 28, 29, 30, 31, 32]
+    #       [26, 26, 26, 29, 30, 31, 32, 33]
 
-    # X=2   [30, 30, 30, 33, 34, 35, 36, 37, 38, 39],
-    #                       |-----------|
-    #       [30, 30, 30, 33, 34, 35, 36, 37, 38, 39],
-    #       [30, 30, 30, 33, 34, 35, 36, 37, 38, 39],
-    #                       |-----------|
-    #       [33, 33, 33, 36, 37, 38, 39, 40, 41, 42],
-    #       [34, 34, 34, 37, 38, 39, 40, 41, 42, 43],
-    #       [35, 35, 35, 38, 39, 40, 41, 42, 43, 44],
-    #       [36, 36, 36, 39, 40, 41, 42, 43, 44, 45],
-    #       [37, 37, 37, 40, 41, 42, 43, 44, 45, 46],
-    #       [38, 38, 38, 41, 42, 43, 44, 45, 46, 47],
-    #  20   [39, 39, 39, 42, 43, 44, 45, 46, 47, 48]],
+    # X=2   [30, 30, 30, 33, 34, 35, 36, 37]
+    #               |-----------|
+    #       [30, 30, 30, 33, 34, 35, 36, 37]
+    #       [30, 30, 30, 33, 34, 35, 36, 37]
+    #               |-----------|
+    #       [33, 33, 33, 36, 37, 38, 39, 40]
+    #       [34, 34, 34, 37, 38, 39, 40, 41]
+    #       [35, 35, 35, 38, 39, 40, 41, 42]
+    #       [36, 36, 36, 39, 40, 41, 42, 43]
 
-        expected_counts = [0]*14 + [2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2]
-        self.dose.ImagePositionPatient = [2, 30, -20]
+        #                          10       13 14                20       23 24                30       33 34
+        expected_counts = [0]*10 + [2, 0, 0, 2, 2, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2]
+        self.dose.ImagePositionPatient = [2, 19, -20]  # real-world X Y Z top left
+        self.dose.PixelSpacing = [2.0, 1.0]  # between Rows, Columns
         dvh = get_dvh(self.ss, self.dose, 1)
         diffl = dvh.differential
         # Counts are normalized to total, and to volume,
         # So undo that here for test dose grid.
-        # 18=num dose voxels inside struct; 0.72=volume
-        got_counts = diffl.counts * 18 / 0.72
+        # 18=num dose voxels inside struct; 0.36=volume
+        got_counts = diffl.counts * 18 / 0.36
         assert numpy.all(numpy.isclose(got_counts, expected_counts))
 
 

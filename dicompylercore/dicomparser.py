@@ -478,8 +478,9 @@ class DicomParser:
 
         Referenced matrix can be found in Part 3 Section C.7.6.2.1.1
         """
-        di = self.ds.PixelSpacing[0]
-        dj = self.ds.PixelSpacing[1]
+        dj = self.ds.PixelSpacing[0]
+        di = self.ds.PixelSpacing[1]
+
         orientation = self.ds.ImageOrientationPatient
         position = self.ds.ImagePositionPatient
 
