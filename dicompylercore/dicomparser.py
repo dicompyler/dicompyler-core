@@ -55,18 +55,24 @@ def is_head_first_orientation(orientation):
 
 
     """
-    if orientation in (
-        [ 1,  0,  0,  0,  1,  0],  # Head First Supine
-        [-1,  0,  0,  0, -1,  0],  # Head First Prone
-        [ 0, -1,  0,  1,  0,  0],  # Head First Decubitus Left
-        [ 0,  1,  0, -1,  0,  0]   # Head First Decubitus Right
+    if any(
+        all(np.isclose(orientation, hf_orientation))
+        for hf_orientation  in (
+            [ 1,  0,  0,  0,  1,  0],  # Head First Supine
+            [-1,  0,  0,  0, -1,  0],  # Head First Prone
+            [ 0, -1,  0,  1,  0,  0],  # Head First Decubitus Left
+            [ 0,  1,  0, -1,  0,  0]   # Head First Decubitus Right
+        )
     ):
         return True
-    elif orientation in (
-        [ 0,  1,  0,  1,  0,  0],  # Feet First Decubitus Left
-        [ 0, -1,  0, -1,  0,  0],  # Feet First Decubitus Right
-        [ 1,  0,  0,  0, -1,  0],  # Feet First Prone
-        [-1,  0,  0,  0,  1,  0]   # Feet First Supine
+    elif any(
+        all(np.isclose(orientation, ff_orientation))
+        for ff_orientation in (
+            [ 0,  1,  0,  1,  0,  0],  # Feet First Decubitus Left
+            [ 0, -1,  0, -1,  0,  0],  # Feet First Decubitus Right
+            [ 1,  0,  0,  0, -1,  0],  # Feet First Prone
+            [-1,  0,  0,  0,  1,  0]   # Feet First Supine
+        )
     ):
         return False
     else:
@@ -95,18 +101,24 @@ def x_lut_index(orientation):
         1 if real-world X along rows
     """
 
-    if orientation in (
-        [ 1,  0,  0,  0,  1,  0],  # Head First Supine
-        [-1,  0,  0,  0, -1,  0],  # Head First Prone
-        [-1,  0,  0,  0,  1,  0],  # Feet First Supine
-        [ 1,  0,  0,  0, -1,  0]   # Feet First Prone
+    if any(
+        all(np.isclose(orientation, non_decub))
+        for non_decub in (
+            [ 1,  0,  0,  0,  1,  0],  # Head First Supine
+            [-1,  0,  0,  0, -1,  0],  # Head First Prone
+            [-1,  0,  0,  0,  1,  0],  # Feet First Supine
+            [ 1,  0,  0,  0, -1,  0]   # Feet First Prone
+        )
     ):
         return 0
-    elif orientation in (
-        [ 0, -1,  0,  1,  0,  0],  # Head First Decubitus Left
-        [ 0,  1,  0, -1,  0,  0],  # Head First Decubitus Right
-        [ 0,  1,  0,  1,  0,  0],  # Feet First Decubitus Left
-        [ 0, -1,  0, -1,  0,  0]   # Feet First Decubitus Right
+    elif any(
+        all(np.isclose(orientation, decub))
+        for decub in (
+            [ 0, -1,  0,  1,  0,  0],  # Head First Decubitus Left
+            [ 0,  1,  0, -1,  0,  0],  # Head First Decubitus Right
+            [ 0,  1,  0,  1,  0,  0],  # Feet First Decubitus Left
+            [ 0, -1,  0, -1,  0,  0]   # Feet First Decubitus Right
+        )
     ):
         return 1
     else:
