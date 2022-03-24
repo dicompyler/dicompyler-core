@@ -181,7 +181,7 @@ def _calculate_dvh(structure,
         # Code taken from Stack Overflow Answer from Joe Kington:
         # https://stackoverflow.com/q/3654289/74123
         # Create vertex coordinates for each grid cell
-        x_index = dd['x_index']
+        x_index = dd['x_lut_index']
         x, y = np.meshgrid(
             np.array(dd['lut'][x_index]), np.array(dd['lut'][1-x_index])
         )
@@ -294,7 +294,10 @@ def get_contour_mask(dd, id, dosegridpoints, contour):
     # return mask.reshape((len(doselut[1]), len(doselut[0])))
 
     grid = c.contains_points(dosegridpoints)
-    grid = grid.reshape((len(doselut[1]), len(doselut[0])))
+    if dd['x_lut_index'] == 0:  # X values across columns
+        grid = grid.reshape((len(doselut[1]), len(doselut[0])))
+    else:  # decubitus
+        grid = grid.reshape((len(doselut[0]), len(doselut[1]))).T
 
     return grid
 

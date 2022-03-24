@@ -966,7 +966,7 @@ class DicomParser:
             if self.memmap_pixel_array:
                 del pixel_array
         data['dosemax'] = float(dosemax)
-        data['lut'], data['x_index'] = self.GetPatientToPixelLUT()
+        data['lut'], data['x_lut_index'] = self.GetPatientToPixelLUT()
         data['fraction'] = ''
         if "ReferencedRTPlanSequence" in self.ds:
             plan = self.ds.ReferencedRTPlanSequence[0]
