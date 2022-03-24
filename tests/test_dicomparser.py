@@ -333,7 +333,8 @@ class TestRTDose(unittest.TestCase):
             'dosegridscaling': 1.4e-05,
             'dosemax': 1048626.0,
             'lut': 253.8458085,
-            'fraction': ''
+            'fraction': '',
+            'x_lut_index': 0,
         }
         dosedata = self.dp.GetDoseData()
         # Pop the LUT numpy array
