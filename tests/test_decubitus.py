@@ -95,10 +95,14 @@ def fake_rtdose():
 
     arr = numpy.zeros((ds.NumberOfFrames, ds.Rows, ds.Columns), dtype=numpy.uint32)
 
+    ds.DoseGridScaling = 0.00001  # take to near integer cGy in range of < 100
+    rounding_guard = 1  # so test values stay above their integer value when dose scaled
     for slice in range(len(arr)):
         for row in range(len(arr[0])):
             for col in range(len(arr[0][0])):
-                arr[slice, row, col] = slice*10 + (row > 2)*row + (col > 2) * (col)
+                arr[slice, row, col] = 1000 * (
+                    slice*10 + (row > 2)*row + (col > 2) * (col)
+                ) + rounding_guard
 
     # Three middle slices after above math:
     # # Shown with location of contours:
@@ -141,7 +145,6 @@ def fake_rtdose():
 
 
     ds.PixelData = arr.tobytes()
-    ds.DoseGridScaling = 0.01
     ds.file_meta = file_meta
     ds.is_implicit_VR = True
     ds.is_little_endian = True
@@ -392,15 +395,8 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         #                   | ----------|
         # X= 2  [36, 36, 36, 39, 40, 41, 42, 43]
 
-        # NOTE: Counts a little different than expected due to rounding.
-        # 29 above is counted as 28, because (29*0.01)*100 < 29; .01 is dose grid scaling
-        # This could be different for non-IEEE754 CPU
-        # or different default float precisions
-        # Accept either solution
         #                           17       20                   27 28 29 30                   37
-        expected_counts1 = [0]*17 + [1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 1, 4, 0, 1, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1]
-        #                           17       20                   27 28 29 30                   37
-        expected_counts2 = [0]*17 + [1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1]
+        expected_counts = [0]*17 + [1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1]
 
         dvh = get_dvh(self.ss, self.dose, 1)
         diffl = dvh.differential
@@ -408,10 +404,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         # So undo that here for test dose grid.
         # 18=num dose voxels inside struct; 0.36=volume
         got_counts = diffl.counts * 18 / 0.36
-        assert (
-            numpy.all(numpy.isclose(got_counts, expected_counts1))
-            or numpy.all(numpy.isclose(got_counts, expected_counts2))
-        )
+        assert numpy.all(numpy.isclose(got_counts, expected_counts))
 
 
     def test_empty_dose_grid(self):
