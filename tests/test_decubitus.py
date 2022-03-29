@@ -292,8 +292,8 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         expected_counts = [0]*13 + [2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2]
         assert numpy.all(numpy.isclose(got_counts, expected_counts))
 
-    def test_decub(self):
-        """Test that DVH is calculated correctly for decubitus orientation"""
+    def test_HF_decubitus_left(self):
+        """Test DVH for head-first decubitus left orientation"""
         # Keep same dose grid as std orientation but pixel-spacing in X and Y same
         # For this case, use iop=[0, -1, 0, 1, 0, 0] # Head first decubitus left
         # Then X = r * dr + ipp[0]
@@ -346,7 +346,72 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         got_counts = diffl.counts * 18 / 0.36
         assert numpy.all(numpy.isclose(got_counts, expected_counts))
 
+    def test_HF_decubitus_right(self):
+        """Test DVH for head-first decubitus right orientation"""
+        # Keep same dose grid as std orientation
 
+        self.dose.ImageOrientationPatient = [ 0,  1,  0, -1,  0,  0]
+        self.dose.PixelSpacing = [2.0, 1.0]  # between Rows, Columns
+        # original ipp = [2, 12, -20]
+        # Then X = -r * dr + ipp[0], X decreases down the rows
+        #  and Y = c * dc + ipp[1], Y increases across rows
+        # (https://nipy.org/nibabel/dicom/dicom_orientation.html#dicom-affine-formula)
+        # Change ipp y of X to new max of 14 for similar y range
+        self.dose.ImagePositionPatient = [14, 12, -20]  # real-world X Y Z top left
+        # Below show contours box of (3, 14.5) - (7, 17.5) on dose grid
+        #       Y=12 13  14  15  16  17  18  19
+        # X=14  [10, 10, 10, 13, 14, 15, 16, 17],
+        #   12  [10, 10, 10, 13, 14, 15, 16, 17]
+        #   10  [10, 10, 10, 13, 14, 15, 16, 17]
+        #    8  [13, 13, 13, 16, 17, 18, 19, 20]
+        #                   | ----------|
+        #    6  [14, 14, 14, 17, 18, 19, 20, 21]
+        #    4  [15, 15, 15, 18, 19, 20, 21, 22]
+        #                   | ----------|
+        #    2  [16, 16, 16, 19, 20, 21, 22, 23]]
+
+        #       Y=12 13  14                  19
+        # X=14  [20, 20, 20, 23, 24, 25, 26, 27]
+        #   12  [20, 20, 20, 23, 24, 25, 26, 27]
+        #   10  [20, 20, 20, 23, 24, 25, 26, 27]
+        #    8  [23, 23, 23, 26, 27, 28, 29, 30]
+        #                   | ----------|
+        #    6  [24, 24, 24, 27, 28, 29, 30, 31]
+        #    4  [25, 25, 25, 28, 29, 30, 31, 32]
+        #                   | ----------|
+        #    2  [...]
+
+        #       Y=12 13  14                  19
+        # X=14  [30, 30, 30, 33, 34, 35, 36, 37]
+        #   12  [30, 30, 30, 33, 34, 35, 36, 37]
+        #   10  [30, 30, 30, 33, 34, 35, 36, 37]
+        #    8  [33, 33, 33, 36, 37, 38, 39, 40]
+        #                   | ----------|
+        #    6  [34, 34, 34, 37, 38, 39, 40, 41]
+        #    4  [35, 35, 35, 38, 39, 40, 41, 42]
+        #                   | ----------|
+        # X= 2  [36, 36, 36, 39, 40, 41, 42, 43]
+
+        # NOTE: Counts a little different than expected due to rounding.
+        # 29 above is counted as 28, because (29*0.01)*100 < 29; .01 is dose grid scaling
+        # This could be different for non-IEEE754 CPU
+        # or different default float precisions
+        # Accept either solution
+        #                           17       20                   27 28 29 30                   37
+        expected_counts1 = [0]*17 + [1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 1, 4, 0, 1, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1]
+        #                           17       20                   27 28 29 30                   37
+        expected_counts2 = [0]*17 + [1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1]
+
+        dvh = get_dvh(self.ss, self.dose, 1)
+        diffl = dvh.differential
+        # Counts are normalized to total, and to volume,
+        # So undo that here for test dose grid.
+        # 18=num dose voxels inside struct; 0.36=volume
+        got_counts = diffl.counts * 18 / 0.36
+        assert (
+            numpy.all(numpy.isclose(got_counts, expected_counts1))
+            or numpy.all(numpy.isclose(got_counts, expected_counts2))
+        )
 
 
     def test_empty_dose_grid(self):
