@@ -234,8 +234,13 @@ def _calculate_dvh(structure,
                 logger.warning('Dose plane not found for %s.' +
                                ' Using %s to calculate contour volume.',
                                z, origin_z)
+                # Use dummy dose grid
+                dummy_dose = dose.GetDoseGrid(origin_z)
+                if use_structure_extents:
+                    extents = dgindexextents
+                    dummy_dose = dummy_dose[extents[1]:extents[3], extents[0]:extents[2]]
                 _, vol = calculate_plane_histogram(
-                    plane, dose.GetDoseGrid(origin_z), dosegridpoints, maxdose,
+                    plane, dummy_dose, dosegridpoints, maxdose,
                     dd, id, structure, hist)
                 planedata[z] = (np.array([0]), vol)
                 notes = 'Dose grid does not encompass every contour.' + \
