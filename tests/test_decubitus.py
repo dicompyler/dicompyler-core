@@ -460,6 +460,68 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         got_counts = diffl.counts * 18 / 0.36
         assert numpy.all(numpy.isclose(got_counts, expected_counts))
 
+    def test_FF_decubitus_left(self):
+        """Test DVH for feet-first decubitus left orientation"""
+        self.dose.ImageOrientationPatient = [ 0,  1,  0,  1,  0,  0]
+        self.dose.PixelSpacing = [2.0, 1.0]  # between Rows, Columns
+        # original ipp = [2, 12, -20]
+        # Then X = r * dr + ipp[0], X increases down the rows
+        #  and Y = c * dc + ipp[1], Y increases across cols
+        # (https://nipy.org/nibabel/dicom/dicom_orientation.html#dicom-affine-formula)
+
+        # In this test, we also shift Z so three structure planes use the
+        #    first three dose planes rather than the middle three as in other tests,
+        #    just to ensure asymmetry in z direction is checked.
+        #    Note, planes should really be reversed in pixel array, but doesn't
+        #    matter since contour is identical on each slice.
+        self.dose.ImagePositionPatient = [2, 12, 10]  # real-world X Y Z top left
+        # Below show contours box of (3, 14.5) - (7, 17.5) on dose grid
+        #      Y=12  13  14  15  16  17      19
+        # X=2   [ 0,  0,  0,  3,  4,  5,  6,  7],
+        #                   |-----------|
+        #   4   [ 0,  0,  0,  3,  4,  5,  6,  7]
+        #   6   [ 0,  0,  0,  3,  4,  5,  6,  7]
+        #                   |-----------|
+        #   8   [ 3,  3,  3,  6,  7,  8,  9, 10]
+        #  10   [ 4,  4,  4,  7,  8,  9, 10, 11]
+        #  12   [ 5,  5,  5,  8,  9, 10, 11, 12]
+        #  14   [ 6,  6,  6,  9, 10, 11, 12, 13]]
+
+        #      Y=12  13  14                  19
+        # X=2   [10, 10, 10, 13, 14, 15, 16, 17],
+        #                   |-----------|
+        #   4   [10, 10, 10, 13, 14, 15, 16, 17]
+        #   6   [10, 10, 10, 13, 14, 15, 16, 17]
+        #                   |-----------|
+        #   8   [13, 13, 13, 16, 17, 18, 19, 20]
+        #  10   [14, 14, 14, 17, 18, 19, 20, 21]
+        #  12   [15, 15, 15, 18, 19, 20, 21, 22]
+        #  14   [16, 16, 16, 19, 20, 21, 22, 23]]
+
+        #      Y=12  13  14                  19
+        # X=2   [20, 20, 20, 23, 24, 25, 26, 27]
+        #                   |-----------|
+        #   4   [20, 20, 20, 23, 24, 25, 26, 27]
+        #   6   [20, 20, 20, 23, 24, 25, 26, 27]
+        #                   |-----------|
+        #   8   [23, 23, 23, 26, 27, 28, 29, 30]
+        #  10   [24, 24, 24, 27, 28, 29, 30, 31]
+        #  12   [25, 25, 25, 28, 29, 30, 31, 32]
+        #  14   [...]
+
+
+        #                          3                            13                            23
+        expected_counts = [0]*3 + [2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2]
+
+        dvh = get_dvh(self.ss, self.dose, 1)
+        diffl = dvh.differential
+        # Counts are normalized to total, and to volume,
+        # So undo that here for test dose grid.
+        # 18=num dose voxels inside struct; 0.36=volume
+        got_counts = diffl.counts * 18 / 0.36
+        assert numpy.all(numpy.isclose(got_counts, expected_counts))
+
+
     def test_empty_dose_grid(self):
         # See #274, prior to fixes this raised IndexError from
         #  get_interpolated_dose() getting empty array from GetDoseGrid()
