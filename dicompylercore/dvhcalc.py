@@ -20,6 +20,7 @@ try:
 except ImportError:
     from collections import Sequence
 from six import iteritems
+import copy
 import logging
 logger = logging.getLogger('dicompylercore.dvhcalc')
 
@@ -76,6 +77,8 @@ def get_dvh(structure,
         different formats using the attributes and properties of the DVH class.
     """
     from dicompylercore import dicomparser
+
+
     rtss = dicomparser.DicomParser(structure)
     rtdose = dicomparser.DicomParser(dose, memmap_pixel_array=memmap_rtdose)
     structures = rtss.GetStructures()
@@ -178,7 +181,10 @@ def _calculate_dvh(structure,
         # Code taken from Stack Overflow Answer from Joe Kington:
         # https://stackoverflow.com/q/3654289/74123
         # Create vertex coordinates for each grid cell
-        x, y = np.meshgrid(np.array(dd['lut'][0]), np.array(dd['lut'][1]))
+        x_index = dd['x_lut_index']
+        x, y = np.meshgrid(
+            np.array(dd['lut'][x_index]), np.array(dd['lut'][1-x_index])
+        )
         x, y = x.flatten(), y.flatten()
         dosegridpoints = np.vstack((x, y)).T
 
@@ -228,8 +234,13 @@ def _calculate_dvh(structure,
                 logger.warning('Dose plane not found for %s.' +
                                ' Using %s to calculate contour volume.',
                                z, origin_z)
+                # Use dummy dose grid
+                dummy_dose = dose.GetDoseGrid(origin_z)
+                if use_structure_extents:
+                    extents = dgindexextents
+                    dummy_dose = dummy_dose[extents[1]:extents[3], extents[0]:extents[2]]
                 _, vol = calculate_plane_histogram(
-                    plane, dose.GetDoseGrid(origin_z), dosegridpoints, maxdose,
+                    plane, dummy_dose, dosegridpoints, maxdose,
                     dd, id, structure, hist)
                 planedata[z] = (np.array([0]), vol)
                 notes = 'Dose grid does not encompass every contour.' + \
@@ -288,7 +299,10 @@ def get_contour_mask(dd, id, dosegridpoints, contour):
     # return mask.reshape((len(doselut[1]), len(doselut[0])))
 
     grid = c.contains_points(dosegridpoints)
-    grid = grid.reshape((len(doselut[1]), len(doselut[0])))
+    if dd['x_lut_index'] == 0:  # X values across columns
+        grid = grid.reshape((len(doselut[1]), len(doselut[0])))
+    else:  # decubitus
+        grid = grid.reshape((len(doselut[0]), len(doselut[1]))).T
 
     return grid
 
@@ -352,23 +366,35 @@ def dosegrid_extents_indices(extents, dd, padding=1):
     -------
     list
         Dose grid extents in pixel coordintes as array indices:
-        [xmin, ymin, xmax, ymax].
+        [col_min, row_min, col_max, row_max].
     """
+    col_lut, row_lut = dd['lut']
+    num_cols = len(col_lut)
+    num_rows = len(row_lut)
     if not len(extents):
-        return [0, 0, dd['lut'][0].shape[0] - 1, dd['lut'][1].shape[0] - 1]
-    dgxmin = np.argmin(np.fabs(dd['lut'][0] - extents[0])) - padding
-    if dd['lut'][0][dgxmin] > extents[0]:
-        dgxmin -= 1
-    dgxmax = np.argmin(np.fabs(dd['lut'][0] - extents[2])) + padding
-    dgymin = np.argmin(np.fabs(dd['lut'][1] - extents[1])) - padding
-    dgymax = np.argmin(np.fabs(dd['lut'][1] - extents[3])) + padding
-    dgxmin = 0 if dgxmin < 0 else dgxmin
-    dgymin = 0 if dgymin < 0 else dgymin
-    if dgxmax == dd['lut'][0].shape[0]:
-        dgxmax = dd['lut'][0].shape[0] - 1
-    if dgymax == dd['lut'][1].shape[0]:
-        dgymax = dd['lut'][1].shape[0] - 1
-    return [dgxmin, dgymin, dgxmax, dgymax]
+        return [0, 0, num_cols - 1, num_rows - 1]
+
+    if dd['x_lut_index'] == 0: # X is across rows
+        strx_col_min, strx_col_max =  extents[0], extents[2]
+        strx_row_min, strx_row_max = extents[1], extents[3]
+    else:  # decubitus case, X down rows
+        strx_col_min, strx_col_max =  extents[1], extents[3]
+        strx_row_min, strx_row_max = extents[0], extents[2]
+
+    dg_col_min = np.argmin(np.fabs(col_lut - strx_col_min)) - padding
+    if col_lut[dg_col_min] > strx_col_min:
+        dg_col_min -= 1
+    dg_col_max = np.argmin(np.fabs(col_lut - strx_col_max)) + padding
+    dg_row_min = np.argmin(np.fabs(row_lut - strx_row_min)) - padding
+    dg_row_max = np.argmin(np.fabs(row_lut - strx_row_max)) + padding
+
+    # Ensure indexes within array limits regardless of padding
+    dg_col_min = max(0, dg_col_min)
+    dg_row_min = max(0, dg_row_min)
+    dg_col_max = min(num_cols - 1, dg_col_max)
+    dg_row_max = min(num_rows - 1, dg_row_max)
+
+    return [dg_col_min, dg_row_min, dg_col_max, dg_row_max]
 
 
 def dosegrid_extents_positions(extents, dd):
@@ -377,7 +403,8 @@ def dosegrid_extents_positions(extents, dd):
     Parameters
     ----------
     extents : list
-        Dose grid extents in pixel coordintes: [xmin, ymin, xmax, ymax].
+        Dose grid extents in pixel coordintes:
+        [col_pos_min, row_pos_min, col_pos_max, row_pos_max].
     dd : dict
         Dose data from dicomparser.GetDoseData.
 
@@ -403,7 +430,8 @@ def get_resampled_lut(index_extents,
     index_extents : list
         Dose grid extents as array indices.
     extents : list
-        Dose grid extents in patient coordinates.
+        Dose grid extents in patient coordinates:
+        [col_pos_min, row_pos_min, col_pos_max, row_pos_max].
     new_pixel_spacing : tuple or float
         New pixel spacing in mm (row, column).
         If float is provided, original dose grid pixel spacing must be square.
@@ -455,15 +483,17 @@ def get_resampled_lut(index_extents,
             % min_pixel_spacing[1] +
             " where n is an integer. Value provided was %s."
             % new_pixel_spacing[1])
-    sampling_rate = np.array([
-        abs(index_extents[0] - index_extents[2]),
-        abs(index_extents[1] - index_extents[3])
-    ])
-    xsamples = sampling_rate[0] * min_pixel_spacing[1] / new_pixel_spacing[1]
-    ysamples = sampling_rate[1] * min_pixel_spacing[0] / new_pixel_spacing[0]
-    x = np.linspace(extents[0], extents[2], int(xsamples), dtype=np.float)
-    y = np.linspace(extents[1], extents[3], int(ysamples), dtype=np.float)
-    return x, y
+
+    # Existing number of cols, rows
+    num_cols = abs(index_extents[0] - index_extents[2])
+    num_rows = abs(index_extents[1] - index_extents[3])
+
+    col_samples = num_cols * min_pixel_spacing[1] / new_pixel_spacing[1]
+    row_samples = num_rows * min_pixel_spacing[0] / new_pixel_spacing[0]
+
+    col_lut = np.linspace(extents[0], extents[2], int(col_samples), dtype=np.float)
+    row_lut = np.linspace(extents[1], extents[3], int(row_samples), dtype=np.float)
+    return col_lut, row_lut
 
 
 def get_interpolated_dose(dose, z, resolution, extents):
@@ -488,6 +518,8 @@ def get_interpolated_dose(dose, z, resolution, extents):
     """
     # Return the dose bounded by extents if interpolation is not required
     d = dose.GetDoseGrid(z)
+    if not d.size:
+        return d  # cannot take 2d index below if empty
     extent_dose = d[extents[1]:extents[3],
                     extents[0]:extents[2]] if len(extents) else d
     if not resolution:
