@@ -349,6 +349,22 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         got_counts = diffl.counts * 18 / 0.36
         assert numpy.all(numpy.isclose(got_counts, expected_counts))
 
+    def test_HF_decubitus_left_structure_extents(self):
+        """Test DVH for head-first decubitus left orientation structure_extents used"""
+        # Repeat test_HF_decubitus_left but with use_structure_extents
+        #                          10       13 14                20       23 24                30       33 34
+        expected_counts = [0]*10 + [2, 0, 0, 2, 2, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2]
+        self.dose.ImagePositionPatient = [2, 19, -20]  # real-world X Y Z top left
+        self.dose.PixelSpacing = [2.0, 1.0]  # between Rows, Columns
+        dvh = get_dvh(self.ss, self.dose, 1, use_structure_extents=True)
+        diffl = dvh.differential
+        # Counts are normalized to total, and to volume,
+        # So undo that here for test dose grid.
+        # 18=num dose voxels inside struct; 0.36=volume
+        got_counts = diffl.counts * 18 / 0.36
+        assert numpy.all(numpy.isclose(got_counts, expected_counts))
+
+
     def test_HF_decubitus_right(self):
         """Test DVH for head-first decubitus right orientation"""
         # Keep same dose grid as std orientation
@@ -453,6 +469,23 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         expected_counts = [0]*14 + [1, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 1, 0, 1, 2, 1,]
 
         dvh = get_dvh(self.ss, self.dose, 1)
+        diffl = dvh.differential
+        # Counts are normalized to total, and to volume,
+        # So undo that here for test dose grid.
+        # 18=num dose voxels inside struct; 0.36=volume
+        got_counts = diffl.counts * 18 / 0.36
+        assert numpy.all(numpy.isclose(got_counts, expected_counts))
+
+    def test_FF_decubitus_right_structure_extents(self):
+        """Test DVH for feet-first decubitus right orientation using structure extents"""
+        self.dose.ImageOrientationPatient = [ 0, -1,  0, -1,  0,  0]
+        self.dose.PixelSpacing = [2.0, 1.0]  # between Rows, Columns
+        self.dose.ImagePositionPatient = [14, 19, 20]  # real-world X Y Z top left
+        # see grid from test_FF_decubitus_right
+        #                          14 15 16       19             24                            34
+        expected_counts = [0]*14 + [1, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 1, 0, 1, 2, 1,]
+
+        dvh = get_dvh(self.ss, self.dose, 1, use_structure_extents=True)
         diffl = dvh.differential
         # Counts are normalized to total, and to volume,
         # So undo that here for test dose grid.

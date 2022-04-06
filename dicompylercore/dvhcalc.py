@@ -381,18 +381,23 @@ def dosegrid_extents_indices(extents, dd, padding=1):
         strx_col_min, strx_col_max =  extents[1], extents[3]
         strx_row_min, strx_row_max = extents[0], extents[2]
 
-    dg_col_min = np.argmin(np.fabs(col_lut - strx_col_min)) - padding
+    dg_col_min = np.argmin(np.fabs(col_lut - strx_col_min))
+    dg_col_max = np.argmin(np.fabs(col_lut - strx_col_max))
+    if dg_col_min > dg_col_max:
+        dg_col_min, dg_col_max = dg_col_max, dg_col_min
     if col_lut[dg_col_min] > strx_col_min:
         dg_col_min -= 1
-    dg_col_max = np.argmin(np.fabs(col_lut - strx_col_max)) + padding
-    dg_row_min = np.argmin(np.fabs(row_lut - strx_row_min)) - padding
-    dg_row_max = np.argmin(np.fabs(row_lut - strx_row_max)) + padding
+
+    dg_row_min = np.argmin(np.fabs(row_lut - strx_row_min))
+    dg_row_max = np.argmin(np.fabs(row_lut - strx_row_max))
+    if dg_row_min > dg_row_max:
+        dg_row_min, dg_row_max = dg_row_max, dg_row_min
 
     # Ensure indexes within array limits regardless of padding
-    dg_col_min = max(0, dg_col_min)
-    dg_row_min = max(0, dg_row_min)
-    dg_col_max = min(num_cols - 1, dg_col_max)
-    dg_row_max = min(num_rows - 1, dg_row_max)
+    dg_col_min = max(0, dg_col_min-padding)
+    dg_row_min = max(0, dg_row_min-padding)
+    dg_col_max = min(num_cols - 1, dg_col_max+padding)
+    dg_row_max = min(num_rows - 1, dg_row_max+padding)
 
     return [dg_col_min, dg_row_min, dg_col_max, dg_row_max]
 
