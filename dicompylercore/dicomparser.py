@@ -34,7 +34,7 @@ logger = logging.getLogger('dicompylercore.dicomparser')
 
 
 def is_head_first_orientation(orientation):
-    """Return True if orientation is head-first
+    """Return True if orientation is head-first.
 
     Parameters
     ----------
@@ -81,7 +81,7 @@ def is_head_first_orientation(orientation):
 
 
 def x_lut_index(orientation):
-    """Return LUT index for real-world X direction
+    """Return LUT index for real-world X direction.
 
     Parameters
     ----------

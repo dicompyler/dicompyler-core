@@ -264,6 +264,7 @@ def fake_ss():
 
 class TestDVHCalcDecubitus(unittest.TestCase):
     """Unit tests for DVH calculation in decubitus orientations."""
+
     def setUp(self):
         self.ss = fake_ss()
         self.dose = fake_rtdose()
@@ -415,7 +416,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         assert numpy.all(numpy.isclose(got_counts, expected_counts))
 
     def test_FF_decubitus_right(self):
-        """Test DVH for feet-first decubitus right orientation"""
+        """Test DVH for feet-first decubitus right orientation."""
         self.dose.ImageOrientationPatient = [0, -1, 0, -1, 0, 0]
         self.dose.PixelSpacing = [2.0, 1.0]  # between Rows, Columns
         # original ipp = [2, 12, -20]
@@ -471,7 +472,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         assert numpy.all(numpy.isclose(got_counts, expected_counts))
 
     def test_FF_decubitus_right_structure_extents(self):
-        """Test DVH for FF decubitus Rt orientation using structure extents"""
+        """Test DVH for FF decubitus Rt orientation using structure extents."""
         self.dose.ImageOrientationPatient = [0, -1, 0, -1, 0, 0]
         self.dose.PixelSpacing = [2.0, 1.0]  # between Rows, Columns
         self.dose.ImagePositionPatient = [14, 19, 20]  # X Y Z top left
@@ -489,7 +490,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         assert numpy.all(numpy.isclose(got_counts, expected_counts))
 
     def test_FF_decubitus_left(self):
-        """Test DVH for feet-first decubitus left orientation"""
+        """Test DVH for feet-first decubitus left orientation."""
         self.dose.ImageOrientationPatient = [0, 1, 0, 1, 0, 0]
         self.dose.PixelSpacing = [2.0, 1.0]  # between Rows, Columns
         # original ipp = [2, 12, -20]
@@ -563,7 +564,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         self.assertTrue('Empty DVH' in dvh.notes)
 
     def test_not_implemented_orientations(self):
-        """Test unhandled orientations raise NotImplementedError"""
+        """Test unhandled orientations raise NotImplementedError."""
         self.dose.ImageOrientationPatient = [0.7071, 0.7071, 0, 1, 0, 0]
         with self.assertRaises(NotImplementedError):
             _ = get_dvh(self.ss, self.dose, 1)
