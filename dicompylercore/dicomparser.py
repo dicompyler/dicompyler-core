@@ -84,7 +84,7 @@ def x_lut_index(orientation):
     """Return LUT index for real-world X direction
 
     Parameters
-        ----------
+    ----------
         orientation: list or tuple
             6-value ImageOrientationPatient from DICOM dataset
 

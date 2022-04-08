@@ -95,11 +95,11 @@ def fake_rtdose():
 
     ds.DoseGridScaling = 0.00001  # take to near integer cGy in range of < 100
     rounding_guard = 1  # so test values stay above their integer value when dose scaled
-    for slice in range(len(arr)):
+    for zindex in range(len(arr)):
         for row in range(len(arr[0])):
             for col in range(len(arr[0][0])):
-                arr[slice, row, col] = 1000 * (
-                    slice*10 + (row > 2)*row + (col > 2) * (col)
+                arr[zindex, row, col] = 1000 * (
+                    zindex*10 + (row > 2)*row + (col > 2) * (col)
                 ) + rounding_guard
 
     # Three middle slices after above math:
@@ -267,7 +267,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         self.dose = fake_rtdose()
 
     def test_nondecub(self):
-        """Test that DVH is calculated correctly for standard orientation"""
+        """Test that DVH is calculated correctly for standard orientation."""
         self.dose.ImageOrientationPatient = [1, 0, 0, 0, 1, 0]
         dvh = get_dvh(self.ss, self.dose, 1)
         diffl = dvh.differential
@@ -280,7 +280,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         assert numpy.all(numpy.isclose(got_counts, expected_counts))
 
     def test_HF_decubitus_left(self):
-        """Test DVH for head-first decubitus left orientation"""
+        """Test DVH for head-first decubitus left orientation."""
         # Keep same dose grid as std orientation but pixel-spacing in X and Y same
         # For this case, use iop=[0, -1, 0, 1, 0, 0] # Head first decubitus left
         # Then X = r * dr + ipp[0]
@@ -336,7 +336,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         assert numpy.all(numpy.isclose(got_counts, expected_counts))
 
     def test_HF_decubitus_left_structure_extents(self):
-        """Test DVH for head-first decubitus left orientation structure_extents used"""
+        """Test DVH for HF decubitus left orientation structure_extents used."""
         # Repeat test_HF_decubitus_left but with use_structure_extents
         #                          10       13 14
         expected_counts = [0]*10 + [2, 0, 0, 2, 2, 0, 0, 0, 0, 0,
@@ -353,7 +353,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         assert numpy.all(numpy.isclose(got_counts, expected_counts))
 
     def test_HF_decubitus_right(self):
-        """Test DVH for head-first decubitus right orientation"""
+        """Test DVH for head-first decubitus right orientation."""
         # Keep same dose grid as std orientation
 
         self.dose.ImageOrientationPatient = [0, 1, 0, -1, 0, 0]
