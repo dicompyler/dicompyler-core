@@ -91,7 +91,8 @@ def x_lut_index(orientation):
     Raises
     ------
     NotImplementedError
-        Raised if orientation is not one of head/feet-first and supine/prone/decubitus
+        Raised if orientation is not one of head/feet-first
+        and supine/prone/decubitus
 
     Returns
     -------
@@ -589,7 +590,9 @@ class DicomParser:
              [orientation[2]*dcol, orientation[5]*drow, 0, first_z],
              [0, 0, 0, 1]])
 
-        last_xy = np.matmul(m, np.array([[num_cols-1], [num_rows-1], [0], [1]]))
+        last_xy = np.matmul(
+            m, np.array([[num_cols-1], [num_rows-1], [0], [1]])
+        )
         last_x, last_y = last_xy[0][0], last_xy[1][0]
 
         if x_index == 0:

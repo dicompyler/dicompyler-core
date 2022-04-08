@@ -22,7 +22,6 @@ DOSE_iUID = generate_uid()
 # Position, orientation
 CT_ipp = [2, 12, -20]
 CT_iop = [0, -1, 0, 1, 0, 0]  # head-first decubitus left
-#   [ 0, -1,  0, -1,  0,  0] # FeetFirst decubitus rt    # [1, 0, 0,  0, 1, 0]  Standard
 DOSE_ipp = CT_ipp
 DOSE_iop = CT_iop
 
@@ -91,10 +90,13 @@ def fake_rtdose():
     refd_rt_plan1.ReferencedSOPInstanceUID = PLAN_iUID
     refd_rt_plan_sequence.append(refd_rt_plan1)
 
-    arr = numpy.zeros((ds.NumberOfFrames, ds.Rows, ds.Columns), dtype=numpy.uint32)
+    arr = numpy.zeros(
+        (ds.NumberOfFrames, ds.Rows, ds.Columns), dtype=numpy.uint32
+    )
 
     ds.DoseGridScaling = 0.00001  # take to near integer cGy in range of < 100
-    rounding_guard = 1  # so test values stay above their integer value when dose scaled
+    # Add small amount so values stay above their int value when dose scaled
+    rounding_guard = 1
     for zindex in range(len(arr)):
         for row in range(len(arr[0])):
             for col in range(len(arr[0][0])):
@@ -104,7 +106,7 @@ def fake_rtdose():
 
     # Three middle slices after above math:
     # # Shown with location of contours:
-    # (3, 14.5), (7, 14.5), (7, 17.5), (3, 17.5)   (2 voxels across x, 3 down y)
+    # (3, 14.5), (7, 14.5), (7, 17.5), (3, 17.5)  (2 voxels across x, 3 down y)
     #     2 mm x 1 mm pixel, across (cols, X) center of pixels from 2 to 16
     #                         down (rows, Y) centers from 12 to 18
     # volume = (2*2) x (3*1) x (3*10) = 360 mm^3 = 0.36 cm^3
@@ -241,12 +243,12 @@ def fake_ss():
     contour_sequence = Sequence()
     roi_contour1.ContourSequence = contour_sequence
 
-    for i in range(1, NUM_SLICES-1):  # contours on all but first and last slice
+    for i in range(1, NUM_SLICES-1):  # contours on all but first, last slice
         contour = Dataset()
         contour.ContourGeometricType = 'CLOSED_PLANAR'
 
         z = SLICE_Z[i]
-        contour.ContourData = [3, 14.5, z,  7, 14.5, z,  7, 17.5, z,  3, 17.5, z]
+        contour.ContourData = [3, 14.5, z, 7, 14.5, z, 7, 17.5, z, 3, 17.5, z]
         contour.NumberOfContourPoints = len(contour.ContourData) / 3
         contour_sequence.append(contour)
 
@@ -281,11 +283,12 @@ class TestDVHCalcDecubitus(unittest.TestCase):
 
     def test_HF_decubitus_left(self):
         """Test DVH for head-first decubitus left orientation."""
-        # Keep same dose grid as std orientation but pixel-spacing in X and Y same
-        # For this case, use iop=[0, -1, 0, 1, 0, 0] # Head first decubitus left
+        # Keep same dose grid as std orientation but pixel-spacing in X, Y same
+        # For this case, use iop=[0, -1, 0, 1, 0, 0] Head first decubitus left
         # Then X = r * dr + ipp[0]
         #  and Y = -c * dc + ipp[1]
-        # (https://nipy.org/nibabel/dicom/dicom_orientation.html#dicom-affine-formula)
+        # (https://nipy.org/nibabel/dicom/dicom_orientation.html
+        # #dicom-affine-formula)
         # Change ipp y of y to new max of 19 for similar y range
         # Below show contours box of (3, 14.5) - (7, 17.5) on dose grid
         #       Y=19 18  17                  12
@@ -321,11 +324,11 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         #   12  [35, 35, 35, 38, 39, 40, 41, 42]
         # X=14  [36, 36, 36, 39, 40, 41, 42, 43]
 
-        #                          10       13 14
-        expected_counts = [0]*10 + [2, 0, 0, 2, 2, 0, 0, 0, 0, 0,
-                                    2, 0, 0, 2, 2, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2]
-        #                          20       23 24                30       33 34
-        self.dose.ImagePositionPatient = [2, 19, -20]  # real-world X Y Z top left
+        #                          10       13 14                20
+        expected_counts = [0]*10 + [2, 0, 0, 2, 2, 0, 0, 0, 0, 0, 2, 0, 0,
+                                    2, 2, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2]
+        #                          23 24                30       33 34
+        self.dose.ImagePositionPatient = [2, 19, -20]  # X Y Z top left
         self.dose.PixelSpacing = [2.0, 1.0]  # between Rows, Columns
         dvh = get_dvh(self.ss, self.dose, 1)
         diffl = dvh.differential
@@ -336,13 +339,13 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         assert numpy.all(numpy.isclose(got_counts, expected_counts))
 
     def test_HF_decubitus_left_structure_extents(self):
-        """Test DVH for HF decubitus left orientation structure_extents used."""
+        """Test DVH for HF decubitus Lt orientation structure_extents used."""
         # Repeat test_HF_decubitus_left but with use_structure_extents
-        #                          10       13 14
-        expected_counts = [0]*10 + [2, 0, 0, 2, 2, 0, 0, 0, 0, 0,
-                                    2, 0, 0, 2, 2, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2]
-        #                          20       23 24                30       33 34
-        self.dose.ImagePositionPatient = [2, 19, -20]  # real-world X Y Z top left
+        #                          10       13 14                20
+        expected_counts = [0]*10 + [2, 0, 0, 2, 2, 0, 0, 0, 0, 0, 2, 0, 0,
+                                    2, 2, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2]
+        #                          23 24                30       33 34
+        self.dose.ImagePositionPatient = [2, 19, -20]  # X Y Z top left
         self.dose.PixelSpacing = [2.0, 1.0]  # between Rows, Columns
         dvh = get_dvh(self.ss, self.dose, 1, use_structure_extents=True)
         diffl = dvh.differential
@@ -361,9 +364,10 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         # original ipp = [2, 12, -20]
         # Then X = -r * dr + ipp[0], X decreases down the rows
         #  and Y = c * dc + ipp[1], Y increases across cols
-        # (https://nipy.org/nibabel/dicom/dicom_orientation.html#dicom-affine-formula)
+        # (https://nipy.org/nibabel/dicom/dicom_orientation.html
+        # #dicom-affine-formula)
         # Change ipp y of X to new max of 14 for similar y range
-        self.dose.ImagePositionPatient = [14, 12, -20]  # real-world X Y Z top left
+        self.dose.ImagePositionPatient = [14, 12, -20]  # X Y Z top left
         # Below show contours box of (3, 14.5) - (7, 17.5) on dose grid
         #       Y=12 13  14  15  16  17  18  19
         # X=14  [10, 10, 10, 13, 14, 15, 16, 17],
@@ -417,8 +421,9 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         # original ipp = [2, 12, -20]
         # Then X = -r * dr + ipp[0], X decreases down the rows
         #  and Y = -c * dc + ipp[1], Y decreases across cols
-        # (https://nipy.org/nibabel/dicom/dicom_orientation.html#dicom-affine-formula)
-        self.dose.ImagePositionPatient = [14, 19, 20]  # real-world X Y Z top left
+        # (https://nipy.org/nibabel/dicom/dicom_orientation.html
+        # #dicom-affine-formula)
+        self.dose.ImagePositionPatient = [14, 19, 20]  # X Y Z top left
         # Below show contours box of (3, 14.5) - (7, 17.5) on dose grid
         #       Y=19 18  17  16  15  14  13  12
         # X=14  [10, 10, 10, 13, 14, 15, 16, 17],
@@ -453,10 +458,10 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         #               | ----------|
         # X= 2  [36, 36, 36, 39, 40, 41, 42, 43]
 
-        #                          14 15 16       19
-        expected_counts = [0]*14 + [1, 1, 0, 1, 2, 1, 0, 0, 0, 0,
-                                    1, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 1, 0, 1, 2, 1]
-        #                          24                            34
+        #                          14 15 16       19             24
+        expected_counts = [0]*14 + [1, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 1, 0, 1,
+                                    2, 1, 0, 0, 0, 0, 1, 1, 0, 1, 2, 1]
+        #                                            34
         dvh = get_dvh(self.ss, self.dose, 1)
         diffl = dvh.differential
         # Counts are normalized to total, and to volume,
@@ -466,15 +471,15 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         assert numpy.all(numpy.isclose(got_counts, expected_counts))
 
     def test_FF_decubitus_right_structure_extents(self):
-        """Test DVH for feet-first decubitus right orientation using structure extents"""
+        """Test DVH for FF decubitus Rt orientation using structure extents"""
         self.dose.ImageOrientationPatient = [0, -1, 0, -1, 0, 0]
         self.dose.PixelSpacing = [2.0, 1.0]  # between Rows, Columns
-        self.dose.ImagePositionPatient = [14, 19, 20]  # real-world X Y Z top left
+        self.dose.ImagePositionPatient = [14, 19, 20]  # X Y Z top left
         # see grid from test_FF_decubitus_right
-        #                          14 15 16       19
-        expected_counts = [0]*14 + [1, 1, 0, 1, 2, 1, 0, 0, 0, 0,
-                                    1, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 1, 0, 1, 2, 1]
-        #                          24                            34
+        #                          14 15 16       19             24
+        expected_counts = [0]*14 + [1, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 1, 0,
+                                    1, 2, 1, 0, 0, 0, 0, 1, 1, 0, 1, 2, 1]
+        #                                               34
         dvh = get_dvh(self.ss, self.dose, 1, use_structure_extents=True)
         diffl = dvh.differential
         # Counts are normalized to total, and to volume,
@@ -490,14 +495,15 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         # original ipp = [2, 12, -20]
         # Then X = r * dr + ipp[0], X increases down the rows
         #  and Y = c * dc + ipp[1], Y increases across cols
-        # (https://nipy.org/nibabel/dicom/dicom_orientation.html#dicom-affine-formula)
+        # (https://nipy.org/nibabel/dicom/dicom_orientation.html
+        # #dicom-affine-formula)
 
         # In this test, we also shift Z so three structure planes use the
-        #    first three dose planes rather than the middle three as in other tests,
+        #    first three dose planes rather than the middle three,
         #    just to ensure asymmetry in z direction is checked.
         #    Note, planes should really be reversed in pixel array, but doesn't
         #    matter since contour is identical on each slice.
-        self.dose.ImagePositionPatient = [2, 12, 10]  # real-world X Y Z top left
+        self.dose.ImagePositionPatient = [2, 12, 10]  # X Y Z top left
         # Below show contours box of (3, 14.5) - (7, 17.5) on dose grid
         #      Y=12  13  14  15  16  17      19
         # X=2   [ 0,  0,  0,  3,  4,  5,  6,  7],
@@ -549,10 +555,11 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         #  get_interpolated_dose() getting empty array from GetDoseGrid()
         # Use z value to force no dose grid at that value
         #  Otherwise make like decub example
-        self.dose.ImagePositionPatient = [2, 19, -1020]  # real-world X Y Z top left
+        self.dose.ImagePositionPatient = [2, 19, -1020]  # X Y Z top left
         self.dose.PixelSpacing = [2.0, 1.0]  # between Rows, Columns
 
-        dvh = get_dvh(self.ss, self.dose, 1, use_structure_extents=True)  # 1 = roi number
+        # 1 = roi number
+        dvh = get_dvh(self.ss, self.dose, 1, use_structure_extents=True)
         self.assertTrue('Empty DVH' in dvh.notes)
 
     def test_not_implemented_orientations(self):

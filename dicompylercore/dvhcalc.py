@@ -236,7 +236,9 @@ def _calculate_dvh(structure,
                 dummy_dose = dose.GetDoseGrid(origin_z)
                 if use_structure_extents:
                     extents = dgindexextents
-                    dummy_dose = dummy_dose[extents[1]:extents[3], extents[0]:extents[2]]
+                    dummy_dose = dummy_dose[
+                        extents[1]:extents[3], extents[0]:extents[2]
+                    ]
                 _, vol = calculate_plane_histogram(
                     plane, dummy_dose, dosegridpoints, maxdose,
                     dd, id, structure, hist)
@@ -494,8 +496,12 @@ def get_resampled_lut(index_extents,
     col_samples = num_cols * min_pixel_spacing[1] / new_pixel_spacing[1]
     row_samples = num_rows * min_pixel_spacing[0] / new_pixel_spacing[0]
 
-    col_lut = np.linspace(extents[0], extents[2], int(col_samples), dtype=np.float)
-    row_lut = np.linspace(extents[1], extents[3], int(row_samples), dtype=np.float)
+    col_lut = np.linspace(
+        extents[0], extents[2], int(col_samples), dtype=np.float
+    )
+    row_lut = np.linspace(
+        extents[1], extents[3], int(row_samples), dtype=np.float
+    )
     return col_lut, row_lut
 
 
