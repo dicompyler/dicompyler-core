@@ -20,7 +20,6 @@ try:
 except ImportError:
     from collections import Sequence
 from six import iteritems
-import copy
 import logging
 logger = logging.getLogger('dicompylercore.dvhcalc')
 
@@ -77,7 +76,6 @@ def get_dvh(structure,
         different formats using the attributes and properties of the DVH class.
     """
     from dicompylercore import dicomparser
-
 
     rtss = dicomparser.DicomParser(structure)
     rtdose = dicomparser.DicomParser(dose, memmap_pixel_array=memmap_rtdose)
@@ -374,11 +372,11 @@ def dosegrid_extents_indices(extents, dd, padding=1):
     if not len(extents):
         return [0, 0, num_cols - 1, num_rows - 1]
 
-    if dd['x_lut_index'] == 0: # X is across rows
-        strx_col_min, strx_col_max =  extents[0], extents[2]
+    if dd['x_lut_index'] == 0:  # X is across rows
+        strx_col_min, strx_col_max = extents[0], extents[2]
         strx_row_min, strx_row_max = extents[1], extents[3]
     else:  # decubitus case, X down rows
-        strx_col_min, strx_col_max =  extents[1], extents[3]
+        strx_col_min, strx_col_max = extents[1], extents[3]
         strx_row_min, strx_row_max = extents[0], extents[2]
 
     dg_col_min = np.argmin(np.fabs(col_lut - strx_col_min))

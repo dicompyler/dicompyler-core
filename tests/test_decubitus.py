@@ -1,9 +1,7 @@
 import unittest
-import pydicom
 from pydicom.dataset import Dataset, FileMetaDataset
 from pydicom.sequence import Sequence
 from pydicom.uid import generate_uid, PYDICOM_IMPLEMENTATION_UID
-import pydicom.uid
 import numpy
 from dicompylercore.dvhcalc import get_dvh
 
@@ -31,6 +29,7 @@ DOSE_iop = CT_iop
 RTStructureSetStorage = "1.2.840.10008.5.1.4.1.1.481.3"
 CTImageStorage = "1.2.840.10008.5.1.4.1.1.2"
 RTDoseStorage = "1.2.840.10008.5.1.4.1.1.481.2"
+
 
 def basic_file_meta(class_UID):
     # File meta info data elements
@@ -92,7 +91,6 @@ def fake_rtdose():
     refd_rt_plan1.ReferencedSOPInstanceUID = PLAN_iUID
     refd_rt_plan_sequence.append(refd_rt_plan1)
 
-
     arr = numpy.zeros((ds.NumberOfFrames, ds.Rows, ds.Columns), dtype=numpy.uint32)
 
     ds.DoseGridScaling = 0.00001  # take to near integer cGy in range of < 100
@@ -142,7 +140,6 @@ def fake_rtdose():
     #       [35, 35, 35, 38, 39, 40, 41, 42]
     #           |-------|
     # Y=18  [36, 36, 36, 39, 40, 41, 42, 43]
-
 
     ds.PixelData = arr.tobytes()
     ds.file_meta = file_meta
@@ -213,7 +210,6 @@ def fake_ss():
     rt_refd_study_sequence.append(rt_refd_study1)
     refd_frame_of_ref_sequence.append(refd_frame_of_ref1)
 
-
     # Structure Set ROI Sequence
     structure_set_roi_sequence = Sequence()
     ds.StructureSetROISequence = structure_set_roi_sequence
@@ -247,17 +243,6 @@ def fake_ss():
 
     for i in range(1, NUM_SLICES-1):  # contours on all but first and last slice
         contour = Dataset()
-
-        # # Contour Image Sequence
-        # contour_image_sequence = Sequence()
-        # contour.ContourImageSequence = contour_image_sequence
-
-        # # Contour Image Sequence: Contour Image 1
-        # contour_image1 = Dataset()
-        # contour_image1.ReferencedSOPClassUID = '1.2.840.10008.5.1.4.1.1.2'
-        # contour_image1.ReferencedSOPInstanceUID = '1.3.6.1.4.1.22361.140839833039574.112288227.1641236932544.0'
-        # contour_image_sequence.append(contour_image1)
-
         contour.ContourGeometricType = 'CLOSED_PLANAR'
 
         z = SLICE_Z[i]
@@ -268,13 +253,11 @@ def fake_ss():
     roi_contour1.ReferencedROINumber = 1
     roi_contour_sequence.append(roi_contour1)
 
-
     ds.file_meta = file_meta
     ds.is_implicit_VR = True
     ds.is_little_endian = True
 
     return ds
-
 
 
 class TestDVHCalcDecubitus(unittest.TestCase):
@@ -292,7 +275,8 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         # So undo that here for test dose grid.
         # 18=num dose voxels inside struct; 0.36=volume
         got_counts = diffl.counts * 18 / 0.36
-        expected_counts = [0]*13 + [2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2]
+        expected_counts = [0]*13 + [2, 2, 2, 0, 0, 0, 0, 0, 0, 0,
+                                    2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2]
         assert numpy.all(numpy.isclose(got_counts, expected_counts))
 
     def test_HF_decubitus_left(self):
@@ -337,8 +321,10 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         #   12  [35, 35, 35, 38, 39, 40, 41, 42]
         # X=14  [36, 36, 36, 39, 40, 41, 42, 43]
 
-        #                          10       13 14                20       23 24                30       33 34
-        expected_counts = [0]*10 + [2, 0, 0, 2, 2, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2]
+        #                          10       13 14
+        expected_counts = [0]*10 + [2, 0, 0, 2, 2, 0, 0, 0, 0, 0,
+                                    2, 0, 0, 2, 2, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2]
+        #                          20       23 24                30       33 34
         self.dose.ImagePositionPatient = [2, 19, -20]  # real-world X Y Z top left
         self.dose.PixelSpacing = [2.0, 1.0]  # between Rows, Columns
         dvh = get_dvh(self.ss, self.dose, 1)
@@ -352,8 +338,10 @@ class TestDVHCalcDecubitus(unittest.TestCase):
     def test_HF_decubitus_left_structure_extents(self):
         """Test DVH for head-first decubitus left orientation structure_extents used"""
         # Repeat test_HF_decubitus_left but with use_structure_extents
-        #                          10       13 14                20       23 24                30       33 34
-        expected_counts = [0]*10 + [2, 0, 0, 2, 2, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2]
+        #                          10       13 14
+        expected_counts = [0]*10 + [2, 0, 0, 2, 2, 0, 0, 0, 0, 0,
+                                    2, 0, 0, 2, 2, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2]
+        #                          20       23 24                30       33 34
         self.dose.ImagePositionPatient = [2, 19, -20]  # real-world X Y Z top left
         self.dose.PixelSpacing = [2.0, 1.0]  # between Rows, Columns
         dvh = get_dvh(self.ss, self.dose, 1, use_structure_extents=True)
@@ -364,12 +352,11 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         got_counts = diffl.counts * 18 / 0.36
         assert numpy.all(numpy.isclose(got_counts, expected_counts))
 
-
     def test_HF_decubitus_right(self):
         """Test DVH for head-first decubitus right orientation"""
         # Keep same dose grid as std orientation
 
-        self.dose.ImageOrientationPatient = [ 0,  1,  0, -1,  0,  0]
+        self.dose.ImageOrientationPatient = [0, 1, 0, -1, 0, 0]
         self.dose.PixelSpacing = [2.0, 1.0]  # between Rows, Columns
         # original ipp = [2, 12, -20]
         # Then X = -r * dr + ipp[0], X decreases down the rows
@@ -411,9 +398,10 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         #                   | ----------|
         # X= 2  [36, 36, 36, 39, 40, 41, 42, 43]
 
-        #                           17       20                   27 28 29 30                   37
-        expected_counts = [0]*17 + [1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1]
-
+        #                           17       20
+        expected_counts = [0]*17 + [1, 2, 2, 1, 0, 0, 0, 0, 0, 0,
+                                    1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1]
+        #                          27 28 29 30                   37
         dvh = get_dvh(self.ss, self.dose, 1)
         diffl = dvh.differential
         # Counts are normalized to total, and to volume,
@@ -424,7 +412,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
 
     def test_FF_decubitus_right(self):
         """Test DVH for feet-first decubitus right orientation"""
-        self.dose.ImageOrientationPatient = [ 0, -1,  0, -1,  0,  0]
+        self.dose.ImageOrientationPatient = [0, -1, 0, -1, 0, 0]
         self.dose.PixelSpacing = [2.0, 1.0]  # between Rows, Columns
         # original ipp = [2, 12, -20]
         # Then X = -r * dr + ipp[0], X decreases down the rows
@@ -465,9 +453,10 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         #               | ----------|
         # X= 2  [36, 36, 36, 39, 40, 41, 42, 43]
 
-        #                          14 15 16       19             24                            34
-        expected_counts = [0]*14 + [1, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 1, 0, 1, 2, 1,]
-
+        #                          14 15 16       19
+        expected_counts = [0]*14 + [1, 1, 0, 1, 2, 1, 0, 0, 0, 0,
+                                    1, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 1, 0, 1, 2, 1]
+        #                          24                            34
         dvh = get_dvh(self.ss, self.dose, 1)
         diffl = dvh.differential
         # Counts are normalized to total, and to volume,
@@ -478,13 +467,14 @@ class TestDVHCalcDecubitus(unittest.TestCase):
 
     def test_FF_decubitus_right_structure_extents(self):
         """Test DVH for feet-first decubitus right orientation using structure extents"""
-        self.dose.ImageOrientationPatient = [ 0, -1,  0, -1,  0,  0]
+        self.dose.ImageOrientationPatient = [0, -1, 0, -1, 0, 0]
         self.dose.PixelSpacing = [2.0, 1.0]  # between Rows, Columns
         self.dose.ImagePositionPatient = [14, 19, 20]  # real-world X Y Z top left
         # see grid from test_FF_decubitus_right
-        #                          14 15 16       19             24                            34
-        expected_counts = [0]*14 + [1, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 1, 0, 1, 2, 1,]
-
+        #                          14 15 16       19
+        expected_counts = [0]*14 + [1, 1, 0, 1, 2, 1, 0, 0, 0, 0,
+                                    1, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 1, 0, 1, 2, 1]
+        #                          24                            34
         dvh = get_dvh(self.ss, self.dose, 1, use_structure_extents=True)
         diffl = dvh.differential
         # Counts are normalized to total, and to volume,
@@ -495,7 +485,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
 
     def test_FF_decubitus_left(self):
         """Test DVH for feet-first decubitus left orientation"""
-        self.dose.ImageOrientationPatient = [ 0,  1,  0,  1,  0,  0]
+        self.dose.ImageOrientationPatient = [0, 1, 0, 1, 0, 0]
         self.dose.PixelSpacing = [2.0, 1.0]  # between Rows, Columns
         # original ipp = [2, 12, -20]
         # Then X = r * dr + ipp[0], X increases down the rows
@@ -542,10 +532,10 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         #  12   [25, 25, 25, 28, 29, 30, 31, 32]
         #  14   [...]
 
-
-        #                          3                            13                            23
-        expected_counts = [0]*3 + [2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2]
-
+        #                          3
+        expected_counts = [0]*3 + [2, 2, 2, 0, 0, 0, 0, 0, 0, 0,
+                                   2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2]
+        #                         13                            23
         dvh = get_dvh(self.ss, self.dose, 1)
         diffl = dvh.differential
         # Counts are normalized to total, and to volume,
@@ -553,7 +543,6 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         # 18=num dose voxels inside struct; 0.36=volume
         got_counts = diffl.counts * 18 / 0.36
         assert numpy.all(numpy.isclose(got_counts, expected_counts))
-
 
     def test_empty_dose_grid(self):
         # See #274, prior to fixes this raised IndexError from
@@ -570,8 +559,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         """Test unhandled orientations raise NotImplementedError"""
         self.dose.ImageOrientationPatient = [0.7071, 0.7071, 0, 1, 0, 0]
         with self.assertRaises(NotImplementedError):
-            dvh = get_dvh(self.ss, self.dose, 1)
-
+            _ = get_dvh(self.ss, self.dose, 1)
 
 
 if __name__ == '__main__':
