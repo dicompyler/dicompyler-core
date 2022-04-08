@@ -33,7 +33,6 @@ if shapely_available:
 logger = logging.getLogger('dicompylercore.dicomparser')
 
 
-
 def is_head_first_orientation(orientation):
     """Return True if orientation is head-first
 
@@ -57,20 +56,20 @@ def is_head_first_orientation(orientation):
     """
     if any(
         all(np.isclose(orientation, hf_orientation))
-        for hf_orientation  in (
-            [ 1,  0,  0,  0,  1,  0],  # Head First Supine
+        for hf_orientation  in (  # noqa
+            [1,  0,  0,  0,  1,  0],  # Head First Supine
             [-1,  0,  0,  0, -1,  0],  # Head First Prone
-            [ 0, -1,  0,  1,  0,  0],  # Head First Decubitus Left
-            [ 0,  1,  0, -1,  0,  0]   # Head First Decubitus Right
+            [0, -1,  0,  1,  0,  0],  # Head First Decubitus Left
+            [0,  1,  0, -1,  0,  0]   # Head First Decubitus Right
         )
     ):
         return True
     elif any(
         all(np.isclose(orientation, ff_orientation))
         for ff_orientation in (
-            [ 0,  1,  0,  1,  0,  0],  # Feet First Decubitus Left
-            [ 0, -1,  0, -1,  0,  0],  # Feet First Decubitus Right
-            [ 1,  0,  0,  0, -1,  0],  # Feet First Prone
+            [0,  1,  0,  1,  0,  0],  # Feet First Decubitus Left
+            [0, -1,  0, -1,  0,  0],  # Feet First Decubitus Right
+            [1,  0,  0,  0, -1,  0],  # Feet First Prone
             [-1,  0,  0,  0,  1,  0]   # Feet First Supine
         )
     ):
@@ -104,20 +103,20 @@ def x_lut_index(orientation):
     if any(
         all(np.isclose(orientation, non_decub))
         for non_decub in (
-            [ 1,  0,  0,  0,  1,  0],  # Head First Supine
+            [1,  0,  0,  0,  1,  0],  # Head First Supine
             [-1,  0,  0,  0, -1,  0],  # Head First Prone
             [-1,  0,  0,  0,  1,  0],  # Feet First Supine
-            [ 1,  0,  0,  0, -1,  0]   # Feet First Prone
+            [1,  0,  0,  0, -1,  0]   # Feet First Prone
         )
     ):
         return 0
     elif any(
         all(np.isclose(orientation, decub))
         for decub in (
-            [ 0, -1,  0,  1,  0,  0],  # Head First Decubitus Left
-            [ 0,  1,  0, -1,  0,  0],  # Head First Decubitus Right
-            [ 0,  1,  0,  1,  0,  0],  # Feet First Decubitus Left
-            [ 0, -1,  0, -1,  0,  0]   # Feet First Decubitus Right
+            [0, -1,  0,  1,  0,  0],  # Head First Decubitus Left
+            [0,  1,  0, -1,  0,  0],  # Head First Decubitus Right
+            [0,  1,  0,  1,  0,  0],  # Feet First Decubitus Left
+            [0, -1,  0, -1,  0,  0]   # Feet First Decubitus Right
         )
     ):
         return 1

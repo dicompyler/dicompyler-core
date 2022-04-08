@@ -61,7 +61,7 @@ class DVH(object):
 
     @classmethod
     def from_dicom_dvh(cls, dataset, roi_num, rx_dose=None, name=None,
-            color=None):
+                       color=None):
         """Initialization for a DVH from a pydicom RT Dose DVH sequence."""
         sequence_num = -1
         for i, d in enumerate(dataset.DVHSequence):
