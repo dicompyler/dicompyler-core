@@ -49,13 +49,13 @@ lint:
 	flake8 dicompylercore tests
 
 test:
-	python setup.py test
+	python -m unittest discover -v
 
 test-all:
 	tox
 
 coverage:
-	coverage run --source dicompylercore setup.py test
+	coverage run --source dicompylercore -m unittest discover -v
 	coverage report -m
 	coverage html
 	$(BROWSER) htmlcov/index.html
