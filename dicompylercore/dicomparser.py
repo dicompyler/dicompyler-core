@@ -13,7 +13,7 @@ import logging
 import numpy as np
 try:
     from pydicom.dicomio import read_file
-    from pydicom.dataset import Dataset
+    from pydicom.dataset import Dataset, validate_file_meta
     from pydicom.pixel_data_handlers.util import pixel_dtype
 except ImportError:
     from dicom import read_file
@@ -76,6 +76,15 @@ class DicomParser:
                     raise AttributeError
         else:
             raise AttributeError
+
+        # Fix dataset file_meta if incorrect
+        try:
+            validate_file_meta(self.ds.file_meta)
+        except ValueError:
+            logger.debug('Fixing invalid File Meta for ' +
+                         str(self.ds.SOPInstanceUID))
+            self.ds.fix_meta_info()
+
         # Remove the PixelData attribute if it is not set.
         # i.e. RTStruct does not contain PixelData and its presence can confuse
         # the parser
