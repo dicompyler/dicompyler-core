@@ -33,7 +33,6 @@ if shapely_available:
 logger = logging.getLogger('dicompylercore.dicomparser')
 
 
-
 class DicomParser:
     """Class to parse DICOM / DICOM RT files."""
 
@@ -788,7 +787,6 @@ class DicomParser:
         np.array
             An numpy 2d array of dose points
         """
-
         # If this is a multi-frame dose pixel array,
         # determine the offset for each frame
         if 'GridFrameOffsetVector' in self.ds:
@@ -796,7 +794,6 @@ class DicomParser:
             z = float(z)
             # Get the initial dose grid position (z) in patient coordinates
             ipp = self.ds.ImagePositionPatient
-            iop = self.ds.ImageOrientationPatient
             gfov = self.ds.GridFrameOffsetVector
             # Add the position to the offset vector to determine the
             # z coordinate of each dose plane
@@ -856,7 +853,6 @@ class DicomParser:
 
         return doseplane
 
-
     def is_head_first_orientation(self):
         """Return True if self.orientation is head-first.
 
@@ -876,7 +872,7 @@ class DicomParser:
         orientation = self.ds.ImageOrientationPatient
         if any(
             all(np.isclose(orientation, hf_orientation))
-            for hf_orientation  in (  # noqa
+            for hf_orientation in (  # noqa
                 [1,  0,  0,  0,  1,  0],  # Head First Supine
                 [-1,  0,  0,  0, -1,  0],  # Head First Prone
                 [0, -1,  0,  1,  0,  0],  # Head First Decubitus Left
@@ -898,7 +894,6 @@ class DicomParser:
             raise NotImplementedError(
                 "Cannot calculate dose plane sign for non-standard orientation"
             )
-
 
     def x_lut_index(self):
         """Return LUT index for real-world X direction.

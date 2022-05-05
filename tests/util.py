@@ -1,3 +1,4 @@
+"""Helper functions for test modules."""
 from pydicom.dataset import Dataset, FileMetaDataset
 from pydicom.sequence import Sequence
 from pydicom.uid import generate_uid
@@ -30,7 +31,8 @@ RTDoseStorage = "1.2.840.10008.5.1.4.1.1.481.2"
 
 
 # Helper methods for testing DVH calc, particularly decubitus
-def basic_file_meta(class_UID):
+def _basic_file_meta(class_UID):
+    """Create basic file meta for DICOM dataset."""
     # File meta info data elements
     file_meta = FileMetaDataset()
     file_meta.FileMetaInformationVersion = b'\x00\x01'
@@ -41,8 +43,9 @@ def basic_file_meta(class_UID):
 
 
 def fake_rtdose():
+    """Create a fake RT Dose DICOM dataset."""
     # Main data elements
-    file_meta = basic_file_meta(RTDoseStorage)
+    file_meta = _basic_file_meta(RTDoseStorage)
     ds = Dataset()
     ds.SOPClassUID = RTDoseStorage
     ds.SOPInstanceUID = DOSE_iUID
@@ -151,7 +154,8 @@ def fake_rtdose():
 
 
 def fake_ss():
-    file_meta = basic_file_meta(RTStructureSetStorage)
+    """Create a fake RT Structure Set DICOM dataset."""
+    file_meta = _basic_file_meta(RTStructureSetStorage)
     # Main data elements
     ds = Dataset()
     ds.SpecificCharacterSet = 'ISO_IR 192'

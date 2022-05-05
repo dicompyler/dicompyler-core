@@ -31,7 +31,7 @@ class TestDVHCalc(unittest.TestCase):
     """Unit tests for DVH calculation."""
 
     def setUp(self):
-        """Setup files for common case testing."""
+        """Set up files for common case testing."""
         rtss_dcm = os.path.join(example_data, "rtss.dcm")
         rtdose_dcm = os.path.join(example_data, "rtdose.dcm")
         self.rtss = dicomparser.DicomParser(rtss_dcm)
@@ -57,7 +57,6 @@ class TestDVHCalc(unittest.TestCase):
 
     def create_new_contour(self, roi_id, extents, z):
         """Create a new contour sequence for the given ROI id."""
-
         roic = self.rtss.ds.ROIContourSequence[roi_id - 1]
         new_contour = Dataset()
         # Create a ContourImageSequence for the referenced Image
@@ -267,6 +266,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
     """Unit tests for DVH calculation in decubitus orientations."""
 
     def setUp(self):
+        """Set up fake DICOM datasets used in various tests."""
         self.ss = fake_ss()
         self.dose = fake_rtdose()
 
@@ -553,6 +553,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         assert numpy.all(numpy.isclose(got_counts, expected_counts))
 
     def test_empty_dose_grid(self):
+        """Test empty dose grid handled correctly."""
         # See #274, prior to fixes this raised IndexError from
         #  get_interpolated_dose() getting empty array from GetDoseGrid()
         # Use z value to force no dose grid at that value
