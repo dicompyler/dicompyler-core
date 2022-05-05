@@ -40,7 +40,7 @@ jobs:
 
             - name: Run tests via coverage
               run: |
-                  coverage run --source=dicompylercore setup.py test
+                  coverage run --source=dicompylercore -m unittest discover -v
                   coverage xml
 
             - name: Upload coverage if the job has succeeded

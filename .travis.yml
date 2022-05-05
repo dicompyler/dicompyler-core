@@ -15,10 +15,9 @@ install:
     - pip install codecov
     - pip install codacy-coverage
 services:
-  - xvfb
-script:
-  coverage run --source=dicompylercore setup.py test
+    - xvfb
+script: coverage run --source=dicompylercore -m unittest discover -v
 after_success:
-  - coveralls
-  - codecov
-  - python-codacy-coverage
+    - coveralls
+    - codecov
+    - python-codacy-coverage

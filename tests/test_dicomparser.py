@@ -44,6 +44,14 @@ class TestCommon(unittest.TestCase):
         """Test if a standard DICOM file can be parsed."""
         self.assertEqual(self.dp.GetSOPClassUID(), 'ct')
 
+    def test_missing_file_meta(self):
+        """Test if a standard DICOM file can be parsed."""
+        file_meta_original = self.dp.ds.file_meta.copy()
+        self.dp.ds.file_meta.clear()
+        dp = dicomparser.DicomParser(self.dp.ds)
+        file_meta_fixed = dp.ds.file_meta
+        self.assertEqual(file_meta_original, file_meta_fixed)
+
     def test_dataset_import(self):
         """Test if a pydicom dataset file can be parsed."""
         dp1 = dicomparser.DicomParser(self.dp.ds)
