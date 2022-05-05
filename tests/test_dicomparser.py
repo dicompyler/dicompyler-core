@@ -143,7 +143,7 @@ class TestImage(unittest.TestCase):
     def test_patient_to_pixel_lut(self):
         """Test if the image transformation matrix (LUT) can be generated."""
         lutvalue = 273.925909
-        doselut, _ = self.dp.GetPatientToPixelLUT()
+        doselut = self.dp.GetPatientToPixelLUT()
         self.assertAlmostEqual(doselut[0][-1], lutvalue)
 
 

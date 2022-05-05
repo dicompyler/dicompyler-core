@@ -33,99 +33,6 @@ if shapely_available:
 logger = logging.getLogger('dicompylercore.dicomparser')
 
 
-def is_head_first_orientation(orientation):
-    """Return True if orientation is head-first.
-
-    Parameters
-    ----------
-    orientation: list or tuple
-        6-value ImageOrientationPatient from DICOM dataset
-
-    Raises
-    ------
-    NotImplementedError
-        Raised if orientation is not one of head/feet-first
-        and supine/prone/decubitus
-
-    Returns
-    -------
-    bool
-        True if orientation is head-first, else False
-
-
-    """
-    if any(
-        all(np.isclose(orientation, hf_orientation))
-        for hf_orientation  in (  # noqa
-            [1,  0,  0,  0,  1,  0],  # Head First Supine
-            [-1,  0,  0,  0, -1,  0],  # Head First Prone
-            [0, -1,  0,  1,  0,  0],  # Head First Decubitus Left
-            [0,  1,  0, -1,  0,  0]   # Head First Decubitus Right
-        )
-    ):
-        return True
-    elif any(
-        all(np.isclose(orientation, ff_orientation))
-        for ff_orientation in (
-            [0,  1,  0,  1,  0,  0],  # Feet First Decubitus Left
-            [0, -1,  0, -1,  0,  0],  # Feet First Decubitus Right
-            [1,  0,  0,  0, -1,  0],  # Feet First Prone
-            [-1,  0,  0,  0,  1,  0]   # Feet First Supine
-        )
-    ):
-        return False
-    else:
-        raise NotImplementedError(
-            "Cannot calculate dose plane sign for non-standard orientation"
-        )
-
-
-def x_lut_index(orientation):
-    """Return LUT index for real-world X direction.
-
-    Parameters
-    ----------
-        orientation: list or tuple
-            6-value ImageOrientationPatient from DICOM dataset
-
-    Raises
-    ------
-    NotImplementedError
-        Raised if orientation is not one of head/feet-first
-        and supine/prone/decubitus
-
-    Returns
-    -------
-    X direction LUT index, matching 'lut' from GetDoseData
-        0 if real-world X across columns
-        1 if real-world X along rows
-    """
-
-    if any(
-        all(np.isclose(orientation, non_decub))
-        for non_decub in (
-            [1,  0,  0,  0,  1,  0],  # Head First Supine
-            [-1,  0,  0,  0, -1,  0],  # Head First Prone
-            [-1,  0,  0,  0,  1,  0],  # Feet First Supine
-            [1,  0,  0,  0, -1,  0]   # Feet First Prone
-        )
-    ):
-        return 0
-    elif any(
-        all(np.isclose(orientation, decub))
-        for decub in (
-            [0, -1,  0,  1,  0,  0],  # Head First Decubitus Left
-            [0,  1,  0, -1,  0,  0],  # Head First Decubitus Right
-            [0,  1,  0,  1,  0,  0],  # Feet First Decubitus Left
-            [0, -1,  0, -1,  0,  0]   # Feet First Decubitus Right
-        )
-    ):
-        return 1
-    else:
-        raise NotImplementedError(
-            "Cannot calculate X direction for non-standard orientation"
-        )
-
 
 class DicomParser:
     """Class to parse DICOM / DICOM RT files."""
@@ -591,7 +498,7 @@ class DicomParser:
         # Determine which way X and Y real-world coords run
         # X runs across columns if x_lut_index is 0
         # limits to head-first/feet-first and prone/supine/decubitus
-        x_index = x_lut_index(orientation)
+        x_index = self.x_lut_index()
 
         m = np.array(
             [[orientation[0]*dcol, orientation[3]*drow, 0, first_x],
@@ -611,7 +518,7 @@ class DicomParser:
             col_lut = np.linspace(first_y, last_y, num_cols)
             row_lut = np.linspace(first_x, last_x, num_rows)
 
-        return (col_lut, row_lut), x_index
+        return col_lut, row_lut
 
 # ========================= RT Structure Set Methods =========================
 
@@ -894,7 +801,7 @@ class DicomParser:
             # Add the position to the offset vector to determine the
             # z coordinate of each dose plane
 
-            z_sign = 1 if is_head_first_orientation(iop) else -1
+            z_sign = 1 if self.is_head_first_orientation() else -1
 
             planes = (z_sign * np.array(gfov)) + ipp[2]
             frame = -1
@@ -949,6 +856,91 @@ class DicomParser:
 
         return doseplane
 
+
+    def is_head_first_orientation(self):
+        """Return True if self.orientation is head-first.
+
+        Raises
+        ------
+        NotImplementedError
+            Raised if orientation is not one of head/feet-first
+            and supine/prone/decubitus
+
+        Returns
+        -------
+        bool
+            True if orientation is head-first, else False
+
+
+        """
+        orientation = self.ds.ImageOrientationPatient
+        if any(
+            all(np.isclose(orientation, hf_orientation))
+            for hf_orientation  in (  # noqa
+                [1,  0,  0,  0,  1,  0],  # Head First Supine
+                [-1,  0,  0,  0, -1,  0],  # Head First Prone
+                [0, -1,  0,  1,  0,  0],  # Head First Decubitus Left
+                [0,  1,  0, -1,  0,  0]   # Head First Decubitus Right
+            )
+        ):
+            return True
+        elif any(
+            all(np.isclose(orientation, ff_orientation))
+            for ff_orientation in (
+                [0,  1,  0,  1,  0,  0],  # Feet First Decubitus Left
+                [0, -1,  0, -1,  0,  0],  # Feet First Decubitus Right
+                [1,  0,  0,  0, -1,  0],  # Feet First Prone
+                [-1,  0,  0,  0,  1,  0]   # Feet First Supine
+            )
+        ):
+            return False
+        else:
+            raise NotImplementedError(
+                "Cannot calculate dose plane sign for non-standard orientation"
+            )
+
+
+    def x_lut_index(self):
+        """Return LUT index for real-world X direction.
+
+        Raises
+        ------
+        NotImplementedError
+            Raised if orientation is not one of head/feet-first
+            and supine/prone/decubitus
+
+        Returns
+        -------
+        X direction LUT index, matching 'lut' from GetDoseData
+            0 if real-world X across columns
+            1 if real-world X along rows
+        """
+        orientation = self.ds.ImageOrientationPatient
+        if any(
+            all(np.isclose(orientation, non_decub))
+            for non_decub in (
+                [1,  0,  0,  0,  1,  0],  # Head First Supine
+                [-1,  0,  0,  0, -1,  0],  # Head First Prone
+                [-1,  0,  0,  0,  1,  0],  # Feet First Supine
+                [1,  0,  0,  0, -1,  0]   # Feet First Prone
+            )
+        ):
+            return 0
+        elif any(
+            all(np.isclose(orientation, decub))
+            for decub in (
+                [0, -1,  0,  1,  0,  0],  # Head First Decubitus Left
+                [0,  1,  0, -1,  0,  0],  # Head First Decubitus Right
+                [0,  1,  0,  1,  0,  0],  # Feet First Decubitus Left
+                [0, -1,  0, -1,  0,  0]   # Feet First Decubitus Right
+            )
+        ):
+            return 1
+        else:
+            raise NotImplementedError(
+                "Cannot calculate X direction for non-standard orientation"
+            )
+
     def GetIsodosePoints(self, z=0, level=100, threshold=0.5):
         """Return dose grid points from an isodose level & slice position.
 
@@ -989,7 +981,8 @@ class DicomParser:
             if self.memmap_pixel_array:
                 del pixel_array
         data['dosemax'] = float(dosemax)
-        data['lut'], data['x_lut_index'] = self.GetPatientToPixelLUT()
+        data['lut'] = self.GetPatientToPixelLUT()
+        data['x_lut_index'] = self.x_lut_index()
         data['fraction'] = ''
         if "ReferencedRTPlanSequence" in self.ds:
             plan = self.ds.ReferencedRTPlanSequence[0]
