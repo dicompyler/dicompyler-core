@@ -18,8 +18,8 @@ try:
 except ImportError:
     from dicom.dataset import Dataset
     from dicom.sequence import Sequence
-import numpy
 from numpy import arange
+from numpy.testing import assert_allclose
 from .util import fake_rtdose, fake_ss
 
 
@@ -281,7 +281,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         got_counts = diffl.counts * 18 / 0.36
         expected_counts = [0]*13 + [2, 2, 2, 0, 0, 0, 0, 0, 0, 0,
                                     2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2]
-        assert numpy.all(numpy.isclose(got_counts, expected_counts))
+        assert_allclose(got_counts, expected_counts)
 
     def test_HF_decubitus_left(self):
         """Test DVH for head-first decubitus left orientation."""
@@ -338,7 +338,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         # So undo that here for test dose grid.
         # 18=num dose voxels inside struct; 0.36=volume
         got_counts = diffl.counts * 18 / 0.36
-        assert numpy.all(numpy.isclose(got_counts, expected_counts))
+        assert_allclose(got_counts, expected_counts)
 
     def test_HF_decubitus_left_structure_extents(self):
         """Test DVH for HF decubitus Lt orientation structure_extents used."""
@@ -355,7 +355,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         # So undo that here for test dose grid.
         # 18=num dose voxels inside struct; 0.36=volume
         got_counts = diffl.counts * 18 / 0.36
-        assert numpy.all(numpy.isclose(got_counts, expected_counts))
+        assert_allclose(got_counts, expected_counts)
 
     def test_HF_decubitus_right(self):
         """Test DVH for head-first decubitus right orientation."""
@@ -414,7 +414,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         # So undo that here for test dose grid.
         # 18=num dose voxels inside struct; 0.36=volume
         got_counts = diffl.counts * 18 / 0.36
-        assert numpy.all(numpy.isclose(got_counts, expected_counts))
+        assert_allclose(got_counts, expected_counts)
 
     def test_FF_decubitus_right(self):
         """Test DVH for feet-first decubitus right orientation."""
@@ -470,7 +470,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         # So undo that here for test dose grid.
         # 18=num dose voxels inside struct; 0.36=volume
         got_counts = diffl.counts * 18 / 0.36
-        assert numpy.all(numpy.isclose(got_counts, expected_counts))
+        assert_allclose(got_counts, expected_counts)
 
     def test_FF_decubitus_right_structure_extents(self):
         """Test DVH for FF decubitus Rt orientation using structure extents."""
@@ -488,7 +488,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         # So undo that here for test dose grid.
         # 18=num dose voxels inside struct; 0.36=volume
         got_counts = diffl.counts * 18 / 0.36
-        assert numpy.all(numpy.isclose(got_counts, expected_counts))
+        assert_allclose(got_counts, expected_counts)
 
     def test_FF_decubitus_left(self):
         """Test DVH for feet-first decubitus left orientation."""
@@ -550,7 +550,7 @@ class TestDVHCalcDecubitus(unittest.TestCase):
         # So undo that here for test dose grid.
         # 18=num dose voxels inside struct; 0.36=volume
         got_counts = diffl.counts * 18 / 0.36
-        assert numpy.all(numpy.isclose(got_counts, expected_counts))
+        assert_allclose(got_counts, expected_counts)
 
     def test_empty_dose_grid(self):
         """Test empty dose grid handled correctly."""
