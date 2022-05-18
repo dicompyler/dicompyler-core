@@ -358,7 +358,7 @@ def dosegrid_extents_indices(extents, dd, padding=1):
     Parameters
     ----------
     extents : list
-        Structure extents in patient coordintes: [xmin, ymin, xmax, ymax].
+        Structure extents in patient coordinates: [xmin, ymin, xmax, ymax].
         If an empty list, no structure extents will be used in the calculation.
     dd : dict
         Dose data from dicomparser.GetDoseData.
@@ -368,7 +368,7 @@ def dosegrid_extents_indices(extents, dd, padding=1):
     Returns
     -------
     list
-        Dose grid extents in pixel coordintes as array indices:
+        Dose grid extents in pixel coordinates as array indices:
         [col_min, row_min, col_max, row_max].
     """
     col_lut, row_lut = dd['lut']
@@ -449,7 +449,8 @@ def get_resampled_lut(index_extents,
     Returns
     -------
     tuple
-        A tuple of lists (x, y) of patient to pixel coordinate mappings.
+        A tuple of lut lists (col lut, row lut) with the coordinates of the
+        dose grid in patient coordinates
 
     Raises
     ------
