@@ -487,27 +487,37 @@ class DicomParser:
 
         Referenced matrix can be found in Part 3 Section C.7.6.2.1.1
         """
-        di = self.ds.PixelSpacing[0]
-        dj = self.ds.PixelSpacing[1]
-        orientation = self.ds.ImageOrientationPatient
-        position = self.ds.ImagePositionPatient
+        drow, dcol = self.ds.PixelSpacing
 
-        m = np.matrix(
-            [[orientation[0]*di, orientation[3]*dj, 0, position[0]],
-             [orientation[1]*di, orientation[4]*dj, 0, position[1]],
-             [orientation[2]*di, orientation[5]*dj, 0, position[2]],
+        orientation = self.ds.ImageOrientationPatient
+        first_x, first_y, first_z = self.ds.ImagePositionPatient
+        num_cols = self.ds.Columns
+        num_rows = self.ds.Rows
+
+        # Determine which way X and Y real-world coords run
+        # X runs across columns if x_lut_index is 0
+        # limits to head-first/feet-first and prone/supine/decubitus
+        x_index = self.x_lut_index()
+
+        m = np.array(
+            [[orientation[0]*dcol, orientation[3]*drow, 0, first_x],
+             [orientation[1]*dcol, orientation[4]*drow, 0, first_y],
+             [orientation[2]*dcol, orientation[5]*drow, 0, first_z],
              [0, 0, 0, 1]])
 
-        x = []
-        y = []
-        for i in range(0, self.ds.Columns):
-            imat = m * np.matrix([[i], [0], [0], [1]])
-            x.append(float(imat[0]))
-        for j in range(0, self.ds.Rows):
-            jmat = m * np.matrix([[0], [j], [0], [1]])
-            y.append(float(jmat[1]))
+        last_xy = np.matmul(
+            m, np.array([[num_cols-1], [num_rows-1], [0], [1]])
+        )
+        last_x, last_y = last_xy[0][0], last_xy[1][0]
 
-        return (np.array(x), np.array(y))
+        if x_index == 0:
+            col_lut = np.linspace(first_x, last_x, num_cols)
+            row_lut = np.linspace(first_y, last_y, num_rows)
+        else:
+            col_lut = np.linspace(first_y, last_y, num_cols)
+            row_lut = np.linspace(first_x, last_x, num_rows)
+
+        return col_lut, row_lut
 
 # ========================= RT Structure Set Methods =========================
 
@@ -784,11 +794,13 @@ class DicomParser:
             z = float(z)
             # Get the initial dose grid position (z) in patient coordinates
             ipp = self.ds.ImagePositionPatient
-            iop = self.ds.ImageOrientationPatient
             gfov = self.ds.GridFrameOffsetVector
             # Add the position to the offset vector to determine the
             # z coordinate of each dose plane
-            planes = (iop[0] * iop[4] * np.array(gfov)) + ipp[2]
+
+            z_sign = 1 if self.is_head_first_orientation() else -1
+
+            planes = (z_sign * np.array(gfov)) + ipp[2]
             frame = -1
             # Check to see if the requested plane exists in the array
             if (np.amin(np.fabs(planes - z)) < threshold):
@@ -841,6 +853,89 @@ class DicomParser:
 
         return doseplane
 
+    def is_head_first_orientation(self):
+        """Return True if self.orientation is head-first.
+
+        Raises
+        ------
+        NotImplementedError
+            Raised if orientation is not one of head/feet-first
+            and supine/prone/decubitus
+
+        Returns
+        -------
+        bool
+            True if orientation is head-first, else False
+
+
+        """
+        orientation = self.ds.ImageOrientationPatient
+        if any(
+            all(np.isclose(orientation, hf_orientation))
+            for hf_orientation in (  # noqa
+                [1,  0,  0,  0,  1,  0],  # Head First Supine
+                [-1,  0,  0,  0, -1,  0],  # Head First Prone
+                [0, -1,  0,  1,  0,  0],  # Head First Decubitus Left
+                [0,  1,  0, -1,  0,  0]   # Head First Decubitus Right
+            )
+        ):
+            return True
+        elif any(
+            all(np.isclose(orientation, ff_orientation))
+            for ff_orientation in (
+                [0,  1,  0,  1,  0,  0],  # Feet First Decubitus Left
+                [0, -1,  0, -1,  0,  0],  # Feet First Decubitus Right
+                [1,  0,  0,  0, -1,  0],  # Feet First Prone
+                [-1,  0,  0,  0,  1,  0]   # Feet First Supine
+            )
+        ):
+            return False
+        else:
+            raise NotImplementedError(
+                "Cannot calculate dose plane sign for non-standard orientation"
+            )
+
+    def x_lut_index(self):
+        """Return LUT index for real-world X direction.
+
+        Raises
+        ------
+        NotImplementedError
+            Raised if orientation is not one of head/feet-first
+            and supine/prone/decubitus
+
+        Returns
+        -------
+        X direction LUT index, matching 'lut' from GetDoseData
+            0 if real-world X across columns
+            1 if real-world X along rows
+        """
+        orientation = self.ds.ImageOrientationPatient
+        if any(
+            all(np.isclose(orientation, non_decub))
+            for non_decub in (
+                [1,  0,  0,  0,  1,  0],  # Head First Supine
+                [-1,  0,  0,  0, -1,  0],  # Head First Prone
+                [-1,  0,  0,  0,  1,  0],  # Feet First Supine
+                [1,  0,  0,  0, -1,  0]   # Feet First Prone
+            )
+        ):
+            return 0
+        elif any(
+            all(np.isclose(orientation, decub))
+            for decub in (
+                [0, -1,  0,  1,  0,  0],  # Head First Decubitus Left
+                [0,  1,  0, -1,  0,  0],  # Head First Decubitus Right
+                [0,  1,  0,  1,  0,  0],  # Feet First Decubitus Left
+                [0, -1,  0, -1,  0,  0]   # Feet First Decubitus Right
+            )
+        ):
+            return 1
+        else:
+            raise NotImplementedError(
+                "Cannot calculate X direction for non-standard orientation"
+            )
+
     def GetIsodosePoints(self, z=0, level=100, threshold=0.5):
         """Return dose grid points from an isodose level & slice position.
 
@@ -882,6 +977,7 @@ class DicomParser:
                 del pixel_array
         data['dosemax'] = float(dosemax)
         data['lut'] = self.GetPatientToPixelLUT()
+        data['x_lut_index'] = self.x_lut_index()
         data['fraction'] = ''
         if "ReferencedRTPlanSequence" in self.ds:
             plan = self.ds.ReferencedRTPlanSequence[0]

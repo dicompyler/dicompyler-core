@@ -143,8 +143,8 @@ class TestImage(unittest.TestCase):
     def test_patient_to_pixel_lut(self):
         """Test if the image transformation matrix (LUT) can be generated."""
         lutvalue = 273.925909
-        self.assertAlmostEqual(
-            self.dp.GetPatientToPixelLUT()[0][-1], lutvalue)
+        doselut = self.dp.GetPatientToPixelLUT()
+        self.assertAlmostEqual(doselut[0][-1], lutvalue)
 
 
 class TestRTStructureSet(unittest.TestCase):
@@ -341,7 +341,8 @@ class TestRTDose(unittest.TestCase):
             'dosegridscaling': 1.4e-05,
             'dosemax': 1048626.0,
             'lut': 253.8458085,
-            'fraction': ''
+            'fraction': '',
+            'x_lut_index': 0,
         }
         dosedata = self.dp.GetDoseData()
         # Pop the LUT numpy array
