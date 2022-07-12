@@ -76,8 +76,8 @@ class DVH(object):
                 "'DVHSequence' has no DVH with ROI Number '%d'." % roi_num)
         dvh = dataset.DVHSequence[sequence_num]
         data = np.array(dvh.DVHData)
-        return cls(counts=data[1::2] * dvh.DVHDoseScaling,
-                   bins=data[0::2].cumsum(),
+        return cls(counts=data[1::2],
+                   bins=data[0::2].cumsum() * dvh.DVHDoseScaling,
                    dvh_type=dvh.DVHType.lower(),
                    dose_units=dvh.DoseUnits.capitalize(),
                    volume_units=dvh.DVHVolumeUnits.lower(),
