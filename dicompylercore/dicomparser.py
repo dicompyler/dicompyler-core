@@ -944,12 +944,12 @@ class DicomParser:
         z : int, optional
             Slice position in mm., by default 0
         level : int, optional
+            Isodose level in scaled form
+            (multiplied by self.ds.DoseGridScaling), by default 100
+        threshold : float, optional
             Threshold in mm to determine the max difference
             from z to the closest dose slice without
-            using interpolation, by default 100
-        threshold : float, optional
-            Isodose level in scaled form
-            (multiplied by self.ds.DoseGridScaling), by default 0.5
+            using interpolation, by default 0.5
 
         Returns
         -------
