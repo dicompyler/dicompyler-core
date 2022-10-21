@@ -46,7 +46,7 @@ jobs:
             - name: Upload coverage if the job has succeeded
               if: ${{ success() }}
               run: |
-                  coveralls --service=github
+                  coveralls
                   codecov
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
