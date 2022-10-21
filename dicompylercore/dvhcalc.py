@@ -497,8 +497,8 @@ def get_resampled_lut(index_extents,
     num_cols = abs(index_extents[0] - index_extents[2])
     num_rows = abs(index_extents[1] - index_extents[3])
 
-    col_samples = num_cols * min_pixel_spacing[1] / new_pixel_spacing[1]
-    row_samples = num_rows * min_pixel_spacing[0] / new_pixel_spacing[0]
+    col_samples = round(num_cols * min_pixel_spacing[1] / new_pixel_spacing[1])
+    row_samples = round(num_rows * min_pixel_spacing[0] / new_pixel_spacing[0])
 
     col_lut = np.linspace(
         extents[0], extents[2], int(col_samples), dtype=np.float
