@@ -16,7 +16,7 @@ Other information
 
 -  Free software: `BSD license <https://github.com/dicompyler/dicompyler-core/blob/master/LICENSE>`__
 -  Documentation: `Read the docs <https://dicompyler-core.readthedocs.io>`__
--  Tested on Python 3.6+
+-  Tested on Python 3.7+
 
 Dependencies
 ------------
@@ -86,7 +86,7 @@ This package was created with
    :target: http://mybinder.org/repo/bastula/dicom-notebooks
 .. |pypi| image:: https://img.shields.io/pypi/v/dicompyler-core.svg
    :target: https://pypi.python.org/pypi/dicompyler-core
-.. |Python Version| image:: https://img.shields.io/badge/python-3.6+-blue.svg
+.. |Python Version| image:: https://img.shields.io/badge/python-3.7+-blue.svg
    :target: https://pypi.python.org/pypi/dicompyler-core
 .. |GH Actions| image:: https://github.com/dicompyler/dicompyler-core/actions/workflows/build.yml/badge.svg
    :target: https://github.com/dicompyler/dicompyler-core/actions
