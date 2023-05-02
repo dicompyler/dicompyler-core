@@ -278,7 +278,7 @@ def calculate_plane_histogram(plane, doseplane, dosegridpoints, maxdose, dd,
     # and boolean xor to remove holes
     for i, contour in enumerate(contours):
         m = get_contour_mask(dd, id, dosegridpoints, contour)
-        grid = np.logical_xor(m.astype(np.uint8), grid).astype(np.bool)
+        grid = np.logical_xor(m.astype(np.uint8), grid).astype(np.bool_)
 
     hist, vol = calculate_contour_dvh(grid, doseplane, maxdose, dd, id,
                                       structure)
@@ -501,10 +501,10 @@ def get_resampled_lut(index_extents,
     row_samples = round(num_rows * min_pixel_spacing[0] / new_pixel_spacing[0])
 
     col_lut = np.linspace(
-        extents[0], extents[2], int(col_samples), dtype=np.float
+        extents[0], extents[2], int(col_samples), dtype=np.float64
     )
     row_lut = np.linspace(
-        extents[1], extents[3], int(row_samples), dtype=np.float
+        extents[1], extents[3], int(row_samples), dtype=np.float64
     )
     return col_lut, row_lut
 
@@ -548,7 +548,7 @@ def get_interpolated_dose(dose, z, resolution, extents):
         mode='symmetric',
         preserve_range=True,
         multichannel=False
-        )
+    )
     return interp_dose
 
 
