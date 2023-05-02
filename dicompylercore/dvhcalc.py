@@ -547,7 +547,7 @@ def get_interpolated_dose(dose, z, resolution, extents):
         order=1,
         mode='symmetric',
         preserve_range=True,
-        multichannel=False
+        channel_axis=None
     )
     return interp_dose
 
