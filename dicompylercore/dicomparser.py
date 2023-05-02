@@ -706,7 +706,7 @@ class DicomParser:
                   " Please install to calculate.")
             return 0
 
-        class Within(Polygon):
+        class Within:
             def __init__(self, o):
                 self.o = o
 
