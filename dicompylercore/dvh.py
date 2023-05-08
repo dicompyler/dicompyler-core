@@ -10,7 +10,7 @@
 import numpy as np
 import re
 import logging
-logger = logging.getLogger('dicompyler.dvh')
+logger = logging.getLogger('dicompylercore.dvh')
 
 # Set default absolute dose and volume  units
 abs_dose_units = 'Gy'
@@ -469,7 +469,7 @@ class DVH(object):
         if volume == 100 and not volume_units:
             # Flipping the difference volume array
             reversed_difference_of_volume = np.flip(
-                    np.fabs(volume_counts - volume), 0)
+                np.fabs(volume_counts - volume), 0)
 
             # Index of the first minimum value in reversed array
             index_min_value = np.argmin(reversed_difference_of_volume)

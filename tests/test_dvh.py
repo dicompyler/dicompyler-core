@@ -120,6 +120,17 @@ class TestDVH(unittest.TestCase):
         with self.assertRaises(AttributeError):
             self.dvh.relative_dose(14).absolute_dose()
 
+    def test_dvh_dosescaling(self):
+        """Test if the DVH Dose Scaling is applied properly."""
+        rtdose_dcm = os.path.join(example_data, "rtdose.dcm")
+        rtdose = dicomparser.DicomParser(rtdose_dcm)
+        rtdose.ds.DVHSequence[7].DVHDoseScaling = 2
+        scaleddvh = dvh.DVH.from_dicom_dvh(rtdose.ds, 9)
+        self.assertEqual(self.dvh.max * 2, scaleddvh.max)
+        self.assertEqual(self.dvh.min * 2, scaleddvh.min)
+        self.assertEqual(self.dvh.mean * 2, scaleddvh.mean)
+        self.assertEqual(self.dvh.volume, scaleddvh.volume)
+
     def test_dvh_properties(self):
         """Test if the DVH properties can be derived."""
         self.assertEqual(self.dvh.max, 14.579999999999734)
