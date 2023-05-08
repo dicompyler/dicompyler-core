@@ -9,5 +9,5 @@
 
 __author__ = 'Aditya Panchal'
 __email__ = 'apanchal@bastula.org'
-__version__ = '0.5.6'
+__version__ = '0.5.7'
 __version_info__ = (0, 5, 0)

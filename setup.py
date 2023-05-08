@@ -18,7 +18,7 @@ test_requirements = [
 
 setup(
     name='dicompyler-core',
-    version='0.5.6',
+    version='0.5.7',
     description="A library of core radiation therapy modules for DICOM / " +
                 "DICOM RT used by dicompyler",
     long_description=readme,
