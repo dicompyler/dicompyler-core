@@ -2,11 +2,11 @@
 
 ## Supported Versions
 
-| Version | Supported          |
-| ------- | ------------------ |
-| master (0.5.6) | :white_check_mark: |
-| 0.5.5   | :white_check_mark: |
-| < 0.5.4 | :x:                |
+| Version        | Supported          |
+| -------------- | ------------------ |
+| master (0.5.7) | :white_check_mark: |
+| 0.5.6          | :white_check_mark: |
+| < 0.5.5        | :x:                |
 
 ## Reporting a Vulnerability
 

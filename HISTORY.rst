@@ -2,18 +2,33 @@
 History
 =======
 
-0.5.6 (unreleased)
+0.5.7 (unreleased)
 ------------------
 
-* Added ``dose`` module with ``DVH`` class for Pythonic access to RT Dose `(#164) <https://github.com/dicompyler/dicompyler-core/pull/164>`__ `[Dan Cutright] <https://github.com/cutright>`__
+0.5.6 (2023-05-08)
+------------------
+
+.. warning:: This version will be the last version to support Python 2.x and support will be dropped in version 0.5.7.
+- Dropped support for Python 3.5 & 3.6 and added support for Python 3.9 & 3.10.
+- Made changes to codebase to support recent versions of numpy, Shapely and scikit-image dependencies.
+- Added ``dose`` module with ``DVH`` class for Pythonic access to RT Dose. `(#164) <https://github.com/dicompyler/dicompyler-core/pull/164>`__ `[Dan Cutright] <https://github.com/cutright>`__
+- Added decubitus orientation and related changes. `(#285) <https://github.com/dicompyler/dicompyler-core/pull/285>`__ `[Darcy Mason] <https://github.com/darcymason>`__
+- Fix a bug if Pixel Data attribute was set for non image based SOP Classes (i.e. RT Structure Set). `(#214) <https://github.com/dicompyler/dicompyler-core/pull/214>`__ `[Dan Cutright] <https://github.com/cutright>`__
+
+dvhcalc
+~~~~~~~
+- Implement interpolation for non square pixels in DVH calculation. `(#124) <https://github.com/dicompyler/dicompyler-core/pull/124>`__
+- Fix a bug where the DVHDoseScaling attribute was not applied properly to RT Dose DVHs. `(#301) <https://github.com/dicompyler/dicompyler-core/pull/301>`__ `[Christian Velten] <https://github.com/cvelten>`__
+- Fix a bug where floating point pixel spacing wasn't rounded in DVH calculations. `(#318) <https://github.com/dicompyler/dicompyler-core/pull/318>`__ `[Samuel Ouellet] <https://github.com/smichi23>`__
 
 dose
 ~~~~~~~
-* Added RT Dose grid summmation with interpolation (from DVHA) `(#164) <https://github.com/dicompyler/dicompyler-core/pull/164>`__ `[Dan Cutright] <https://github.com/cutright>`__
+- Added RT Dose grid summmation with interpolation (from DVHA). `(#164) <https://github.com/dicompyler/dicompyler-core/pull/164>`__ `[Dan Cutright] <https://github.com/cutright>`__
 
 dicomparser
 ~~~~~~~~~~~
-* Initial implementation of memory mapped access to pixel data. `(#131) <https://github.com/dicompyler/dicompyler-core/pull/131>`__
+- Initial implementation of memory mapped access to pixel data. `(#131) <https://github.com/dicompyler/dicompyler-core/pull/131>`__
+- Ensure that all files read have a valid File Meta header.
 
 0.5.5 (2019-05-31)
 ------------------

@@ -60,3 +60,5 @@ target/
 
 # Mac OS X cruft
 .DS_Store
+
+.mypy_cache

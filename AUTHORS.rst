@@ -10,4 +10,5 @@ Development Lead
 Contributors
 ------------
 
-* Roy Keyes
+* Roy Keyes (Original co-author of dicompyler)
+* See :doc:`history` for additional contributors

@@ -13,6 +13,7 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+import dicompylercore
 import sys
 import os
 
@@ -31,7 +32,6 @@ project_root = os.path.dirname(cwd)
 # version is used.
 sys.path.insert(0, project_root)
 
-import dicompylercore
 
 # -- General configuration ---------------------------------------------
 
@@ -45,7 +45,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode',
 
 autodoc_mock_imports = [
     'numpy', 'dicom', 'pydicom', 'pydicom', 'dicom',
-    'PIL', 'numpy', 'matplotlib', 'skimage', 'scipy']
+    'PIL', 'numpy.core', 'matplotlib', 'skimage', 'scipy']
 autodoc_member_order = 'bysource'
 
 # Add any paths that contain templates here, relative to this directory.
@@ -62,7 +62,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'dicompyler-core'
-copyright = u'2016-2020, Aditya Panchal'
+copyright = u'2016-2023, Aditya Panchal'
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -201,13 +201,13 @@ htmlhelp_basename = 'dicompyler-coredoc'
 
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
-    #'papersize': 'letterpaper',
+    # 'papersize': 'letterpaper',
 
     # The font size ('10pt', '11pt' or '12pt').
-    #'pointsize': '10pt',
+    # 'pointsize': '10pt',
 
     # Additional stuff for the LaTeX preamble.
-    #'preamble': '',
+    # 'preamble': '',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
