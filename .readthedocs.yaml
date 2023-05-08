@@ -8,3 +8,5 @@ formats: all
 python:
     install:
         - requirements: requirements_dev.txt
+        - method: pip
+          path: .
