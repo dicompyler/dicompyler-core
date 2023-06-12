@@ -139,10 +139,10 @@ def _calculate_dvh(structure,
     This is an internal function called by `get_dvh` and
     should not be called directly.
     """
-    planes = collections.OrderedDict(sorted(iteritems(structure['planes'])))
     calcdvh = collections.namedtuple('DVH', ['notes', 'histogram'])
     logger.debug("Calculating DVH of %s %s", structure['id'],
                  structure['name'])
+    planes = collections.OrderedDict(sorted(structure["planes"].items()))
 
     # Create an empty array of bins to store the histogram in cGy
     # only if the structure has contour data or the dose grid exists

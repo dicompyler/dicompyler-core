@@ -24,7 +24,6 @@ Dependencies
 -  `numpy <http://www.numpy.org>`__ 1.2 or higher
 -  `pydicom <https://pydicom.github.io>`__ 0.9.9 or higher (pydicom 1.0 compatible)
 -  `matplotlib <http://matplotlib.org>`__ 1.3.0 or higher (for DVH calculation)
--  `six <https://pythonhosted.org/six/>`__ 1.5 or higher
 -  Optional:
 
    -  `Pillow <https://pillow.readthedocs.io>`__ (for image display)
