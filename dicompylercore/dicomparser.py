@@ -20,8 +20,8 @@ except ImportError:
     from dicom.dataset import Dataset
 import random
 from numbers import Number
-from six import PY2, iterkeys, string_types, BytesIO
-from six.moves import range
+from io import BytesIO
+from pathlib import Path
 from dicompylercore import dvh, util
 from dicompylercore.config import pil_available, shapely_available
 
@@ -56,7 +56,7 @@ class DicomParser:
         self.memmap_pixel_array = memmap_pixel_array
         if isinstance(dataset, Dataset):
             self.ds = dataset
-        elif isinstance(dataset, (string_types, BytesIO)):
+        elif isinstance(dataset, (str, BytesIO, Path)):
             try:
                 with open(dataset, "rb") as fp:
                     self.ds = read_file(fp, defer_size=100, force=True,
@@ -203,8 +203,6 @@ class DicomParser:
                    'birth_date': None,
                    'gender': 'Other'}
         if 'PatientName' in self.ds:
-            if PY2:
-                self.ds.decode()
             name = self.ds.PatientName
             patient['name'] = str(name)
             patient['given_name'] = name.given_name
@@ -668,7 +666,7 @@ class DicomParser:
         planes = []
 
         # Iterate over each plane in the structure
-        for z in iterkeys(planesDict):
+        for z in planesDict.keys():
             planes.append(float(z))
         planes.sort()
 

@@ -19,7 +19,6 @@ try:
     from collections.abc import Sequence
 except ImportError:
     from collections import Sequence
-from six import iteritems
 import logging
 logger = logging.getLogger('dicompylercore.dvhcalc')
 
@@ -207,7 +206,7 @@ def _calculate_dvh(structure,
             'thickness'] / (interpolation_segments_between_planes + 1)
 
     # Iterate over each plane in the structure
-    for z, plane in iteritems(planes):
+    for z, plane in planes.items():
         # Get the dose plane for the current structure plane
         if interpolation_resolution or use_structure_extents:
             doseplane = get_interpolated_dose(
