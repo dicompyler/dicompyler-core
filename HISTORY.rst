@@ -4,6 +4,7 @@ History
 
 0.5.7 (unreleased)
 ------------------
+- Dropped support for Python 2.
 
 0.5.6 (2023-05-08)
 ------------------

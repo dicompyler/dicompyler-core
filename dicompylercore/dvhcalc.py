@@ -19,7 +19,6 @@ try:
     from collections.abc import Sequence
 except ImportError:
     from collections import Sequence
-from six import iteritems
 import logging
 logger = logging.getLogger('dicompylercore.dvhcalc')
 
@@ -140,10 +139,10 @@ def _calculate_dvh(structure,
     This is an internal function called by `get_dvh` and
     should not be called directly.
     """
-    planes = collections.OrderedDict(sorted(iteritems(structure['planes'])))
     calcdvh = collections.namedtuple('DVH', ['notes', 'histogram'])
     logger.debug("Calculating DVH of %s %s", structure['id'],
                  structure['name'])
+    planes = collections.OrderedDict(sorted(structure["planes"].items()))
 
     # Create an empty array of bins to store the histogram in cGy
     # only if the structure has contour data or the dose grid exists
@@ -207,7 +206,7 @@ def _calculate_dvh(structure,
             'thickness'] / (interpolation_segments_between_planes + 1)
 
     # Iterate over each plane in the structure
-    for z, plane in iteritems(planes):
+    for z, plane in planes.items():
         # Get the dose plane for the current structure plane
         if interpolation_resolution or use_structure_extents:
             doseplane = get_interpolated_dose(
