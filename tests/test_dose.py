@@ -6,7 +6,6 @@
 # Copyright (c) 2020 Dan Cutright
 
 
-from __future__ import division
 import unittest
 import os
 from dicompylercore import dicomparser, dose

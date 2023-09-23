@@ -4,8 +4,6 @@
 # test_dvhcalc.py
 # Copyright (c) 2016-2018 Aditya Panchal
 
-
-from __future__ import division
 import unittest
 import os
 from dicompylercore import dicomparser, dvhcalc
