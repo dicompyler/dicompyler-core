@@ -8,7 +8,6 @@
 #    See the file license.txt included with this distribution, also
 #    available at https://github.com/dicompyler/dicompyler-core/
 
-from __future__ import division
 import numpy as np
 import numpy.ma as ma
 import matplotlib.path
