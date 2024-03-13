@@ -638,12 +638,12 @@ class DicomParser:
                             plane['data'] = \
                                 self.GetContourPoints(c.ContourData)
 
-                            # Verify if all z-coordinates in this plane 
+                            # Verify if all z-coordinates in this plane
                             # are identical
                             if not self.verify_z_coordinates(plane['data']):
                                 print(
-                                    f"Warning ROI Number {roi_number}: 
-                                    Not all z-coordinates are identical. 
+                                    f"Warning ROI Number {roi_number}:
+                                    Not all z-coordinates are identical.
                                     Execution halted."
                                     )
                                 return {}
