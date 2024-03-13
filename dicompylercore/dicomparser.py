@@ -642,9 +642,9 @@ class DicomParser:
                             # are identical
                             if not self.verify_z_coordinates(plane['data']):
                                 print(
-                                    f"Warning ROI Number {roi_number}:
+                                    f"""Warning ROI Number {roi_number}:
                                     Not all z-coordinates are identical.
-                                    Execution halted."
+                                    Execution halted."""
                                     )
                                 return {}
 
