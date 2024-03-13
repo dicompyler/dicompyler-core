@@ -590,13 +590,13 @@ class DicomParser:
                     structures[number]['empty'] = True
 
         return structures
-    
+
     def verify_z_coordinates(self, contour_points):
         """
         Verify if all z-coordinates in the contour points are identical.
 
         Parameters:
-        - contour_points (list of list of float): List of contour points (each is an xyz triplet).
+        - contour_points (list of list of float): List of contour points.
 
         Returns:
         - bool: True if all z-coordinates are identical, False otherwise.
@@ -637,11 +637,16 @@ class DicomParser:
                             # for easier parsing
                             plane['data'] = \
                                 self.GetContourPoints(c.ContourData)
-                            
-                            # Verify if all z-coordinates in this plane are identical
+
+                            # Verify if all z-coordinates in this plane 
+                            # are identical
                             if not self.verify_z_coordinates(plane['data']):
-                                print(f"Warning ROI Number {roi_number}: Not all z-coordinates are identical. Execution halted.")
-                                return {}  
+                                print(
+                                    f"Warning ROI Number {roi_number}: 
+                                    Not all z-coordinates are identical. 
+                                    Execution halted."
+                                    )
+                                return {}
 
                             # Add each plane to the planes dict
                             # of the current ROI
