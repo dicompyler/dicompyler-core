@@ -633,7 +633,7 @@ class DicomParser:
                                 z == z0
                                 for z in islice(c.ContourData, 5, None, 3)
                             ):
-                                print(
+                                logger.debug(
                                     f"Warning ROI Number {roi_number}:\n"
                                     "Not all z-coordinates are identical.\n"
                                     "Execution halted."
