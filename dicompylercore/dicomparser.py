@@ -24,6 +24,7 @@ from io import BytesIO
 from pathlib import Path
 from dicompylercore import dvh, util
 from dicompylercore.config import pil_available, shapely_available
+from itertools import islice
 
 if pil_available:
     from PIL import Image
@@ -591,19 +592,6 @@ class DicomParser:
 
         return structures
 
-    def verify_z_coordinates(self, contour_points):
-        """
-        Verify if all z-coordinates in the contour points are identical.
-
-        Parameters:
-        - contour_points (list of list of float): List of contour points.
-
-        Returns:
-        - bool: True if all z-coordinates are identical, False otherwise.
-        """
-        z_coordinates = [point[2] for point in contour_points]
-        return all(z == z_coordinates[0] for z in z_coordinates)
-
     def GetStructureCoordinates(self, roi_number):
         """Get the list of coordinates for each plane of the structure.
 
@@ -640,12 +628,16 @@ class DicomParser:
 
                             # Verify if all z-coordinates in this plane
                             # are identical
-                            if not self.verify_z_coordinates(plane['data']):
+                            z0 = c.ContourData[2]
+                            if not all(
+                                z == z0
+                                for z in islice(c.ContourData, 5, None, 3)
+                            ):
                                 print(
-                                    f"""Warning ROI Number {roi_number}:
-                                    Not all z-coordinates are identical.
-                                    Execution halted."""
-                                    )
+                                    f"Warning ROI Number {roi_number}:\n"
+                                    "Not all z-coordinates are identical.\n"
+                                    "Execution halted."
+                                )
                                 return {}
 
                             # Add each plane to the planes dict
