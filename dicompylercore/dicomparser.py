@@ -11,13 +11,9 @@
 
 import logging
 import numpy as np
-try:
-    from pydicom.dicomio import read_file
-    from pydicom.dataset import Dataset, validate_file_meta
-    from pydicom.pixel_data_handlers.util import pixel_dtype
-except ImportError:
-    from dicom import read_file
-    from dicom.dataset import Dataset
+from pydicom.dicomio import dcmread
+from pydicom.dataset import Dataset, validate_file_meta
+from pydicom.pixel_data_handlers.util import pixel_dtype
 import random
 from numbers import Number
 from io import BytesIO
@@ -59,7 +55,7 @@ class DicomParser:
         elif isinstance(dataset, (str, BytesIO, Path)):
             try:
                 with open(dataset, "rb") as fp:
-                    self.ds = read_file(fp, defer_size=100, force=True,
+                    self.ds = dcmread(fp, defer_size=100, force=True,
                                         stop_before_pixels=memmap_pixel_array)
                     if memmap_pixel_array:
                         self.offset = fp.tell() + 8

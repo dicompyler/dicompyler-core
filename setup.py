@@ -33,7 +33,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "numpy>=1.2",
-        "pydicom>=0.9.9",
+        "pydicom>=2.4.0,<4",
         "matplotlib>=1.3.0"
     ],
     extras_require={

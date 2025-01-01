@@ -22,7 +22,7 @@ Dependencies
 ------------
 
 -  `numpy <http://www.numpy.org>`__ 1.2 or higher
--  `pydicom <https://pydicom.github.io>`__ 0.9.9 or higher (pydicom 1.0 compatible)
+-  `pydicom <https://pydicom.github.io>`__ 2.4.0 or higher
 -  `matplotlib <http://matplotlib.org>`__ 1.3.0 or higher (for DVH calculation)
 -  Optional:
 

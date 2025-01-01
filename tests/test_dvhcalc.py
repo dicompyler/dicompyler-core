@@ -10,12 +10,8 @@ from dicompylercore import dicomparser, dvhcalc
 from dicompylercore.config import skimage_available
 from dicompylercore.dvh import DVH
 from dicompylercore.dvhcalc import get_dvh
-try:
-    from pydicom.dataset import Dataset
-    from pydicom.sequence import Sequence
-except ImportError:
-    from dicom.dataset import Dataset
-    from dicom.sequence import Sequence
+from pydicom.dataset import Dataset
+from pydicom.sequence import Sequence
 from numpy import arange
 from numpy.testing import assert_allclose
 from .util import fake_rtdose, fake_ss

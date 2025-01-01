@@ -5,6 +5,7 @@ History
 0.5.7 (unreleased)
 ------------------
 - Dropped support for Python 2.
+- pydicom 3.X supported (requirement now >= pydicom 2.4.0)
 
 0.5.6 (2023-05-08)
 ------------------
