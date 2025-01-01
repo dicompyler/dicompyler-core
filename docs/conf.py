@@ -44,7 +44,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode',
               'sphinx.ext.napoleon']
 
 autodoc_mock_imports = [
-    'numpy', 'dicom', 'pydicom', 'pydicom', 'dicom',
+    'numpy', 'dicom', 'pydicom',
     'PIL', 'numpy.core', 'matplotlib', 'skimage', 'scipy']
 autodoc_member_order = 'bysource'
 

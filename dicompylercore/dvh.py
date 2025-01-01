@@ -108,16 +108,13 @@ class DVH(object):
 
     def __repr__(self):
         """String representation of the class."""
-        return 'DVH(%s, %r bins: [%r:%r] %s, volume: %r %s, name: %r, ' \
-            'rx_dose: %d %s%s)' % \
-            (self.dvh_type, self.counts.size, self.bins.min(),
-                self.bins.max(), self.dose_units,
-                self.volume, self.volume_units,
-                self.name,
-                0 if not self.rx_dose else self.rx_dose,
-                self.dose_units,
-                ', *Notes: ' + self.notes if self.notes else '')
-
+        return (
+            f'DVH({self.dvh_type}, {self.counts.size} bins: '
+            f'[{self.bins.min()}:{self.bins.max()}] {self.dose_units}, '
+            f'volume: {self.volume} {self.volume_units}, name: {self.name}, '
+            f'rx_dose: {0 if not self.rx_dose else self.rx_dose} '
+            f'{self.dose_units}{", *Notes: " + self.notes if self.notes else ""})'
+        )
     def __eq__(self, other):
         """Comparison method between two DVH objects.
 
