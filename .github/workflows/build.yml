@@ -17,7 +17,7 @@ jobs:
                 pydicom-version: ["pydicom-latest"]
                 include:
                   - python-version: "3.10"
-                    pydicom-version: "pydicom~=2.4.4"
+                    pydicom-version: "pydicom==2.4.0"
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
@@ -42,7 +42,7 @@ jobs:
                   pip install codecov
             
             - name: Force pydicom version if needed
-              if: startsWith(matrix.pydicom-version, '2')
+              if: startsWith(matrix.pydicom-version, 'pydicom==')
               run: |
                   pip install -U "${{ matrix.pydicom-version }}"
 
