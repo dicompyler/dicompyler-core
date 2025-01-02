@@ -132,7 +132,7 @@ def piecewise(x, condlist, funclist, *args, **kw):
     y = np.zeros(x.shape, x.dtype)
     for k in range(n):
         item = funclist[k]
-        if not isinstance(item, collections.Callable):
+        if not isinstance(item, collections.abc.Callable):
             y[condlist[k]] = item
         else:
             vals = x[condlist[k]]

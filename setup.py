@@ -33,7 +33,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "numpy>=1.2",
-        "pydicom>=0.9.9",
+        "pydicom>=2.4.0,<4",
         "matplotlib>=1.3.0"
     ],
     extras_require={
@@ -56,11 +56,10 @@ setup(
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: BSD License',
         'Natural Language :: English',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
         'Topic :: Scientific/Engineering :: Medical Science Apps.',
         'Topic :: Scientific/Engineering :: Physics'
     ],

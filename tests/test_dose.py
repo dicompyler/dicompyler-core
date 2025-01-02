@@ -8,16 +8,8 @@
 
 import unittest
 import os
-from dicompylercore import dicomparser, dose
 
-try:
-    from pydicom.dataset import Dataset
-    from pydicom.sequence import Sequence
-    from pydicom import read_file as read_dicom
-except ImportError:
-    from dicom.dataset import Dataset
-    from dicom.sequence import Sequence
-    from dicom import read_file as read_dicom
+from pydicom import dcmread as read_dicom
 from numpy import arange, zeros
 from numpy.testing import (
     assert_array_almost_equal,
@@ -26,6 +18,7 @@ from numpy.testing import (
 )
 import warnings
 from dicompylercore.config import mpl_available, scipy_available
+from dicompylercore import dicomparser, dose
 
 basedata_dir = "tests/testdata"
 example_data = os.path.join(basedata_dir, "example_data")
