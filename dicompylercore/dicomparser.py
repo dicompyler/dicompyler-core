@@ -30,7 +30,7 @@ if shapely_available:
 logger = logging.getLogger('dicompylercore.dicomparser')
 
 
-def _fix_meta_info(ds: Dataset) -> None:
+def _fix_meta_info(dataset: Dataset) -> None:
     """Ensure the file meta info exists and has the correct values
     for transfer syntax and media storage UIDs.
 
@@ -44,24 +44,25 @@ def _fix_meta_info(ds: Dataset) -> None:
 
     Parameters
     ----------
-    ds: pydicom Dataset
+    dataset: pydicom Dataset
 
     """
-    ds.ensure_file_meta()
+    dataset.ensure_file_meta()
 
-    if ds.is_little_endian and ds.is_implicit_VR:
-        ds.file_meta.TransferSyntaxUID = ImplicitVRLittleEndian
-    elif not ds.is_little_endian and not ds.is_implicit_VR:
-        ds.file_meta.TransferSyntaxUID = ExplicitVRBigEndian
-    elif not ds.is_little_endian and ds.is_implicit_VR:
-        raise NotImplementedError("Implicit VR Big Endian is not a "
-                                    "supported Transfer Syntax.")
+    if dataset.is_little_endian and dataset.is_implicit_VR:
+        dataset.file_meta.TransferSyntaxUID = ImplicitVRLittleEndian
+    elif not dataset.is_little_endian and not dataset.is_implicit_VR:
+        dataset.file_meta.TransferSyntaxUID = ExplicitVRBigEndian
+    elif not dataset.is_little_endian and dataset.is_implicit_VR:
+        raise NotImplementedError(
+            "Implicit VR Big Endian is not a supported Transfer Syntax."
+        )
 
-    if 'SOPClassUID' in ds:
-        ds.file_meta.MediaStorageSOPClassUID = ds.SOPClassUID
-    if 'SOPInstanceUID' in ds:
-        ds.file_meta.MediaStorageSOPInstanceUID = ds.SOPInstanceUID
-    
+    if 'SOPClassUID' in dataset:
+        dataset.file_meta.MediaStorageSOPClassUID = dataset.SOPClassUID
+    if 'SOPInstanceUID' in dataset:
+        dataset.file_meta.MediaStorageSOPInstanceUID = dataset.SOPInstanceUID
+
 
 class DicomParser:
     """Class to parse DICOM / DICOM RT files."""

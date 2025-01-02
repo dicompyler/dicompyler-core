@@ -8,10 +8,7 @@
 
 import unittest
 import os
-from dicompylercore import dicomparser, dose
 
-from pydicom.dataset import Dataset
-from pydicom.sequence import Sequence
 from pydicom import dcmread as read_dicom
 from numpy import arange, zeros
 from numpy.testing import (
@@ -21,6 +18,7 @@ from numpy.testing import (
 )
 import warnings
 from dicompylercore.config import mpl_available, scipy_available
+from dicompylercore import dicomparser, dose
 
 basedata_dir = "tests/testdata"
 example_data = os.path.join(basedata_dir, "example_data")
