@@ -14,6 +14,7 @@ import numpy as np
 from pydicom.dicomio import dcmread
 from pydicom.dataset import Dataset, validate_file_meta
 from pydicom.pixel_data_handlers.util import pixel_dtype
+from pydicom.uid import ImplicitVRLittleEndian, ExplicitVRBigEndian
 import random
 from numbers import Number
 from io import BytesIO
@@ -28,6 +29,39 @@ if shapely_available:
 
 logger = logging.getLogger('dicompylercore.dicomparser')
 
+
+def _fix_meta_info(ds: Dataset) -> None:
+    """Ensure the file meta info exists and has the correct values
+    for transfer syntax and media storage UIDs.
+
+    Copied from pydicom 2.4 and edited
+
+    .. warning::
+
+        The transfer syntax for ``is_implicit_VR = False`` and
+        ``is_little_endian = True`` is ambiguous and will therefore not
+        be set.
+
+    Parameters
+    ----------
+    ds: pydicom Dataset
+
+    """
+    ds.ensure_file_meta()
+
+    if ds.is_little_endian and ds.is_implicit_VR:
+        ds.file_meta.TransferSyntaxUID = ImplicitVRLittleEndian
+    elif not ds.is_little_endian and not ds.is_implicit_VR:
+        ds.file_meta.TransferSyntaxUID = ExplicitVRBigEndian
+    elif not ds.is_little_endian and ds.is_implicit_VR:
+        raise NotImplementedError("Implicit VR Big Endian is not a "
+                                    "supported Transfer Syntax.")
+
+    if 'SOPClassUID' in ds:
+        ds.file_meta.MediaStorageSOPClassUID = ds.SOPClassUID
+    if 'SOPInstanceUID' in ds:
+        ds.file_meta.MediaStorageSOPInstanceUID = ds.SOPInstanceUID
+    
 
 class DicomParser:
     """Class to parse DICOM / DICOM RT files."""
@@ -74,12 +108,14 @@ class DicomParser:
             raise AttributeError
 
         # Fix dataset file_meta if incorrect
+        self.ds.ensure_file_meta()
         try:
             validate_file_meta(self.ds.file_meta)
-        except ValueError:
+        except (AttributeError, ValueError):
             logger.debug('Fixing invalid File Meta for ' +
                          str(self.ds.SOPInstanceUID))
-            self.ds.fix_meta_info()
+            _fix_meta_info(self.ds)
+            validate_file_meta(self.ds.file_meta)
 
         # Remove the PixelData attribute if it is not set.
         # i.e. RTStruct does not contain PixelData and its presence can confuse
