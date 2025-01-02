@@ -113,7 +113,8 @@ class DVH(object):
             f'[{self.bins.min()}:{self.bins.max()}] {self.dose_units}, '
             f'volume: {self.volume} {self.volume_units}, name: {self.name}, '
             f'rx_dose: {0 if not self.rx_dose else self.rx_dose} '
-            f'{self.dose_units}{", *Notes: " + self.notes if self.notes else ""})'
+            f'{self.dose_units}"
+            f'{", *Notes: " + self.notes if self.notes else ""}'
         )
     def __eq__(self, other):
         """Comparison method between two DVH objects.
