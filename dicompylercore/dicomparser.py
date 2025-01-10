@@ -21,6 +21,7 @@ from io import BytesIO
 from pathlib import Path
 from dicompylercore import dvh, util
 from dicompylercore.config import pil_available, shapely_available
+from itertools import islice
 
 if pil_available:
     from PIL import Image
@@ -657,6 +658,20 @@ class DicomParser:
                             # for easier parsing
                             plane['data'] = \
                                 self.GetContourPoints(c.ContourData)
+
+                            # Verify if all z-coordinates in this plane
+                            # are identical
+                            z0 = c.ContourData[2]
+                            if not all(
+                                z == z0
+                                for z in islice(c.ContourData, 5, None, 3)
+                            ):
+                                logger.debug(
+                                    f"Warning ROI Number {roi_number}:\n"
+                                    "Not all z-coordinates are identical.\n"
+                                    "Execution halted."
+                                )
+                                return {}
 
                             # Add each plane to the planes dict
                             # of the current ROI
