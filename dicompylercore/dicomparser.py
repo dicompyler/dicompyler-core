@@ -11,13 +11,10 @@
 
 import logging
 import numpy as np
-try:
-    from pydicom.dicomio import read_file
-    from pydicom.dataset import Dataset, validate_file_meta
-    from pydicom.pixel_data_handlers.util import pixel_dtype
-except ImportError:
-    from dicom import read_file
-    from dicom.dataset import Dataset
+from pydicom.dicomio import dcmread
+from pydicom.dataset import Dataset, validate_file_meta
+from pydicom.pixel_data_handlers.util import pixel_dtype
+from pydicom.uid import ImplicitVRLittleEndian, ExplicitVRBigEndian
 import random
 from numbers import Number
 from io import BytesIO
@@ -31,6 +28,40 @@ if shapely_available:
     from shapely.geometry import Polygon
 
 logger = logging.getLogger('dicompylercore.dicomparser')
+
+
+def _fix_meta_info(dataset: Dataset) -> None:
+    """Ensure the file meta info exists and has the correct values
+    for transfer syntax and media storage UIDs.
+
+    Copied from pydicom 2.4 and edited
+
+    .. warning::
+
+        The transfer syntax for ``is_implicit_VR = False`` and
+        ``is_little_endian = True`` is ambiguous and will therefore not
+        be set.
+
+    Parameters
+    ----------
+    dataset: pydicom Dataset
+
+    """
+    dataset.ensure_file_meta()
+
+    if dataset.is_little_endian and dataset.is_implicit_VR:
+        dataset.file_meta.TransferSyntaxUID = ImplicitVRLittleEndian
+    elif not dataset.is_little_endian and not dataset.is_implicit_VR:
+        dataset.file_meta.TransferSyntaxUID = ExplicitVRBigEndian
+    elif not dataset.is_little_endian and dataset.is_implicit_VR:
+        raise NotImplementedError(
+            "Implicit VR Big Endian is not a supported Transfer Syntax."
+        )
+
+    if 'SOPClassUID' in dataset:
+        dataset.file_meta.MediaStorageSOPClassUID = dataset.SOPClassUID
+    if 'SOPInstanceUID' in dataset:
+        dataset.file_meta.MediaStorageSOPInstanceUID = dataset.SOPInstanceUID
 
 
 class DicomParser:
@@ -59,7 +90,7 @@ class DicomParser:
         elif isinstance(dataset, (str, BytesIO, Path)):
             try:
                 with open(dataset, "rb") as fp:
-                    self.ds = read_file(fp, defer_size=100, force=True,
+                    self.ds = dcmread(fp, defer_size=100, force=True,
                                         stop_before_pixels=memmap_pixel_array)
                     if memmap_pixel_array:
                         self.offset = fp.tell() + 8
@@ -78,12 +109,14 @@ class DicomParser:
             raise AttributeError
 
         # Fix dataset file_meta if incorrect
+        self.ds.ensure_file_meta()
         try:
             validate_file_meta(self.ds.file_meta)
-        except ValueError:
+        except (AttributeError, ValueError):
             logger.debug('Fixing invalid File Meta for ' +
                          str(self.ds.SOPInstanceUID))
-            self.ds.fix_meta_info()
+            _fix_meta_info(self.ds)
+            validate_file_meta(self.ds.file_meta)
 
         # Remove the PixelData attribute if it is not set.
         # i.e. RTStruct does not contain PixelData and its presence can confuse

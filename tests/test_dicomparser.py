@@ -7,16 +7,12 @@
 
 import unittest
 import os
-from dicompylercore import dicomparser
-from dicompylercore.config import pil_available, shapely_available
-try:
-    from pydicom.multival import MultiValue as mv
-    from pydicom.valuerep import DSfloat
-except ImportError:
-    from dicom.multival import MultiValue as mv
-    from dicom.valuerep import DSfloat
+from pydicom.multival import MultiValue as mv
+from pydicom.valuerep import DSfloat
 from numpy import array, arange
 from numpy.testing import assert_array_equal, assert_array_almost_equal
+from dicompylercore import dicomparser
+from dicompylercore.config import pil_available, shapely_available
 
 basedata_dir = "tests/testdata"
 example_data = os.path.join(basedata_dir, "example_data")
