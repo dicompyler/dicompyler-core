@@ -6,9 +6,11 @@
 
 import unittest
 import os
-from pydicom.dataset import Dataset
+from pydicom.dataset import Dataset, FileMetaDataset
 from pydicom.sequence import Sequence
+from pydicom.uid import generate_uid
 from numpy import arange
+import numpy
 from numpy.testing import assert_allclose
 from .util import fake_rtdose, fake_ss
 from dicompylercore import dicomparser, dvhcalc
@@ -255,6 +257,75 @@ class TestDVHCalc(unittest.TestCase):
         # Mean dose to structure
         self.assertAlmostEqual(dvh.mean, 6.4767105)
 
+    def test_histogram_preserves_final_bin(self):
+        """Regression test for maxdose computation."""
+        # Create minimal RT Dose dataset with max dose slightly above an
+        # integer bin boundary so rounding down would truncate it.
+        dose = Dataset()
+        dose.SOPClassUID = "1.2.840.10008.5.1.4.1.1.481.2"
+        dose.SOPInstanceUID = generate_uid()
+        dose.Modality = "RTDOSE"
+        dose.Rows = 1
+        dose.Columns = 1
+        dose.NumberOfFrames = 1
+        dose.GridFrameOffsetVector = [0.0]
+        dose.FrameIncrementPointer = (0x3004, 0x000c)
+        dose.ImagePositionPatient = [0.0, 0.0, 0.0]
+        dose.ImageOrientationPatient = [1, 0, 0, 0, 1, 0]
+        dose.PixelSpacing = [1.0, 1.0]
+        dose.SamplesPerPixel = 1
+        dose.PhotometricInterpretation = "MONOCHROME2"
+        dose.BitsAllocated = 32
+        dose.BitsStored = 32
+        dose.HighBit = 31
+        dose.PixelRepresentation = 0
+        dose.DoseUnits = "GY"
+        dose.DoseType = "PHYSICAL"
+        dose.DoseSummationType = "PLAN"
+        dose.DoseGridScaling = 0.00001
+
+        arr = numpy.array([[[53001]]], dtype=numpy.uint32)
+        dose.PixelData = arr.tobytes()
+
+        file_meta = FileMetaDataset()
+        file_meta.FileMetaInformationVersion = b"\x00\x01"
+        file_meta.MediaStorageSOPClassUID = dose.SOPClassUID
+        file_meta.MediaStorageSOPInstanceUID = dose.SOPInstanceUID
+        file_meta.TransferSyntaxUID = "1.2.840.10008.1.2"
+        dose.file_meta = file_meta
+        dose.is_implicit_VR = True
+        dose.is_little_endian = True
+
+        # Define a simple square structure covering the single dose voxel
+        structure = {
+            "id": 1,
+            "name": "square",
+            "thickness": 1,
+            "planes": {
+                0.0: [
+                    {
+                        "type": "CLOSED_PLANAR",
+                        "num_points": 4,
+                        "data": [
+                            [0.0, 0.0, 0.0],
+                            [1.0, 0.0, 0.0],
+                            [1.0, 1.0, 0.0],
+                            [0.0, 1.0, 0.0],
+                        ],
+                    }
+                ]
+            },
+        }
+
+        dvh_data = dvhcalc._calculate_dvh(structure, dicomparser.DicomParser(dose))
+        self.assertEqual(dvh_data.histogram.size, 54)
+        # # Final bin should contain volume of single 1×1×1 mm voxel = 0.001 cm³
+        expected_vol = (
+            dose.PixelSpacing[0]
+            * dose.PixelSpacing[1]
+            * structure["thickness"]
+        ) / 1000.0
+        self.assertAlmostEqual(dvh_data.histogram[-1], expected_vol)
 
 class TestDVHCalcDecubitus(unittest.TestCase):
     """Unit tests for DVH calculation in decubitus orientations."""

@@ -299,7 +299,10 @@ def get_contour_mask(dd, id, dosegridpoints, contour):
     # mask = inpolygon(p, x.ravel(), y.ravel())
     # return mask.reshape((len(doselut[1]), len(doselut[0])))
 
-    grid = c.contains_points(dosegridpoints)
+    # ``contains_points`` excludes points on the polygon boundary which can
+    # occur when a contour lies exactly on a voxel edge.  Use a tiny positive
+    # radius to expand the polygon and include boundary points.
+    grid = c.contains_points(dosegridpoints, radius=1e-9)
     if dd['x_lut_index'] == 0:  # X values across columns
         grid = grid.reshape((len(doselut[1]), len(doselut[0])))
     else:  # decubitus
@@ -318,9 +321,12 @@ def calculate_contour_dvh(mask, doseplane, maxdose, dd, id, structure):
                                range=(0, maxdose))
 
     # Calculate the volume for the contour for the given dose plane
-    vol = sum(hist) * (abs(np.mean(np.diff(dd['lut'][0]))) *
-                       abs(np.mean(np.diff(dd['lut'][1]))) *
-                       (structure['thickness']))
+    # When the dose grid has a single row or column, ``np.diff`` returns an
+    # empty array which would propagate ``NaN`` through the volume
+    # calculation.  Fall back to the original pixel spacing in these cases.
+    dx = np.mean(np.diff(dd['lut'][0])) if len(dd['lut'][0]) > 1 else id['pixelspacing'][0]
+    dy = np.mean(np.diff(dd['lut'][1])) if len(dd['lut'][1]) > 1 else id['pixelspacing'][1]
+    vol = sum(hist) * (abs(dx) * abs(dy) * (structure['thickness']))
     return hist, vol
 
 
