@@ -19,6 +19,8 @@ try:
 except ImportError:
     from collections import Sequence
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from functools import partial
 logger = logging.getLogger('dicompylercore.dvhcalc')
 
 if skimage_available:
@@ -35,7 +37,9 @@ def get_dvh(structure,
             interpolation_segments_between_planes=0,
             thickness=None,
             memmap_rtdose=False,
-            callback=None):
+            callback=None,
+            max_workers=None,
+            voxel_subsampling=1):
     """Calculate a cumulative DVH in Gy from a DICOM RT Structure Set & Dose.
 
     Parameters
@@ -66,6 +70,14 @@ def get_dvh(structure,
         This reduces memory usage at the expense of increased calculation time.
     callback : function, optional
         A function that will be called at every iteration of the calculation.
+    max_workers : int, optional
+        Maximum number of worker threads for parallel plane processing.
+        If None (default), uses sequential processing. Recommended: number of CPU cores.
+    voxel_subsampling : int, optional
+        Number of sub-samples per voxel dimension for more accurate ROI membership.
+        Default is 1 (single center point). Higher values (e.g., 2, 3) improve accuracy
+        but increase computation time. Value of 2 = 4 samples per voxel (2x2),
+        value of 3 = 9 samples per voxel (3x3), etc.
 
     Returns
     -------
@@ -86,7 +98,7 @@ def get_dvh(structure,
     calcdvh = _calculate_dvh(s, rtdose, limit, calculate_full_volume,
                              use_structure_extents, interpolation_resolution,
                              interpolation_segments_between_planes,
-                             callback)
+                             callback, max_workers, voxel_subsampling)
     return dvh.DVH(counts=calcdvh.histogram,
                    bins=(np.arange(0, 2) if (calcdvh.histogram.size == 1) else
                          np.arange(0, calcdvh.histogram.size + 1) / 100),
@@ -103,7 +115,9 @@ def _calculate_dvh(structure,
                    use_structure_extents=False,
                    interpolation_resolution=None,
                    interpolation_segments_between_planes=0,
-                   callback=None):
+                   callback=None,
+                   max_workers=None,
+                   voxel_subsampling=1):
     """Calculate a differential DVH for the given structure and dose grid.
 
     Parameters
@@ -127,6 +141,10 @@ def _calculate_dvh(structure,
         Number of segments to interpolate between structure slices.
     callback : function, optional
         A function that will be called at every iteration of the calculation.
+    max_workers : int, optional
+        Maximum number of worker threads for parallel plane processing.
+    voxel_subsampling : int, optional
+        Number of sub-samples per voxel dimension for ROI membership calculation.
 
     Returns
     -------
@@ -204,36 +222,37 @@ def _calculate_dvh(structure,
         structure['thickness'] = structure[
             'thickness'] / (interpolation_segments_between_planes + 1)
 
-    # Iterate over each plane in the structure
-    for z, plane in planes.items():
+    # Helper function to process a single plane
+    def process_plane(z, plane):
+        """Process a single plane and return the histogram data."""
+        local_notes = None
         # Get the dose plane for the current structure plane
         if interpolation_resolution or use_structure_extents:
             doseplane = get_interpolated_dose(
                 dose, z, interpolation_resolution, dgindexextents)
         else:
             doseplane = dose.GetDoseGrid(z)
+
         if doseplane.size:
-            planedata[z] = calculate_plane_histogram(plane, doseplane,
-                                                     dosegridpoints, maxdose,
-                                                     dd, id, structure, hist)
-            # print(f'Slice: {z}, volume: {planedata[z][1]}')
+            result = calculate_plane_histogram(plane, doseplane,
+                                              dosegridpoints, maxdose,
+                                              dd, id, structure, hist,
+                                              voxel_subsampling)
         else:
             # If the dose plane is not found, still perform the calculation
             # but only use it to calculate the volume for the slice
             if not calculate_full_volume:
                 logger.warning('Dose plane not found for %s. Contours' +
                                ' not used for volume calculation.', z)
-                notes = 'Dose grid does not encompass every contour.' + \
+                local_notes = 'Dose grid does not encompass every contour.' + \
                     ' Volume calculated within dose grid.'
+                result = (np.array([0]), 0)
             else:
                 origin_z = id['position'][2]
                 logger.warning('Dose plane not found for %s.' +
                                ' Using %s to calculate contour volume.',
                                z, origin_z)
                 # Create a dummy dose grid with the correct size.
-                # calculate_plane_histogram() and its methods provide the
-                # volume calc needed, but do so as part of DVH calc,
-                # which requires a dose grid
                 dummy_dose = dose.GetDoseGrid(origin_z)
                 if use_structure_extents:
                     extents = dgindexextents
@@ -242,13 +261,41 @@ def _calculate_dvh(structure,
                     ]
                 _, vol = calculate_plane_histogram(
                     plane, dummy_dose, dosegridpoints, maxdose,
-                    dd, id, structure, hist)
-                planedata[z] = (np.array([0]), vol)
-                notes = 'Dose grid does not encompass every contour.' + \
+                    dd, id, structure, hist, voxel_subsampling)
+                result = (np.array([0]), vol)
+                local_notes = 'Dose grid does not encompass every contour.' + \
                     ' Volume calculated for all contours.'
-        n += 1
-        if callback:
-            callback(n, len(planes))
+        return z, result, local_notes
+
+    # Process planes either in parallel or sequentially
+    if max_workers and max_workers > 1:
+        # Multi-threaded processing
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all plane processing tasks
+            future_to_z = {
+                executor.submit(process_plane, z, plane): z
+                for z, plane in planes.items()
+            }
+
+            # Collect results as they complete
+            for future in as_completed(future_to_z):
+                z, result, local_notes = future.result()
+                planedata[z] = result
+                if local_notes:
+                    notes = local_notes
+                n += 1
+                if callback:
+                    callback(n, len(planes))
+    else:
+        # Sequential processing (original behavior)
+        for z, plane in planes.items():
+            z, result, local_notes = process_plane(z, plane)
+            planedata[z] = result
+            if local_notes:
+                notes = local_notes
+            n += 1
+            if callback:
+                callback(n, len(planes))
     # Volume units are given in cm^3
     volume = sum([p[1] for p in planedata.values()]) / 1000
     # print(f'total volume: {volume}')
@@ -265,62 +312,163 @@ def _calculate_dvh(structure,
 
 
 def calculate_plane_histogram(plane, doseplane, dosegridpoints, maxdose, dd,
-                              id, structure, hist):
+                              id, structure, hist, subsampling=1):
     """Calculate the DVH for the given plane in the structure."""
     contours = [[x[0:2] for x in c['data']] for c in plane]
 
-    # Create a zero valued bool grid
-    grid = np.zeros((dd['rows'], dd['columns']), dtype=np.uint8)
+    # Create a zero valued grid (float for fractional subsampling)
+    grid = np.zeros((dd['rows'], dd['columns']), dtype=np.float32)
 
     # Calculate the dose plane mask for each contour in the plane
     # and boolean xor to remove holes
     for i, contour in enumerate(contours):
-        m = get_contour_mask(dd, id, dosegridpoints, contour)
-        grid = np.logical_xor(m.astype(np.uint8), grid).astype(np.bool_)
+        m = get_contour_mask(dd, id, dosegridpoints, contour, subsampling)
+        # For fractional masks, we need to handle XOR differently
+        if subsampling > 1:
+            # Convert to binary mask for XOR operation
+            m_binary = (m > 0.5).astype(np.uint8)
+            grid_binary = (grid > 0.5).astype(np.uint8)
+            combined = np.logical_xor(m_binary, grid_binary).astype(np.float32)
+            # Where the XOR is true, use the fractional value from the new mask
+            grid = np.where(combined > 0, m, 0.0)
+        else:
+            grid = np.logical_xor(m.astype(np.uint8), grid).astype(np.float32)
 
     hist, vol = calculate_contour_dvh(grid, doseplane, maxdose, dd, id,
                                       structure)
     return (hist, vol)
 
 
-def get_contour_mask(dd, id, dosegridpoints, contour):
-    """Get the mask for the contour with respect to the dose plane."""
-    doselut = dd['lut']
+def get_contour_mask(dd, id, dosegridpoints, contour, subsampling=1):
+    """Get the mask for the contour with respect to the dose plane.
 
+    Parameters
+    ----------
+    dd : dict
+        Dose data from dicomparser.GetDoseData.
+    id : dict
+        Image data from dicomparser.GetImageData.
+    dosegridpoints : ndarray
+        Grid points for dose grid.
+    contour : list
+        Contour points defining the ROI boundary.
+    subsampling : int, optional
+        Number of sub-samples per voxel dimension. Default is 1 (single center point).
+        Higher values (e.g., 2, 3) create a grid of sub-points within each voxel
+        for more accurate partial volume calculation.
+
+    Returns
+    -------
+    ndarray
+        Mask array with values between 0 and 1 representing fractional voxel coverage.
+    """
+    doselut = dd['lut']
     c = matplotlib.path.Path(list(contour))
 
-    # def inpolygon(polygon, xp, yp):
-    #     return np.array(
-    #         [Point(x, y).intersects(polygon) for x, y in zip(xp, yp)],
-    #         dtype=np.bool)
+    if subsampling <= 1:
+        # Original behavior: single point per voxel (center point)
+        grid = c.contains_points(dosegridpoints)
+        if dd['x_lut_index'] == 0:  # X values across columns
+            grid = grid.reshape((len(doselut[1]), len(doselut[0])))
+        else:  # decubitus
+            grid = grid.reshape((len(doselut[0]), len(doselut[1]))).T
+        return grid.astype(np.float32)
 
-    # p = Polygon(contour)
-    # x, y = np.meshgrid(np.array(dd['lut'][0]), np.array(dd['lut'][1]))
-    # mask = inpolygon(p, x.ravel(), y.ravel())
-    # return mask.reshape((len(doselut[1]), len(doselut[0])))
+    # Sub-sampling: create multiple sample points per voxel
+    x_index = dd['x_lut_index']
+    x_spacing = np.mean(np.abs(np.diff(dd['lut'][x_index])))
+    y_spacing = np.mean(np.abs(np.diff(dd['lut'][1-x_index])))
 
-    grid = c.contains_points(dosegridpoints)
+    # Create sub-sample offsets relative to voxel center
+    # For subsampling=2: offsets at [-0.25, 0.25] * spacing
+    # For subsampling=3: offsets at [-0.33, 0, 0.33] * spacing
+    sub_offsets = np.linspace(-0.5, 0.5, subsampling + 1)[:-1] + 0.5 / subsampling
+    sub_offsets = sub_offsets - 0.5  # Center around 0
+
+    # Generate all sub-sample points
+    x_base, y_base = np.meshgrid(np.array(dd['lut'][x_index]),
+                                  np.array(dd['lut'][1-x_index]))
+    x_base, y_base = x_base.flatten(), y_base.flatten()
+
+    # Initialize fractional mask
+    total_samples = subsampling * subsampling
+    fractional_mask = np.zeros(len(x_base), dtype=np.float32)
+
+    # Test all sub-sample points
+    for x_offset in sub_offsets:
+        for y_offset in sub_offsets:
+            x_sub = x_base + x_offset * x_spacing
+            y_sub = y_base + y_offset * y_spacing
+            subsample_points = np.vstack((x_sub, y_sub)).T
+            hits = c.contains_points(subsample_points)
+            fractional_mask += hits.astype(np.float32)
+
+    # Normalize to [0, 1] range
+    fractional_mask /= total_samples
+
+    # Reshape to grid
     if dd['x_lut_index'] == 0:  # X values across columns
-        grid = grid.reshape((len(doselut[1]), len(doselut[0])))
+        grid = fractional_mask.reshape((len(doselut[1]), len(doselut[0])))
     else:  # decubitus
-        grid = grid.reshape((len(doselut[0]), len(doselut[1]))).T
+        grid = fractional_mask.reshape((len(doselut[0]), len(doselut[1]))).T
 
     return grid
 
 
 def calculate_contour_dvh(mask, doseplane, maxdose, dd, id, structure):
-    """Calculate the differential DVH for the given contour and dose plane."""
-    # Multiply the structure mask by the dose plane to get the dose mask
-    mask = ma.array(doseplane * dd['dosegridscaling'] * 100, mask=~mask)
-    # Calculate the differential dvh
-    hist, edges = np.histogram(mask.compressed(),
-                               bins=maxdose,
-                               range=(0, maxdose))
+    """Calculate the differential DVH for the given contour and dose plane.
+
+    Parameters
+    ----------
+    mask : ndarray
+        Mask array with values between 0 and 1 representing fractional voxel coverage.
+    doseplane : ndarray
+        Dose values for the current plane.
+    maxdose : int
+        Maximum dose value in cGy.
+    dd : dict
+        Dose data from dicomparser.GetDoseData.
+    id : dict
+        Image data from dicomparser.GetImageData.
+    structure : dict
+        Structure information including thickness.
+
+    Returns
+    -------
+    tuple
+        Histogram and volume (hist, vol).
+    """
+    # For fractional masks, we need weighted histogram
+    dose_values = doseplane * dd['dosegridscaling'] * 100
+
+    # Check if mask is fractional (has non-integer values)
+    is_fractional = np.any((mask > 0) & (mask < 1))
+
+    if is_fractional:
+        # Weighted histogram for fractional voxel coverage
+        # Only process voxels with non-zero mask values
+        valid_indices = mask > 0
+        valid_doses = dose_values[valid_indices]
+        valid_weights = mask[valid_indices]
+
+        hist, edges = np.histogram(valid_doses,
+                                   bins=maxdose,
+                                   range=(0, maxdose),
+                                   weights=valid_weights)
+    else:
+        # Original behavior for binary masks
+        binary_mask = mask > 0.5
+        masked_dose = ma.array(dose_values, mask=~binary_mask)
+        hist, edges = np.histogram(masked_dose.compressed(),
+                                   bins=maxdose,
+                                   range=(0, maxdose))
 
     # Calculate the volume for the contour for the given dose plane
-    vol = sum(hist) * (abs(np.mean(np.diff(dd['lut'][0]))) *
-                       abs(np.mean(np.diff(dd['lut'][1]))) *
-                       (structure['thickness']))
+    # Volume is proportional to the sum of mask values (weighted by voxel volume)
+    voxel_area = (abs(np.mean(np.diff(dd['lut'][0]))) *
+                  abs(np.mean(np.diff(dd['lut'][1]))))
+    vol = np.sum(mask) * voxel_area * structure['thickness']
+
     return hist, vol
 
 
